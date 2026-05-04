@@ -4,7 +4,7 @@ function syncCurrentTotal() {
   const dest   = SpreadsheetApp.openById(DEST_ID);
 
   const assetSheet  = dest.getSheetByName(SHEET_ASSETS);
-  const resultSheet = source.getSheetByName("Bilan");
+  const resultSheet = source.getSheetByName(SOURCE_RESULTS);
 
   // --- Clear the 4 columns before writing ---
   const lastRow = assetSheet.getLastRow();
@@ -22,7 +22,7 @@ function syncCurrentTotal() {
     // Find matching row in source data (in memory)
     let sourceRow = -1;
     for (let j = 0; j < resultData.length; j++) {
-      if (resultData[j][14] === name) {
+      if (resultData[j][COL_SOURCE_ASSETS] === name) {
         sourceRow = j;
         break;
       }

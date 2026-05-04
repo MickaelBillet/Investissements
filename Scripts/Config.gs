@@ -6,6 +6,12 @@
 const SOURCE_ID = "188bNY_oSVrHZKZ1Vadj7SxnCosDDw2g-oG8UjDARMAI";
 const DEST_ID = "1Dvhz3AME0WoGkmiJQ5eBQ4FYno4l_kuyiShk75TZZNE";
 
+// --- SOURCE - Sheet name
+const SOURCE_RESULTS = "Bilan";
+
+// --- SOURCE - Column
+const COL_SOURCE_ASSETS = 13;
+
 // --- Sheet names ---
 const SHEET_ASSETS   = "Asset";
 const SHEET_SNAPSHOT = "Snapshot";
