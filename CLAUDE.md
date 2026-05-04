@@ -1,9 +1,5 @@
 # CLAUDE.md — Investment Dashboard
 
-**Statut :** Brouillon  
-**Version :** 1.0  
-**Date :** 2026-04-21  
-
 ---
 
 ## 1. Contexte et objectif
@@ -195,7 +191,7 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 
 ## 7. Fonctionnalités du dashboard
 
-> ⚠️ **Section à compléter** — Les spécifications fonctionnelles détaillées feront l'objet d'un document dédié `SPECS.md`.
+> ⚠️ **Section à compléter** — Les spécifications fonctionnelles détaillées feront l'objet d'un document dédié `Docs/SPECS.md`.
 
 ### 7.1 Vue instantanée (snapshot du jour)
 
@@ -234,6 +230,7 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 
 ```
 investment-dashboard/
+├── CLAUDE.md                        # Architecture globale (ce fichier)
 ├── Client/                          # Projet Blazor WASM
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique du Client
@@ -248,7 +245,6 @@ investment-dashboard/
 │       └── SPECS.md                 # Spécifications fonctionnelles des Scripts
 ├── Shared/                          # Modèles partagés Client + Api
 ├── Docs/                            # Documentation globale du projet
-│   ├── CLAUDE.md                    # Architecture globale (ce fichier)
 │   └── SPECS.md                     # Spécifications globales
 ├── .github/
 │   └── workflows/
@@ -258,7 +254,7 @@ investment-dashboard/
 ### 8.3 Règle de contexte pour Claude Code
 
 > Quand tu travailles sur un sous-projet, tu lis **uniquement** :
-> - `Docs/CLAUDE.md` et `Docs/SPECS.md` (contexte global)
+> - `CLAUDE.md` et `Docs/SPECS.md` (contexte global)
 > - `<sous-projet>/Docs/CLAUDE.md` et `<sous-projet>/Docs/SPECS.md` (contexte spécifique)
 >
 > Tu ne lis pas les fichiers `Docs/` des autres sous-projets.
