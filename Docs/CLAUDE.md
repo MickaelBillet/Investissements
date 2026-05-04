@@ -6,6 +6,15 @@
 
 ---
 
+## 0. Instructions de collaboration
+
+### 0.1 Gestion des branches et PR
+- Toujours créer les modifications sur une **nouvelle branche** dédiée
+- Ne jamais merger directement dans `main` — les PR et merges sont effectués **manuellement par l'utilisateur sur GitHub**
+- Après un push de branche, fournir le lien GitHub de création de PR
+
+---
+
 ## 1. Contexte et objectif
 
 Développer un dashboard web personnel permettant de visualiser un portefeuille d'investissement multi-supports. L'application doit offrir deux niveaux de lecture :
