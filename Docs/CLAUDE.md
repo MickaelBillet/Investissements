@@ -131,29 +131,65 @@ Azure Static Web Apps + nom de domaine custom
 
 ## 6. Structure du Google Sheets
 
-> ⚠️ **Section à compléter avec Claude Code**
-> La structure détaillée des onglets (noms de colonnes, types de données, relations entre onglets) sera définie lors de la phase de développement, en analysant le Google Sheets existant de l'utilisateur.
+Deux Google Sheets sont utilisés :
+
+| Constante | Rôle |
+|---|---|
+| `SOURCE_ID` | Feuille personnelle de l'utilisateur — onglet "Bilan" (source des valeurs brutes) |
+| `DEST_ID` | Feuille structurée API — onglets "Asset" et "Snapshot" (servie par l'Apps Script) |
 
 ### 6.1 Principe général
-Le Google Sheets est structuré comme une base de données relationnelle. Chaque onglet représente une table distincte avec un rôle précis.
+Le Google Sheets DEST est structuré comme une base de données relationnelle. Chaque onglet représente une table distincte avec un rôle précis.
 
-### 6.2 Onglets attendus (à confirmer)
+### 6.2 Onglet `Asset` (DEST_ID)
 
-| Onglet | Rôle | Type |
-|---|---|---|
-| `Positions` | État du portefeuille du jour, une ligne par actif | Snapshot |
-| `Historique_Portfolio` | Valeur totale du portefeuille jour par jour | Série temporelle |
-| `Historique_Allocations` | Répartition par catégorie jour par jour | Série temporelle |
-| `Referentiel_Actifs` | Métadonnées fixes par actif (nom, type, zone géo...) | Référentiel |
-| `Referentiel_Types` | Listes de valeurs (types de supports, zones géo...) | Référentiel |
+Une ligne par actif. Colonnes (index 0-based) :
 
-### 6.3 Taxonomie des données
+| Index | Colonne | Constante | Description |
+|---|---|---|---|
+| 0 | A | `COL_ID` | Identifiant |
+| 1 | B | `COL_NAME` | Nom de l'actif |
+| 2 | C | `COL_ASSET_CLASS` | Classe d'actif (`ASSET_CLASS`) |
+| 3 | D | `COL_SUPPORT_TYPE` | Type d'enveloppe (`SUPPORT_TYPE`) |
+| 4 | E | `COL_SUPPORT` | Enveloppe / broker (`SUPPORT`) |
+| 5 | F | `COL_ASSET_TYPE` | Type d'actif (`ASSET_TYPE`) |
+| 6 | G | `COL_INFORMATION` | Informations libres |
+| 7 | H | `COL_RISK` | Niveau de risque 0–4 (`RISK`) |
+| 8 | I | `COL_TOTAL_PURCHASES` | Total achats en EUR (peut être `"ND"`) |
+| 9 | J | `COL_TOTAL_SALES` | Total ventes en EUR |
+| 10 | K | `COL_DIVIDENDS` | Dividendes perçus en EUR |
+| 11 | L | `COL_CURRENT_TOTAL` | Valeur actuelle en EUR |
 
-**Types de supports :**
-Actions, Obligations, ETF, Immobilier (SCPI, crowdlending), Crypto, Fonds (assurance-vie, PER), Livrets
+Les colonnes I–L sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
 
-**Zones géographiques :**
-Europe, Amérique du Nord, Asie-Pacifique, Marchés émergents, Monde, France, Autre
+### 6.3 Onglet `Snapshot` (DEST_ID)
+
+Une ligne par jour. Colonnes (index 0-based) :
+
+| Index | Colonne | Constante | Description |
+|---|---|---|---|
+| 0 | A | `COL_SNAP_DATE` | Date (yyyy-MM-dd) |
+| 1 | B | `COL_SNAP_PORTFOLIO` | Valeur totale du portefeuille (EUR) |
+| 2 | C | `COL_SNAP_LIFESTRATEGY` | Référence LifeStrategy 60 |
+| 3 | D | `COL_SNAP_MSCI_WORLD` | Référence MSCI World |
+
+### 6.4 Valeur sentinelle `"ND"`
+
+Quand une valeur financière n'est pas disponible, la feuille contient la chaîne `"ND"` (Not Defined) à la place d'un nombre. Les fonctions d'agrégation ignorent ces lignes plutôt que de sommer zéro, et posent `hasIncompleteData: true` sur le résultat agrégé. Les métriques calculées (`unrealizedGain`, `yield`, `roi`) sont retournées `null` quand les données sont incomplètes.
+
+### 6.5 Taxonomie des données
+
+**Classes d'actifs (`ASSET_CLASS`) :**
+`Stocks`, `Bonds`, `Cash`, `PrivateDebt`, `RealEstate`, `Commodities`, `Crypto`, `Miscellaneous`
+
+**Types d'actifs (`ASSET_TYPE`) :**
+`Stock`, `ETF_Stocks`, `ETF_Bunds`, `Cash_Deposite`, `MarketBonds`, `Savings`, `Direct loans (P2P)`, `SCI_SCPI`, `ETC_ETC_Commodities`, `Crypto`, `UnlistedBonds`, `OPCVM`, `EuroFunds`, `MoneyMarketETF`
+
+**Types d'enveloppes (`SUPPORT_TYPE`) :**
+`AccountBank`, `Booklet`, `Platform`, `CTO`, `PEA`, `LifeInsurance`
+
+**Enveloppes / brokers (`SUPPORT`) :**
+`CTO TR`, `Livret A`, `LDD`, `Trade Republic`, `PEA TR`, `Spirica`, `Generali`, `PerrBerry`, `Mintos`, `Enerfip`, `BienPrêter`, `Lendosphère`, `Kraken`
 
 ---
 
@@ -283,19 +319,79 @@ jobs:
 
 | # | Question | Impact |
 |---|---|---|
-| 1 | Structure détaillée des onglets du Google Sheets (noms de colonnes, types de données) | Parsing dans l'Azure Function |
+| 1 | ~~Structure détaillée des onglets du Google Sheets~~ — résolu, voir section 6 | — |
 | 2 | Nombre d'actifs à afficher dans le top holdings (10, 15, 20 ?) | Fonctionnalité dashboard |
 | 3 | Palette de couleurs souhaitée pour les graphiques | UI/UX |
-| 4 | Heure d'exécution quotidienne de l'Apps Script | Automatisation |
+| 4 | ~~Heure d'exécution quotidienne de l'Apps Script~~ — 06h00 (après clôture des marchés européens) | — |
 | 5 | Sous-domaine ou racine du domaine custom ? (ex: `dashboard.mondomaine.com`) | Déploiement |
 
 ### 10.2 Étapes suivantes
 
 Les composants sont à développer dans cet ordre :
 
-1. **Google Sheets** — Définir et structurer les onglets avec Claude Code
-2. **Google Apps Script** — Développer l'ETL quotidien avec Claude Code
+1. **Google Sheets** — ✅ Structure définie (section 6)
+2. **Google Apps Script** — ✅ ETL + API REST implémentés (`Scripts/`)
 3. **Azure Functions** — Développer les endpoints REST avec Claude Code
 4. **Blazor WASM** — Développer le dashboard avec Claude Code
 5. **CI/CD** — Configurer GitHub Actions + Azure Static Web Apps
 6. **Domaine custom** — Configurer le CNAME
+
+---
+
+## 11. Scripts — Implémentation (référence Claude Code)
+
+### 11.1 Exécution et tests
+
+Les fichiers `.gs` s'exécutent exclusivement dans l'**éditeur Google Apps Script** (script.google.com). Il n'y a pas de commande de build ou de test locale.
+
+- **Exécuter une fonction** : sélectionner la fonction dans le menu déroulant, cliquer Run.
+- **Exécuter un test** : sélectionner une fonction `test*` dans `Test.gs`, cliquer Run — résultats dans les Logs (`Ctrl+Entrée`).
+- **Déployer en Web App** : Deploy → New deployment → Web App (execute as me, access: anyone).
+- **Initialiser le token API** : exécuter `setApiToken()` une fois après chaque nouveau déploiement.
+- **Créer le déclencheur quotidien** : exécuter `creerDeclencheurSnapshot()` une fois — enregistre `snapshotQuotidien` à 06h00 chaque jour.
+
+### 11.2 Flux de requête
+
+`doGet(e)` dans `Router.gs` est l'unique point d'entrée HTTP. Chaque requête doit passer un paramètre `apiKey` (token stocké dans Script Properties, jamais dans le code). Le routage se fait sur `?service=X&action=Y` :
+
+```
+GET ?apiKey=...&service=AssetClass&action=getAll
+         │
+    Router.gs → doGet(e)
+         ├── AssetClass   → AssetClasseService.gs
+         ├── AssetType    → (inline dans Router.gs)
+         ├── SupportType  → SupportTypeService.gs
+         ├── Support      → SupportService.gs
+         ├── Asset        → AssetService.gs
+         └── Snapshot     → SnapshotService.gs
+```
+
+Les helpers partagés (`getAssetsData`, `getPortfolioTotal`, `buildAssetRow`, `aggregateGroup`, `groupBy`, `sumColumn`) sont tous dans `Router.gs`.
+
+### 11.3 Pattern des services
+
+Chaque fichier service suit le même schéma :
+
+| Fonction | Rôle |
+|---|---|
+| `handle*(action, params)` | Switch sur `action`, retourne les données ou `{ error: "..." }` |
+| `get*All()` | Agrège toutes les lignes groupées par la dimension du service |
+| `get*Distribution()` | Vue allégée `{ name, currentTotal, weightInPortfolio }` par groupe |
+| `getBy*()` | Drill-down : filtre par valeur de dimension, retourne actifs individuels ou sous-groupes |
+
+### 11.4 Pattern de test (Test.gs)
+
+Les tests simulent des requêtes HTTP en construisant un faux objet `e.parameter` et en appelant `doGet(e)` directement :
+
+```js
+function testDoGetAllAssetClass() {
+  const e = { parameter: { apiKey: "token-zapto", service: "AssetClass", action: "getAll" } };
+  Logger.log(doGet(e).getContent());
+}
+```
+
+Ajouter une fonction de test pour chaque nouveau service ou action avant de déployer.
+
+### 11.5 Enumerations (Config.gs)
+
+Toutes les valeurs de dimension sont définies comme constantes dans `Config.gs` (`ASSET_CLASS`, `ASSET_TYPE`, `SUPPORT_TYPE`, `SUPPORT`, `RISK`). Toujours utiliser ces constantes — ne jamais coder en dur des chaînes de caractères — pour rester cohérent avec ce qui est stocké dans la feuille.
