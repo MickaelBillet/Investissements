@@ -11,6 +11,10 @@ const SOURCE_RESULTS = "Bilan";
 
 // --- SOURCE - Column
 const COL_SOURCE_ASSETS = 13;
+const COL_SOURCE_TOTAL_PURCHASES = 19;
+const COL_SOURCE_DIVIDEND = 21;
+const COL_SOURCE_TOTAL_SALES = 20;
+const COL_SOURCE_CURRENT_TOTAL= 22;
 
 // --- Sheet names ---
 const SHEET_ASSETS   = "Asset";

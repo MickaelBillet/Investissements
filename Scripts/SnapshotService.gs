@@ -3,10 +3,12 @@
 // =====================================================================
 
 // --- Snapshot sheet column indexes (0-based) ---
-const COL_SNAP_DATE        = 0;  // A
-const COL_SNAP_PORTFOLIO   = 1;  // B
-const COL_SNAP_LIFESTRATEGY = 2; // C
-const COL_SNAP_MSCI_WORLD  = 3;  // D
+const COL_SNAP_DATE            = 0;  // A
+const COL_SNAP_PORTFOLIO       = 1;  // B
+const COL_SNAP_LIFESTRATEGY    = 2;  // C
+const COL_SNAP_MSCI_WORLD      = 3;  // D
+const COL_SNAP_TOTAL_PURCHASES = 4;  // E
+const COL_SNAP_TOTAL_SALES     = 5;  // F
 
 function handleSnapshot(action, params) {
 
@@ -65,9 +67,11 @@ function buildSnapshotRow(row) {
 
   return {
     date,
-    portfolioTotal : row[COL_SNAP_PORTFOLIO]    || 0,
-    lifeStrategy60 : row[COL_SNAP_LIFESTRATEGY] || null,
-    msciWorld      : row[COL_SNAP_MSCI_WORLD]   || null
+    portfolioTotal : row[COL_SNAP_PORTFOLIO]        || 0,
+    lifeStrategy60 : row[COL_SNAP_LIFESTRATEGY]     || null,
+    msciWorld      : row[COL_SNAP_MSCI_WORLD]       || null,
+    totalPurchases : row[COL_SNAP_TOTAL_PURCHASES]  || null,
+    totalSales     : row[COL_SNAP_TOTAL_SALES]      || null
   };
 }
 
@@ -77,13 +81,11 @@ function buildSnapshotRow(row) {
 
 function snapshotQuotidien() {
 
-  const dest           = SpreadsheetApp.openById(DEST_ID);
   const source = SpreadsheetApp.openById(SOURCE_ID);
-
-  const sheetAssets  = dest.getSheetByName(SHEET_ASSETS);
+  const dest = SpreadsheetApp.openById(DEST_ID);
+  
+  const resultSheet = source.getSheetByName(SOURCE_RESULTS);
   const sheetSnap    = dest.getSheetByName(SHEET_SNAPSHOT);
-
-  const resultSheet = source.getSheetByName("Bilan")
 
   const today = Utilities.formatDate(
     new Date(),
@@ -108,12 +110,17 @@ function snapshotQuotidien() {
   // --- Step 1: sync current values from source sheet ---
   syncCurrentTotal();
 
-  // --- Step 2: compute total portfolio value from Assets sheet ---
+  // --- Step 2: compute aggregates from Assets sheet ---
   const rows           = getAssetsData();
-  const portfolioTotal = Math.round(getPortfolioTotal(rows) * 100) / 100;
+  const portfolioTotal = Math.round((getPortfolioTotal(rows)) * 100) / 100;
+  const totalPurchases = Math.round(resultSheet.getRange("F63").getValue() * 100) / 100; 
+  const totalReturns   = Math.round(resultSheet.getRange("F55").getValue() * 100) / 100; 
 
-  // --- Step 3: append snapshot row ---
-  sheetSnap.appendRow([today, portfolioTotal, resultSheet.getRange("H52").getValue(), resultSheet.getRange("H54").getValue()]);
+  // --- Step 3: fetch reference stock values ---
+  const refStockValues = fetchStockValues();
+
+  // --- Step 4: append snapshot row ---
+  sheetSnap.appendRow([today, portfolioTotal, refStockValues[0], refStockValues[1], totalPurchases, totalReturns]);
 
   Logger.log("✅ Snapshot " + today + " — portfolio total: " + portfolioTotal + " €");
 }

@@ -85,6 +85,39 @@ function getPortfolioTotal(rows) {
   return sum;
 }
 
+function getDividendsTotal(rows) {
+  let sum = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const div = rows[i][COL_DIVIDENDS];
+    if (div && div !== "ND") {
+      sum += div;
+    }
+  }
+  return sum;
+}
+
+function getTotalPurchases(rows) {
+  let sum = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const tp = rows[i][COL_TOTAL_PURCHASES];
+    if (tp && tp !== "ND") {
+      sum += tp;
+    }
+  }
+  return sum;
+}
+
+function getTotalSales(rows) {
+  let sum = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const ts = rows[i][COL_TOTAL_SALES];
+    if (ts && ts !== "ND") {
+      sum += ts;
+    }
+  }
+  return sum;
+}
+
 // --- Build a single asset object from a raw sheet row ---
 function buildAssetRow(row) {
   const totalPurchases = row[COL_TOTAL_PURCHASES];

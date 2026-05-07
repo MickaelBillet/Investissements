@@ -34,10 +34,10 @@ function syncCurrentTotal() {
     }
 
     // Read all 4 values from source row
-    const totalPurchases = resultData[sourceRow][20] || "ND";
-    const totalSales     = resultData[sourceRow][21] || 0;
-    const dividends      = resultData[sourceRow][22] || 0;
-    const current        = resultData[sourceRow][23] || 0;
+    const totalPurchases = resultData[sourceRow][COL_SOURCE_TOTAL_PURCHASES] || "ND";
+    const totalSales     = resultData[sourceRow][COL_SOURCE_TOTAL_SALES] || 0;
+    const dividends      = resultData[sourceRow][COL_SOURCE_DIVIDEND] || 0;
+    const current        = resultData[sourceRow][COL_SOURCE_CURRENT_TOTAL] || 0;
 
     // Write all 4 values in one single operation
     assetSheet.getRange(i + 1, COL_TOTAL_PURCHASES + 1, 1, 4).setValues([[totalPurchases, totalSales, dividends, current]]);
@@ -45,23 +45,7 @@ function syncCurrentTotal() {
     Logger.log("✅ " + name + " → " + current);    
   }
 
-  assetSheet.getRange(64 + 1, COL_TOTAL_PURCHASES + 1, 1, 4).setValues([["ND", 0, 0, resultSheet.getRange("B65").getValue()]]); // Cash PEA
-  assetSheet.getRange(55 + 1, COL_TOTAL_PURCHASES + 1, 1, 4).setValues([["ND", 0, 0, resultSheet.getRange("C25").getValue()]]); // Account Trade Republic  
-}
-
-function diagColumnL() {
-  const dest       = SpreadsheetApp.openById(DEST_ID);
-  const assetSheet = dest.getSheetByName(SHEET_ASSETS);
-  const data       = assetSheet.getDataRange().getValues();
-
-  let total = 0;
-  for (let i = 1; i < data.length; i++) {
-    const name = data[i][COL_NAME];
-    const ct   = data[i][COL_CURRENT_TOTAL];
-    if (ct && ct !== "ND" && ct !== "") {
-      total += ct;
-      Logger.log("Row " + (i+1) + " | " + name + " → " + ct + " | running: " + Math.round(total * 100) / 100);
-    }
-  }
-  Logger.log("Total col L: " + Math.round(total * 100) / 100);
+  const cashPEA = resultSheet.getRange("B65").getValue(); // Cash PEA
+  const tradeRepublicAccount = resultSheet.getRange("C25").getValue(); // Account Trade Republic  
+  const smartCashMintos = resultSheet.getRange("B67").getValue(); // Smart Cash Mintos  
 }
