@@ -115,17 +115,32 @@ Retourné par les actions qui descendent au niveau de l'actif individuel.
 {
   "date": "2026-05-04",
   "portfolioTotal": 78450.00,
-  "lifeStrategy60": 12300.00,
-  "msciWorld": 15600.00
+  "lifeStrategy60": 42.15,
+  "msciWorld": 87.30,
+  "totalPurchases": 65000.00,
+  "totalReturns": 83200.00
 }
 ```
 
 | Champ | Type | Description |
 |---|---|---|
 | `date` | string | Date au format `yyyy-MM-dd` |
-| `portfolioTotal` | number | Valeur totale du portefeuille en EUR |
-| `lifeStrategy60` | number \| null | Valeur de référence LifeStrategy 60 |
-| `msciWorld` | number \| null | Valeur de référence MSCI World |
+| `portfolioTotal` | number | `sum(currentTotal)` des actifs en portefeuille (EUR) |
+| `lifeStrategy60` | number \| null | Prix unitaire ETF LifeStrategy 60 (EUR) — `AMS:V60A` |
+| `msciWorld` | number \| null | Prix unitaire ETF MSCI World (EUR) — `EPA:MWRD` |
+| `totalPurchases` | number \| null | Total des achats depuis l'origine (EUR), incluant actifs vendus |
+| `totalReturns` | number \| null | Total des retours depuis l'origine (EUR), incluant actifs vendus |
+
+**Calcul du ROI portefeuille (dashboard) :**
+```
+ROI% = (totalReturns - totalPurchases) / totalPurchases
+```
+
+**Comparaison avec les références (dashboard) :**
+```
+portfolio_index = portfolioTotal_today / portfolioTotal_j0
+ref_index       = refPrice_today / refPrice_j0
+```
 
 ---
 
