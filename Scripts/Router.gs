@@ -218,6 +218,20 @@ function aggregateGroup(name, rows, groupTotal, portfolioTotal) {
 // Shared utility functions (used by all services)
 // =====================================================================
 
+// --- Read a reference sheet and return a { name: id } map ---
+function getReferenceIds(sheetName) {
+  const ss    = SpreadsheetApp.openById(DEST_ID);
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return {};
+
+  const data = sheet.getRange(1, 1, sheet.getLastRow(), 2).getValues();
+  const map  = {};
+  data.slice(1).forEach(row => {
+    if (row[1] !== "") map[row[1]] = row[0];
+  });
+  return map;
+}
+
 // --- Group an array of rows by the value of a given column index ---
 function groupBy(rows, colIndex) {
   const acc = {}; // empty dictionary

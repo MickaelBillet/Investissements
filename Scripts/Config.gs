@@ -17,8 +17,12 @@ const COL_SOURCE_TOTAL_SALES = 20;
 const COL_SOURCE_CURRENT_TOTAL= 22;
 
 // --- Sheet names ---
-const SHEET_ASSETS   = "Asset";
-const SHEET_SNAPSHOT = "Snapshot";
+const SHEET_ASSETS       = "Asset";
+const SHEET_SNAPSHOT     = "Snapshot";
+const SHEET_ASSET_CLASS  = "AssetClass";
+const SHEET_ASSET_TYPE   = "AssetType";
+const SHEET_SUPPORT_TYPE = "SupportType";
+const SHEET_SUPPORT      = "Support";
 
 // --- Assets sheet column indexes (0-based) ---
 const COL_ID              = 0;  // A
