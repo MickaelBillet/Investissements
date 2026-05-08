@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Net.Http.Json;
+using System.Text.Json;
 using InvestissementsDashboard.Api.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -22,7 +24,7 @@ internal sealed class GoogleSheetsService : IGoogleSheetsService
 
     public async Task<IReadOnlyList<IReadOnlyList<string>>> GetRangeAsync(string range, CancellationToken ct = default)
     {
-        var url = $"https://sheets.googleapis.com/v4/spreadsheets/{_sheetId}/values/{Uri.EscapeDataString(range)}?key={_apiKey}";
+        var url = $"https://sheets.googleapis.com/v4/spreadsheets/{_sheetId}/values/{Uri.EscapeDataString(range)}?key={_apiKey}&valueRenderOption=UNFORMATTED_VALUE";
 
         var response = await _httpClient.GetAsync(url, ct);
 
@@ -34,6 +36,18 @@ internal sealed class GoogleSheetsService : IGoogleSheetsService
 
         var result = await response.Content.ReadFromJsonAsync<SheetValuesResponse>(ct);
 
-        return result?.Values ?? [];
+        return result?.Values
+            ?.Select(row => (IReadOnlyList<string>)row
+                .Select(cell => cell.ValueKind switch
+                {
+                    JsonValueKind.Number => cell.GetDecimal().ToString(CultureInfo.InvariantCulture),
+                    JsonValueKind.String => cell.GetString() ?? string.Empty,
+                    JsonValueKind.True   => "true",
+                    JsonValueKind.False  => "false",
+                    _                    => string.Empty
+                })
+                .ToList())
+            .ToList()
+            ?? [];
     }
 }
