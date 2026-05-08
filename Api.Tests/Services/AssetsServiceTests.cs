@@ -17,11 +17,22 @@ public class AssetsServiceTests
         => [id.ToString(), name, assetClass, supportType, support, assetType, info, risk.ToString(),
             purchases, sales, dividends, currentTotal];
 
-    private static AssetsService CreateService(IReadOnlyList<IReadOnlyList<string>> rows)
+    private static readonly IReadOnlyList<string> RefHeader = ["Id", "Name"];
+
+    private static IReadOnlyList<string> MakeRefRow(int id, string name) => [id.ToString(), name];
+
+    private static AssetsService CreateService(
+        IReadOnlyList<IReadOnlyList<string>> assetRows,
+        Dictionary<string, IReadOnlyList<IReadOnlyList<string>>>? refRanges = null)
     {
         var mock = new Mock<IGoogleSheetsService>();
+        mock.Setup(s => s.GetRangeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         mock.Setup(s => s.GetRangeAsync("Asset", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(rows);
+            .ReturnsAsync(assetRows);
+        foreach (var (range, rows) in refRanges ?? [])
+            mock.Setup(s => s.GetRangeAsync(range, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(rows);
         return new AssetsService(mock.Object, NullLogger<AssetsService>.Instance);
     }
 
@@ -107,12 +118,13 @@ public class AssetsServiceTests
     [Fact]
     public async Task GetDistributionByDimensionAsync_GroupsByAssetClass()
     {
-        var rows = new[] { HeaderRow,
+        var assetRows = new[] { HeaderRow,
             MakeRow(1, "MSCI World", "Stocks", "PEA",     "PEA TR",  "ETF_Stocks", "", 4, "5000", "0", "0", "6000"),
             MakeRow(2, "S&P 500",   "Stocks", "CTO",     "CTO TR",  "ETF_Stocks", "", 4, "3000", "0", "0", "4000"),
             MakeRow(3, "Livret A",  "Cash",   "Booklet", "Livret A","Savings",    "", 0, "2000", "0", "0", "2000")
         };
-        var service = CreateService(rows);
+        var refRows = new[] { RefHeader, MakeRefRow(0, "Stocks"), MakeRefRow(2, "Cash") };
+        var service = CreateService(assetRows, new() { ["AssetClass"] = refRows });
 
         var result = await service.GetDistributionByDimensionAsync("assetClass");
 
@@ -122,6 +134,22 @@ public class AssetsServiceTests
         Assert.Equal(10000m, stocks.CurrentTotal);
         Assert.Equal(2000m,  cash.CurrentTotal);
         Assert.Equal(83.33m, stocks.WeightInPortfolio);
+        Assert.Equal(0,      stocks.Id);
+        Assert.Equal(2,      cash.Id);
+    }
+
+    [Fact]
+    public async Task GetDistributionByDimensionAsync_WhenReferenceTabMissingEntry_IdIsNull()
+    {
+        var assetRows = new[] { HeaderRow,
+            MakeRow(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", 4, "5000", "0", "0", "6000")
+        };
+        var service = CreateService(assetRows);
+
+        var result = await service.GetDistributionByDimensionAsync("assetClass");
+
+        Assert.Single(result);
+        Assert.Null(result[0].Id);
     }
 
     [Fact]

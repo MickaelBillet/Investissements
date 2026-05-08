@@ -18,6 +18,14 @@ internal sealed class AssetsService : IAssetsService
         ["assetType"]    = 5,
     };
 
+    private static readonly Dictionary<string, string> DimensionReferenceTabs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["assetClass"]   = "AssetClass",
+        ["supportType"]  = "SupportType",
+        ["support"]      = "Support",
+        ["assetType"]    = "AssetType",
+    };
+
     private readonly IGoogleSheetsService _sheetsService;
     private readonly ILogger<AssetsService> _logger;
 
@@ -51,7 +59,17 @@ internal sealed class AssetsService : IAssetsService
             return [];
         }
 
-        var rows = await _sheetsService.GetRangeAsync(Range, ct);
+        var refTab = DimensionReferenceTabs[dimension];
+        var assetTask = _sheetsService.GetRangeAsync(Range, ct);
+        var refTask   = _sheetsService.GetRangeAsync(refTab, ct);
+        await Task.WhenAll(assetTask, refTask);
+        var rows    = assetTask.Result;
+        var refRows = refTask.Result;
+
+        var idByName = refRows.Skip(1)
+            .Where(r => r.Count >= 2)
+            .ToDictionary(r => r[1], r => int.Parse(r[0], CultureInfo.InvariantCulture), StringComparer.OrdinalIgnoreCase);
+
         var dataRows = rows.Skip(1).Where(r => r.Count > colIndex && r[1] != NotDefined).ToList();
 
         var portfolioTotal = dataRows.Sum(r => ParseDecimalRequired(r, 11));
@@ -67,7 +85,8 @@ internal sealed class AssetsService : IAssetsService
                 return new DistributionDto(
                     Name: g.Key,
                     CurrentTotal: groupTotal,
-                    WeightInPortfolio: Math.Round(groupTotal / portfolioTotal * 100, 2)
+                    WeightInPortfolio: Math.Round(groupTotal / portfolioTotal * 100, 2),
+                    Id: idByName.TryGetValue(g.Key, out var id) ? id : null
                 );
             })
             .OrderByDescending(d => d.CurrentTotal)
