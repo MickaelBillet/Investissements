@@ -12,7 +12,7 @@ public record AssetDto(
     decimal? TotalPurchases,
     decimal? TotalSales,
     decimal? Dividends,
-    decimal CurrentTotal,
+    decimal? CurrentTotal,
     decimal? UnrealizedGain,
     decimal? Yield,
     decimal? Roi,

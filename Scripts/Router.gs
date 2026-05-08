@@ -125,38 +125,39 @@ function buildAssetRow(row) {
   const dividends      = row[COL_DIVIDENDS];
   const currentTotal   = row[COL_CURRENT_TOTAL];
 
-  // Check if values are available (not ND, not empty)
-  const hasData = totalPurchases && totalPurchases !== "ND"
-               && totalSales     !== "ND"
-               && currentTotal   && currentTotal   !== "ND";
+  // hasFinancialData: purchases/sales data is available (not ND)
+  const hasFinancialData = totalPurchases && totalPurchases !== "ND"
+                        && totalSales     !== "ND";
 
-  const tp          = hasData ? (totalPurchases || 0) : 0;
-  const ts          = hasData ? (totalSales     || 0) : 0;
-  const div         = hasData ? (dividends      || 0) : 0;
-  const ct          = hasData ? (currentTotal   || 0) : 0;
+  // Use raw sheet value directly — only null if not a number
+  const ct          = typeof currentTotal === 'number' ? currentTotal : null;
+  const hasCurrent  = ct !== null;
+
+  const tp          = hasFinancialData ? (totalPurchases || 0) : 0;
+  const ts          = hasFinancialData ? (totalSales     || 0) : 0;
+  const div         = hasFinancialData ? (dividends      || 0) : 0;
   const netInvested = tp - ts;
 
   return {
-    id           : row[COL_ID],
+    id           : parseInt(row[COL_ID], 10),
     name         : row[COL_NAME],
     assetClass   : row[COL_ASSET_CLASS],
     supportType  : row[COL_SUPPORT_TYPE],
     support      : row[COL_SUPPORT],
     assetType    : row[COL_ASSET_TYPE],
     information  : row[COL_INFORMATION],
-    risk         : row[COL_RISK],
-    totalPurchases: hasData ? tp  : null,
-    totalSales    : hasData ? ts  : null,
-    dividends     : hasData ? div : null,
-    currentTotal  : hasData ? ct  : null,
-    // null when data is not available
-    unrealizedGain: hasData && netInvested !== 0
-      ? currentTotal - netInvested
+    risk         : parseInt(row[COL_RISK], 10),
+    totalPurchases: hasFinancialData ? tp   : null,
+    totalSales    : hasFinancialData ? ts   : null,
+    dividends     : hasFinancialData ? div  : null,
+    currentTotal  : ct,
+    unrealizedGain: hasFinancialData && hasCurrent && netInvested !== 0
+      ? ct - netInvested
       : null,
-    yield: hasData && netInvested !== 0
+    yield: hasFinancialData && netInvested !== 0
       ? Math.round(div / netInvested * 10000) / 100
       : null,
-    roi: hasData && tp !== 0
+    roi: hasFinancialData && tp !== 0
       ? Math.round((ct + ts + div - tp) / tp * 10000) / 100
       : null
   };
