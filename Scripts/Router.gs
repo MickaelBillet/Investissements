@@ -129,8 +129,9 @@ function buildAssetRow(row) {
   const hasFinancialData = totalPurchases && totalPurchases !== "ND"
                         && totalSales     !== "ND";
 
-  // currentTotal is tracked independently — available even when purchases are ND
-  const hasCurrent = currentTotal && currentTotal !== "ND";
+  // typeof check handles 0 (zero is a valid currentTotal but falsy in JS)
+  const hasCurrent = typeof currentTotal === 'number' ||
+                     (typeof currentTotal === 'string' && currentTotal !== "" && currentTotal !== "ND");
 
   const tp          = hasFinancialData ? (totalPurchases || 0) : 0;
   const ts          = hasFinancialData ? (totalSales     || 0) : 0;
