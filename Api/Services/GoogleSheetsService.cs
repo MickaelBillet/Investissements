@@ -40,7 +40,7 @@ internal sealed class GoogleSheetsService : IGoogleSheetsService
             ?.Select(row => (IReadOnlyList<string>)row
                 .Select(cell => cell.ValueKind switch
                 {
-                    JsonValueKind.Number => cell.GetDecimal().ToString(CultureInfo.InvariantCulture),
+                    JsonValueKind.Number => decimal.Parse(cell.GetRawText(), CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
                     JsonValueKind.String => cell.GetString() ?? string.Empty,
                     JsonValueKind.True   => "true",
                     JsonValueKind.False  => "false",
