@@ -71,7 +71,7 @@ function buildSnapshotRow(row) {
     lifeStrategy60 : row[COL_SNAP_LIFESTRATEGY]     || null,
     msciWorld      : row[COL_SNAP_MSCI_WORLD]       || null,
     totalPurchases : row[COL_SNAP_TOTAL_PURCHASES]  || null,
-    totalSales     : row[COL_SNAP_TOTAL_SALES]      || null
+    totalReturns   : row[COL_SNAP_TOTAL_SALES]      || null
   };
 }
 
