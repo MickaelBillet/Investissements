@@ -129,14 +129,13 @@ function buildAssetRow(row) {
   const hasFinancialData = totalPurchases && totalPurchases !== "ND"
                         && totalSales     !== "ND";
 
-  // typeof check handles 0 (zero is a valid currentTotal but falsy in JS)
-  const hasCurrent = typeof currentTotal === 'number' ||
-                     (typeof currentTotal === 'string' && currentTotal !== "" && currentTotal !== "ND");
+  // Use raw sheet value directly — only null if not a number
+  const ct          = typeof currentTotal === 'number' ? currentTotal : null;
+  const hasCurrent  = ct !== null;
 
   const tp          = hasFinancialData ? (totalPurchases || 0) : 0;
   const ts          = hasFinancialData ? (totalSales     || 0) : 0;
   const div         = hasFinancialData ? (dividends      || 0) : 0;
-  const ct          = hasCurrent       ? currentTotal          : 0;
   const netInvested = tp - ts;
 
   return {
@@ -148,10 +147,10 @@ function buildAssetRow(row) {
     assetType    : row[COL_ASSET_TYPE],
     information  : row[COL_INFORMATION],
     risk         : row[COL_RISK],
-    totalPurchases: hasFinancialData ? tp  : null,
-    totalSales    : hasFinancialData ? ts  : null,
-    dividends     : hasFinancialData ? div : null,
-    currentTotal  : hasCurrent       ? ct  : null,
+    totalPurchases: hasFinancialData ? tp   : null,
+    totalSales    : hasFinancialData ? ts   : null,
+    dividends     : hasFinancialData ? div  : null,
+    currentTotal  : ct,
     unrealizedGain: hasFinancialData && hasCurrent && netInvested !== 0
       ? ct - netInvested
       : null,
