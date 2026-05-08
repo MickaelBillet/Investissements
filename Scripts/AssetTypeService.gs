@@ -45,11 +45,13 @@ function getAssetTypeAll(rows, portfolioTotal) {
 function getAssetTypeDistribution(rows, portfolioTotal) {
 
   const groups = groupBy(rows, COL_ASSET_TYPE);
+  const ids    = getReferenceIds(SHEET_ASSET_TYPE);
 
   return Object.keys(groups).map(assetType => {
     const currentTotal = sumColumn(groups[assetType], COL_CURRENT_TOTAL);
 
     return {
+      id               : ids[assetType] !== undefined ? ids[assetType] : null,
       name             : assetType,
       currentTotal,
       weightInPortfolio: portfolioTotal !== 0

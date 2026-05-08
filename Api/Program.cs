@@ -6,9 +6,9 @@ var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
     .ConfigureServices(services =>
     {
-        services.AddHttpClient<IGoogleSheetsService, GoogleSheetsService>();
-        services.AddScoped<ISnapshotService, SnapshotService>();
+        services.AddHttpClient<IAppsScriptService, AppsScriptService>();
         services.AddScoped<IAssetsService, AssetsService>();
+        services.AddScoped<ISnapshotService, SnapshotService>();
     })
     .Build();
 

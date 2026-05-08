@@ -8,15 +8,26 @@
       "PowerShell(git checkout *)",
       "PowerShell(git push *)",
       "PowerShell(git *)",
-      "PowerShell(dotnet build *)",
-      "PowerShell(dotnet new sln *)",
-      "PowerShell(dotnet sln *)",
-      "Bash(Get-ChildItem *)",
+      "Bash(func *)",
+      "Bash(dotnet test *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(winget install *)",
+      "Bash(git ls-remote *)",
+      "Bash(gh auth *)",
+      "PowerShell(gh auth *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status 2>&1)",
+      "Bash(git fetch *)",
       "Bash(git pull *)",
       "Bash(git stash *)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(dotnet build *)",
+      "Bash(git reset *)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Services\\\\IGoogleSheetsService.cs\")",
+      "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Services\\\\GoogleSheetsService.cs\")",
+      "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Models\\\\SheetValuesResponse.cs\")"
     ]
   }
 }

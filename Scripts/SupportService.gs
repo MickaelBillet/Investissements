@@ -45,11 +45,13 @@ function getSupportAll(rows, portfolioTotal) {
 function getSupportDistribution(rows, portfolioTotal) {
 
   const groups = groupBy(rows, COL_SUPPORT);
+  const ids    = getReferenceIds(SHEET_SUPPORT);
 
   return Object.keys(groups).map(support => {
     const currentTotal = sumColumn(groups[support], COL_CURRENT_TOTAL);
 
     return {
+      id               : ids[support] !== undefined ? ids[support] : null,
       name             : support,
       currentTotal,
       weightInPortfolio: portfolioTotal !== 0

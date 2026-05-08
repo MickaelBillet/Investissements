@@ -74,11 +74,19 @@ Retourné par les actions `getDistribution`.
 
 ```json
 {
+  "id": 0,
   "name": "string",
   "currentTotal": 14200.00,
   "weightInPortfolio": 18.30
 }
 ```
+
+| Champ | Type | Description |
+|---|---|---|
+| `id` | number \| null | Identifiant numérique lu depuis l'onglet de référence (`AssetClass`, `AssetType`, `SupportType`, `Support`) — `null` si non trouvé |
+| `name` | string | Nom du groupe |
+| `currentTotal` | number | Valeur actuelle en EUR |
+| `weightInPortfolio` | number | Poids en % dans le portefeuille total |
 
 ### 2.3 Objet `Asset`
 
