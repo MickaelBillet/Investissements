@@ -7,7 +7,16 @@
       "PowerShell(git remote *)",
       "PowerShell(git checkout *)",
       "PowerShell(git push *)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "PowerShell(dotnet build *)",
+      "PowerShell(dotnet new sln *)",
+      "PowerShell(dotnet sln *)",
+      "Bash(Get-ChildItem *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
