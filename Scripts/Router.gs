@@ -137,7 +137,7 @@ function buildAssetRow(row) {
   const netInvested = tp - ts;
 
   return {
-    id           : row[COL_ID],
+    id           : parseInt(row[COL_ID], 10),
     name         : row[COL_NAME],
     assetClass   : row[COL_ASSET_CLASS],
     supportType  : row[COL_SUPPORT_TYPE],
