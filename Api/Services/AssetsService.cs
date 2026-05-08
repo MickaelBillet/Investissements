@@ -86,7 +86,7 @@ internal sealed class AssetsService : IAssetsService
             : (decimal?)null;
 
         var unrealizedGain = netInvested.HasValue
-            ? currentTotal - netInvested.Value
+            ? Math.Round(currentTotal - netInvested.Value, 2)
             : (decimal?)null;
 
         var yield = dividends.HasValue && netInvested.HasValue && netInvested.Value != 0
