@@ -16,6 +16,5 @@ public record AssetDto(
     decimal? UnrealizedGain,
     decimal? Yield,
     decimal? Roi,
-    decimal WeightInPortfolio,
-    decimal? WeightInGroup
+    decimal WeightInPortfolio
 );

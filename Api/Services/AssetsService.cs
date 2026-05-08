@@ -113,8 +113,7 @@ internal sealed class AssetsService : IAssetsService
             UnrealizedGain: unrealizedGain,
             Yield: yield,
             Roi: roi,
-            WeightInPortfolio: portfolioTotal > 0 ? Math.Round(currentTotal / portfolioTotal * 100, 2) : 0,
-            WeightInGroup: null
+            WeightInPortfolio: portfolioTotal > 0 ? Math.Round(currentTotal / portfolioTotal * 100, 2) : 0
         );
     }
 
