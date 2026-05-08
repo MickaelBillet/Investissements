@@ -24,7 +24,7 @@ internal sealed class GoogleSheetsService : IGoogleSheetsService
 
     public async Task<IReadOnlyList<IReadOnlyList<string>>> GetRangeAsync(string range, CancellationToken ct = default)
     {
-        var url = $"https://sheets.googleapis.com/v4/spreadsheets/{_sheetId}/values/{Uri.EscapeDataString(range)}?key={_apiKey}&valueRenderOption=UNFORMATTED_VALUE";
+        var url = $"https://sheets.googleapis.com/v4/spreadsheets/{_sheetId}/values/{Uri.EscapeDataString(range)}?key={_apiKey}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING";
 
         var response = await _httpClient.GetAsync(url, ct);
 
