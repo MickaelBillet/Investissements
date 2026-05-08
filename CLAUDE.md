@@ -26,7 +26,7 @@ Les données sont maintenues dans un Google Sheets personnel, mis à jour quotid
 
 **Sécurité :**
 - Usage strictement personnel et privé
-- La clé API Google Sheets ne doit jamais être exposée côté client
+- Le token Apps Script et l'URL du Web App ne doivent jamais être exposés côté client
 
 **Opérationnelles :**
 - Mise à jour des données entièrement automatique (aucune intervention manuelle)
@@ -40,11 +40,11 @@ Les données sont maintenues dans un Google Sheets personnel, mis à jour quotid
 
 ```
 Google Sheets (multi-onglets, style BDD)
-       │ Apps Script (ETL quotidien automatique)
-       │ Google Sheets API v4 (clé API sécurisée)
+       │ Apps Script (ETL quotidien + API REST Web App)
        ▼
 Azure Functions (C# — liées à Static Web Apps)
-       │ API interne sécurisée (pas de clé exposée)
+       │ Appelle Apps Script Web App (token sécurisé)
+       │ API interne sécurisée (pas de token exposé)
        ▼
 Blazor WASM + MudBlazor + ApexCharts
        │ GitHub Actions (CI/CD)
@@ -56,9 +56,9 @@ Azure Static Web Apps + nom de domaine custom
 
 | Composant | Technologie | Justification |
 |---|---|---|
-| **Données** | Google Sheets API v4 | Ecosystème déjà en place, gratuit |
-| **Automatisation** | Google Apps Script | Intégré à Google Sheets, gratuit |
-| **Backend** | Azure Functions (C#) | Serverless, gratuit, clé API sécurisée |
+| **Données** | Google Sheets | Ecosystème déjà en place, gratuit |
+| **API données** | Google Apps Script Web App | ETL + API REST, intégré à Google Sheets, gratuit |
+| **Backend** | Azure Functions (C#) | Serverless, gratuit, proxy sécurisé vers Apps Script |
 | **Frontend** | Blazor WASM (C#) | Langage maîtrisé par le développeur |
 | **UI Components** | MudBlazor | Riche, bien maintenu |
 | **Graphiques** | ApexCharts for Blazor | Couvre tous les types de graphiques requis |
@@ -102,11 +102,11 @@ Azure Static Web Apps + nom de domaine custom
 
 ## 5. Sécurité
 
-### 5.1 Protection de la clé API Google Sheets
-- La clé API Google Sheets est stockée dans les **Application Settings** de l'Azure Function
-- Elle est chiffrée au repos par Azure, accessible uniquement par la Function
-- Elle n'apparaît jamais dans le code source ni dans le bundle Blazor WASM
-- En cas de rotation de clé, la mise à jour se fait uniquement dans les App Settings sans redéploiement
+### 5.1 Protection du token Apps Script
+- L'URL et le token (`APPS_SCRIPT_API_KEY`) de l'Apps Script Web App sont stockés dans les **Application Settings** de l'Azure Function
+- Ils sont chiffrés au repos par Azure, accessibles uniquement par la Function
+- Ils n'apparaissent jamais dans le code source ni dans le bundle Blazor WASM
+- En cas de rotation, la mise à jour se fait uniquement dans les App Settings sans redéploiement
 
 ### 5.2 Protection des endpoints Azure Functions
 - Les Azure Functions sont liées à Azure Static Web Apps via le mécanisme de **Managed Functions**
@@ -115,13 +115,9 @@ Azure Static Web Apps + nom de domaine custom
 - Aucune clé de fonction (Function Key) nécessaire
 
 ### 5.3 Protection des données Google Sheets
-- Le Google Sheets est partagé en **lecture seule**
-- La clé API ne permet aucune écriture sur la feuille
-- Seul l'Apps Script (authentifié via le compte Google propriétaire) peut écrire
-
-### 5.4 Restriction de la clé API Google
-- La clé API Google Sheets est restreinte dans la Google Cloud Console
-- Elle n'autorise que l'accès à l'API Google Sheets, aucune autre API Google
+- Le Google Sheets est accessible uniquement via l'Apps Script (authentifié via le compte Google propriétaire)
+- Les Azure Functions n'ont pas de clé API Google Sheets — elles passent par l'Apps Script
+- Seul l'Apps Script peut lire et écrire sur les feuilles
 
 ---
 
@@ -288,7 +284,8 @@ jobs:
 | Secret | Stockage | Accessible par |
 |---|---|---|
 | `AZURE_STATIC_WEB_APPS_API_TOKEN` | GitHub Secrets | GitHub Actions uniquement |
-| `GOOGLE_SHEETS_API_KEY` | Azure Function App Settings | Azure Function uniquement |
+| `APPS_SCRIPT_URL` | Azure Function App Settings | Azure Function uniquement |
+| `APPS_SCRIPT_API_KEY` | Azure Function App Settings | Azure Function uniquement |
 | `GOOGLE_SHEET_ID` | Azure Function App Settings | Azure Function uniquement |
 
 ### 8.5 Domaine custom
@@ -329,7 +326,7 @@ Les composants sont à développer dans cet ordre :
 
 1. **Google Sheets** — ✅ Structure définie (section 6)
 2. **Google Apps Script** — ✅ ETL + API REST implémentés (`Scripts/`)
-3. **Azure Functions** — Développer les endpoints REST avec Claude Code
+3. **Azure Functions** — ✅ Endpoints REST implémentés (`Api/`) — proxy vers Apps Script
 4. **Blazor WASM** — Développer le dashboard avec Claude Code
 5. **CI/CD** — Configurer GitHub Actions + Azure Static Web Apps
 6. **Domaine custom** — Configurer le CNAME
