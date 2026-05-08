@@ -5,7 +5,9 @@
       "Bash(gh pr *)",
       "PowerShell(gh pr *)",
       "PowerShell(git remote *)",
-      "PowerShell(git checkout *)"
+      "PowerShell(git checkout *)",
+      "PowerShell(git push *)",
+      "PowerShell(git *)"
     ]
   }
 }
