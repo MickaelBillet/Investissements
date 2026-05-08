@@ -146,7 +146,7 @@ function buildAssetRow(row) {
     support      : row[COL_SUPPORT],
     assetType    : row[COL_ASSET_TYPE],
     information  : row[COL_INFORMATION],
-    risk         : row[COL_RISK],
+    risk         : parseInt(row[COL_RISK], 10),
     totalPurchases: hasFinancialData ? tp   : null,
     totalSales    : hasFinancialData ? ts   : null,
     dividends     : hasFinancialData ? div  : null,
