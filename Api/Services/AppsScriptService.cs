@@ -32,6 +32,9 @@ internal sealed class AppsScriptService : IAppsScriptService
             => writer.WriteNumberValue(value);
     }
 
+    private const string AppsScriptUrlKey    = "APPS_SCRIPT_URL";
+    private const string AppsScriptApiKeyKey = "APPS_SCRIPT_API_KEY";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -48,33 +51,39 @@ internal sealed class AppsScriptService : IAppsScriptService
     {
         _httpClient = httpClient;
         _logger     = logger;
-        _baseUrl    = configuration["APPS_SCRIPT_URL"]     ?? throw new InvalidOperationException("APPS_SCRIPT_URL is not configured.");
-        _apiKey     = configuration["APPS_SCRIPT_API_KEY"] ?? throw new InvalidOperationException("APPS_SCRIPT_API_KEY is not configured.");
+        _baseUrl    = configuration[AppsScriptUrlKey]    ?? throw new InvalidOperationException($"{AppsScriptUrlKey} is not configured.");
+        _apiKey     = configuration[AppsScriptApiKeyKey] ?? throw new InvalidOperationException($"{AppsScriptApiKeyKey} is not configured.");
     }
 
     public async Task<T?> CallAsync<T>(string service, string action, CancellationToken ct = default)
     {
-        var url = $"{_baseUrl}?apiKey={_apiKey}&service={service}&action={action}";
-
-        var response = await _httpClient.GetAsync(url, ct);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError("Apps Script returned {StatusCode} for service='{Service}' action='{Action}'.", response.StatusCode, service, action);
-            response.EnsureSuccessStatusCode();
-        }
-
+        var response = await _httpClient.GetAsync(BuildRequestUrl(service, action), ct);
+        EnsureHttpSuccess(response, service, action);
         var content = await response.Content.ReadAsStringAsync(ct);
-
-        using var doc = JsonDocument.Parse(content);
-        if (doc.RootElement.ValueKind == JsonValueKind.Object &&
-            doc.RootElement.TryGetProperty("error", out var error))
-        {
-            var msg = error.GetString();
-            _logger.LogError("Apps Script returned error for service='{Service}' action='{Action}': {Error}.", service, action, msg);
-            throw new InvalidOperationException($"Apps Script error: {msg}");
-        }
-
+        ThrowIfAppsScriptError(content, service, action);
         return JsonSerializer.Deserialize<T>(content, JsonOptions);
+    }
+
+    private string BuildRequestUrl(string service, string action)
+        => $"{_baseUrl}?apiKey={_apiKey}&service={service}&action={action}";
+
+    private void EnsureHttpSuccess(HttpResponseMessage response, string service, string action)
+    {
+        if (response.IsSuccessStatusCode) return;
+        _logger.LogError("Apps Script returned {StatusCode} for service='{Service}' action='{Action}'.",
+            response.StatusCode, service, action);
+        response.EnsureSuccessStatusCode();
+    }
+
+    private void ThrowIfAppsScriptError(string content, string service, string action)
+    {
+        using var doc = JsonDocument.Parse(content);
+        if (doc.RootElement.ValueKind != JsonValueKind.Object) return;
+        if (!doc.RootElement.TryGetProperty("error", out var error)) return;
+
+        var msg = error.GetString();
+        _logger.LogError("Apps Script returned error for service='{Service}' action='{Action}': {Error}.",
+            service, action, msg);
+        throw new InvalidOperationException($"Apps Script error: {msg}");
     }
 }

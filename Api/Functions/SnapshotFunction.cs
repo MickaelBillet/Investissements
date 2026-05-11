@@ -27,7 +27,12 @@ public sealed class SnapshotFunction
             var snapshot = await _snapshotService.GetLastAsync(ct);
             return snapshot is null ? new NotFoundResult() : new OkObjectResult(snapshot);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to call Apps Script.");
+            return new StatusCodeResult(StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to retrieve last snapshot.");
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
@@ -44,7 +49,12 @@ public sealed class SnapshotFunction
             var history = await _snapshotService.GetHistoryAsync(ct);
             return new OkObjectResult(history);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to call Apps Script.");
+            return new StatusCodeResult(StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to retrieve snapshot history.");
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);

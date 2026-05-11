@@ -27,7 +27,12 @@ public sealed class AssetsFunction
             var assets = await _assetsService.GetAllAsync(ct);
             return new OkObjectResult(assets);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to call Apps Script.");
+            return new StatusCodeResult(StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to retrieve assets.");
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
@@ -43,19 +48,21 @@ public sealed class AssetsFunction
         try
         {
             var distribution = await _assetsService.GetDistributionByDimensionAsync(dimension, ct);
-
-            if (distribution.Count == 0 && !IsValidDimension(dimension))
-                return new BadRequestObjectResult($"Unknown dimension '{dimension}'. Valid values: assetClass, assetType, support, supportType.");
-
             return new OkObjectResult(distribution);
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            return new BadRequestObjectResult(ex.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to call Apps Script for dimension '{Dimension}'.", dimension);
+            return new StatusCodeResult(StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to retrieve assets distribution for dimension '{Dimension}'.", dimension);
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
     }
-
-    private static bool IsValidDimension(string dimension) =>
-        dimension is "assetClass" or "assetType" or "support" or "supportType";
 }
