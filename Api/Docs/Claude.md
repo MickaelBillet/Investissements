@@ -99,3 +99,4 @@ Dimensions valides : `assetClass`, `assetType`, `support`, `supportType`.
 - Pas de logique métier dans les Functions — déléguer aux services
 - Tests unitaires xUnit pour chaque service (mock `IAppsScriptService`)
 - `InternalsVisibleTo("DynamicProxyGenAssembly2")` dans `AssemblyInfo.cs` pour Moq sur interfaces internes
+> Prendre en compte les conseils dans le fichier `clean-code-tips.md`

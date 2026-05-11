@@ -35,10 +35,9 @@ internal sealed class AssetsService : IAssetsService
     public async Task<IReadOnlyList<DistributionDto>> GetDistributionByDimensionAsync(string dimension, CancellationToken ct = default)
     {
         if (!DimensionServices.TryGetValue(dimension, out var service))
-        {
-            _logger.LogWarning("Unknown distribution dimension: '{Dimension}'.", dimension);
-            return [];
-        }
+            throw new ArgumentException(
+                $"Unknown dimension '{dimension}'. Valid values: {string.Join(", ", DimensionServices.Keys)}.",
+                nameof(dimension));
 
         var result = await _appsScript.CallAsync<IReadOnlyList<DistributionDto>>(service, "getDistribution", ct);
         return result ?? [];

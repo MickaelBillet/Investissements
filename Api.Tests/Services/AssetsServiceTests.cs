@@ -60,13 +60,13 @@ public class AssetsServiceTests
     }
 
     [Fact]
-    public async Task GetDistributionByDimensionAsync_WhenUnknownDimension_ReturnsEmptyList()
+    public async Task GetDistributionByDimensionAsync_WhenUnknownDimension_ThrowsArgumentException()
     {
         var mock = new Mock<IAppsScriptService>();
 
-        var result = await CreateService(mock).GetDistributionByDimensionAsync("unknown");
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            CreateService(mock).GetDistributionByDimensionAsync("unknown"));
 
-        Assert.Empty(result);
         mock.Verify(s => s.CallAsync<IReadOnlyList<DistributionDto>>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
