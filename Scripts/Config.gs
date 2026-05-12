@@ -6,6 +6,12 @@
 const SOURCE_ID = "188bNY_oSVrHZKZ1Vadj7SxnCosDDw2g-oG8UjDARMAI";
 const DEST_ID = "1Dvhz3AME0WoGkmiJQ5eBQ4FYno4l_kuyiShk75TZZNE";
 
+const TOTAL_PURCHASES = "F65";
+const TOTAL_RETURNS = "F57";
+const CASH_PEA = "B67";
+const TRADE_REPUBLIC_ACCOUNT = "B55";
+const SMART_CASH_MINTOS ="B59";
+
 // --- SOURCE - Sheet name
 const SOURCE_RESULTS = "Bilan";
 
@@ -32,11 +38,12 @@ const COL_SUPPORT_TYPE    = 3;  // D
 const COL_SUPPORT         = 4;  // E
 const COL_ASSET_TYPE      = 5;  // F
 const COL_INFORMATION     = 6;  // G
-const COL_RISK            = 7;  // H
-const COL_TOTAL_PURCHASES = 8;  // I
-const COL_TOTAL_SALES     = 9;  // J
-const COL_DIVIDENDS       = 10; // K
-const COL_CURRENT_TOTAL   = 11; // L
+const COL_GEOGRAPHY       = 7;  // H
+const COL_RISK            = 8;  // I
+const COL_TOTAL_PURCHASES = 9;  // J
+const COL_TOTAL_SALES     = 10;  // K
+const COL_DIVIDENDS       = 11; // L
+const COL_CURRENT_TOTAL   = 12; // M
 
 // --- AssetClass enumeration ---
 const ASSET_CLASS = {

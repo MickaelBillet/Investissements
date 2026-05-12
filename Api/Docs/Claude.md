@@ -94,7 +94,6 @@ Dimensions valides : `assetClass`, `assetType`, `support`, `supportType`.
 ## 8. Règles d'implémentation
 
 - Un fichier par Function dans `Functions/`
-- Injection de dépendances systématique — pas de `new` dans les Functions
 - Toujours logger les erreurs avant de retourner un 500
 - Pas de logique métier dans les Functions — déléguer aux services
 - Tests unitaires xUnit pour chaque service (mock `IAppsScriptService`)
