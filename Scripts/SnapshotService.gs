@@ -113,8 +113,8 @@ function snapshotQuotidien() {
   // --- Step 2: compute aggregates from Assets sheet ---
   const rows           = getAssetsData();
   const portfolioTotal = Math.round((getPortfolioTotal(rows)) * 100) / 100;
-  const totalPurchases = Math.round(resultSheet.getRange("F63").getValue() * 100) / 100; 
-  const totalReturns   = Math.round(resultSheet.getRange("F55").getValue() * 100) / 100; 
+  const totalPurchases = Math.round(resultSheet.getRange(TOTAL_PURCHASES).getValue() * 100) / 100; 
+  const totalReturns   = Math.round(resultSheet.getRange(TOTAL_RETURNS).getValue() * 100) / 100; 
 
   // --- Step 3: fetch reference stock values ---
   const refStockValues = fetchStockValues();
