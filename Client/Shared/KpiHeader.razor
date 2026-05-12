@@ -1,0 +1,10 @@
+<MudGrid Spacing="4">
+    <KpiCard Label="Valeur totale"          Value="@(Snapshot?.PortfolioTotal.ToEurAmount() ?? "—")" />
+    <KpiCard Label="Dernière mise à jour"   Value="@(Snapshot?.Date.ToString("dd/MM/yyyy") ?? "—")" />
+    <KpiCard Label="Actifs en portefeuille" Value="@AssetCount.ToString()" />
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired] public SnapshotDto? Snapshot   { get; set; }
+    [Parameter, EditorRequired] public int          AssetCount { get; set; }
+}

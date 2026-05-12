@@ -1,0 +1,93 @@
+@page "/"
+@inject DashboardViewModel ViewModel
+
+<PageTitle>Portefeuille — Suivi des Investissements</PageTitle>
+
+@if (ViewModel.IsLoading)
+{
+    <MudStack AlignItems="AlignItems.Center" Style="padding:64px 0;">
+        <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
+    </MudStack>
+}
+else if (ViewModel.ErrorMessage is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+else
+{
+    <MudStack Spacing="6">
+
+        <KpiHeader Snapshot="@ViewModel.LastSnapshot" AssetCount="@ViewModel.AssetCount" />
+
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="6">
+                <DrillDownDonut Title="@ViewModel.AssetClassPanel.BreadcrumbLabel"
+                                Items="@ViewModel.GetDistribution(ViewModel.AssetClassPanel)"
+                                CanGoBack="@ViewModel.AssetClassPanel.CanGoBack"
+                                Colors="@_assetClassColors"
+                                OnSliceClicked="@(name => Drill(ViewModel.AssetClassPanel, name))"
+                                OnBackClicked="@(() => Back(ViewModel.AssetClassPanel))" />
+                @if (ViewModel.AssetClassPanel.IsAtLeafLevel)
+                {
+                    <AssetTable Assets="@ViewModel.GetAssetsForPanel(ViewModel.AssetClassPanel)" />
+                }
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <DrillDownDonut Title="@ViewModel.SupportTypePanel.BreadcrumbLabel"
+                                Items="@ViewModel.GetDistribution(ViewModel.SupportTypePanel)"
+                                CanGoBack="@ViewModel.SupportTypePanel.CanGoBack"
+                                Colors="@_supportTypeColors"
+                                OnSliceClicked="@(name => Drill(ViewModel.SupportTypePanel, name))"
+                                OnBackClicked="@(() => Back(ViewModel.SupportTypePanel))" />
+                @if (ViewModel.SupportTypePanel.IsAtLeafLevel)
+                {
+                    <AssetTable Assets="@ViewModel.GetAssetsForPanel(ViewModel.SupportTypePanel)" />
+                }
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="6">
+                <DrillDownDonut Title="@ViewModel.RiskPanel.BreadcrumbLabel"
+                                Items="@ViewModel.GetDistribution(ViewModel.RiskPanel)"
+                                CanGoBack="@ViewModel.RiskPanel.CanGoBack"
+                                Colors="@_riskColors"
+                                OnSliceClicked="@(name => Drill(ViewModel.RiskPanel, name))"
+                                OnBackClicked="@(() => Back(ViewModel.RiskPanel))" />
+                @if (ViewModel.RiskPanel.IsAtLeafLevel)
+                {
+                    <AssetTable Assets="@ViewModel.GetAssetsForPanel(ViewModel.RiskPanel)" />
+                }
+            </MudItem>
+        </MudGrid>
+
+    </MudStack>
+}
+
+@code {
+    private static readonly string[] _assetClassColors =
+        ["#CE8BA0", "#E06D6D", "#4DAB9A", "#9B8DD6", "#D4A844", "#A0A0A0", "#787774", "#2383E2"];
+
+    private static readonly string[] _supportTypeColors =
+        ["#A0A0A0", "#4DAB9A", "#9B8DD6", "#2383E2", "#CE8BA0", "#D4A844"];
+
+    private static readonly string[] _riskColors =
+        ["#4DAB9A", "#A0A0A0", "#D4A844", "#CE8BA0", "#E06D6D"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.InitializeAsync();
+    }
+
+    private void Drill(PanelState panel, string name)
+    {
+        panel.DrillDown(name);
+        StateHasChanged();
+    }
+
+    private void Back(PanelState panel)
+    {
+        panel.GoBack();
+        StateHasChanged();
+    }
+}

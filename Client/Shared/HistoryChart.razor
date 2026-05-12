@@ -1,0 +1,71 @@
+<MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:16px 20px;">
+    <MudText Style="font-size:18px;font-weight:600;color:#37352F;margin-bottom:16px;">
+        Performance relative (base 100)
+    </MudText>
+
+    @if (PortfolioSeries.Count == 0)
+    {
+        <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="min-height:300px;">
+            <MudText Typo="Typo.body2" Style="color:#787774;">Aucune donnée historique disponible</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <ApexChart TItem="IndexedPoint" Options="_options">
+            <ApexPointSeries TItem="IndexedPoint"
+                             Items="@PortfolioSeries"
+                             Name="Portefeuille"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(e => e.Date.ToString("dd/MM/yy"))"
+                             YValue="@(e => (decimal)e.Value)" />
+            <ApexPointSeries TItem="IndexedPoint"
+                             Items="@LifeStrategySeries"
+                             Name="LifeStrategy 60"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(e => e.Date.ToString("dd/MM/yy"))"
+                             YValue="@(e => (decimal)e.Value)" />
+            <ApexPointSeries TItem="IndexedPoint"
+                             Items="@MsciWorldSeries"
+                             Name="MSCI World"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(e => e.Date.ToString("dd/MM/yy"))"
+                             YValue="@(e => (decimal)e.Value)" />
+        </ApexChart>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> PortfolioSeries    { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> LifeStrategySeries { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> MsciWorldSeries    { get; set; } = [];
+
+    private readonly ApexChartOptions<IndexedPoint> _options = new()
+    {
+        Chart = new Chart
+        {
+            Background = "transparent",
+            Toolbar    = new Toolbar { Show = false },
+            Type       = ApexCharts.ChartType.Line
+        },
+        Colors  = ["#2383E2", "#4DAB9A", "#787774"],
+        Stroke  = new Stroke { Curve = Curve.Smooth, Width = [2, 2, 2] },
+        Xaxis   = new XAxis
+        {
+            Type   = XAxisType.Category,
+            Labels = new XAxisLabels
+            {
+                Style = new AxisLabelStyle { Colors = "#787774", FontSize = "12px" }
+            }
+        },
+        Yaxis = [new YAxis
+        {
+            Labels = new YAxisLabels
+            {
+                Formatter = "function(val) { return val.toFixed(1); }"
+            }
+        }],
+        Legend     = new Legend { Position = LegendPosition.Bottom },
+        Grid       = new Grid { BorderColor = "#E9E9E7" },
+        DataLabels = new DataLabels { Enabled = false }
+    };
+}

@@ -1,0 +1,97 @@
+<MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:16px 20px;height:100%;">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+        @if (CanGoBack)
+        {
+            <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack"
+                           Size="MudBlazor.Size.Small"
+                           OnClick="@(() => OnBackClicked.InvokeAsync())" />
+        }
+        <MudText Typo="Typo.h3">@Title</MudText>
+    </MudStack>
+
+    @if (Items.Count == 0)
+    {
+        <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="min-height:200px;">
+            <MudText Typo="Typo.body2" Style="color:#787774;">Aucune donnée</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <ApexChart TItem="DistributionItem"
+                   Options="_options"
+                   Height="280"
+                   @ref="_chart"
+                   OnDataPointSelection="HandleSliceClick">
+            <ApexPointSeries TItem="DistributionItem"
+                             Items="@Items"
+                             SeriesType="SeriesType.Donut"
+                             ShowDataLabels="true"
+                             XValue="@(e => e.Name)"
+                             YValue="@(e => (decimal)e.CurrentTotal)" />
+        </ApexChart>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string                      Title          { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<DistributionItem> Items      { get; set; } = [];
+    [Parameter]                 public bool                        CanGoBack      { get; set; }
+    [Parameter]                 public string[]                    Colors         { get; set; } = _defaultColors;
+    [Parameter]                 public EventCallback<string>       OnSliceClicked { get; set; }
+    [Parameter]                 public EventCallback               OnBackClicked  { get; set; }
+
+    private ApexChart<DistributionItem>? _chart;
+
+    private static readonly string[] _defaultColors =
+        ["#CE8BA0", "#9B8DD6", "#4DAB9A", "#E06D6D", "#D4A844", "#A0A0A0", "#2383E2", "#787774"];
+
+    private ApexChartOptions<DistributionItem> _options = new()
+    {
+        Chart = new Chart
+        {
+            Background = "transparent",
+            Toolbar    = new Toolbar { Show = false },
+            Type       = ApexCharts.ChartType.Donut
+        },
+        DataLabels = new DataLabels
+        {
+            Enabled    = true,
+            Formatter  = "function(val) { return val.toFixed(1) + ' %'; }",
+            Style      = new DataLabelsStyle
+            {
+                Colors     = ["#37352F"],
+                FontSize   = "12px",
+                FontWeight = "600",
+                FontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+            },
+            DropShadow = new DropShadow { Enabled = false }
+        },
+        PlotOptions = new PlotOptions
+        {
+            Pie = new PlotOptionsPie
+            {
+                Donut = new PlotOptionsDonut { Size = "55%" }
+            }
+        },
+        Legend  = new Legend { Position = LegendPosition.Bottom },
+        Tooltip = new Tooltip
+        {
+            Y = new TooltipY
+            {
+                Formatter = "function(val) { return '€ ' + val.toLocaleString('fr-FR', {minimumFractionDigits:0}); }"
+            }
+        }
+    };
+
+    protected override void OnParametersSet()
+    {
+        if (_options.Colors is not null && _options.Colors.SequenceEqual(Colors)) return;
+        _options.Colors = [.. Colors];
+    }
+
+    private Task HandleSliceClick(SelectedData<DistributionItem> data)
+    {
+        var name = data.DataPoint.Items.FirstOrDefault()?.Name;
+        return name is not null ? OnSliceClicked.InvokeAsync(name) : Task.CompletedTask;
+    }
+}

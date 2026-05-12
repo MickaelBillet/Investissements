@@ -1,0 +1,34 @@
+<MudTable Items="@Assets" Dense="true" Hover="true" Elevation="0"
+          Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:16px;">
+    <HeaderContent>
+        <MudTh Style="color:#787774;font-size:12px;">Nom</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">Valeur actuelle</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">Plus-value</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">ROI</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">Rendement</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nom" Style="font-weight:500;">@context.Name</MudTd>
+        <MudTd DataLabel="Valeur actuelle" Style="text-align:right;">
+            @context.CurrentTotal.ToEurAmount()
+        </MudTd>
+        <MudTd DataLabel="Plus-value" Style="text-align:right;"
+               Class="@context.UnrealizedGain.CssRoiClass()">
+            @context.UnrealizedGain.ToEurAmount()
+        </MudTd>
+        <MudTd DataLabel="ROI" Style="text-align:right;"
+               Class="@context.Roi.CssRoiClass()">
+            @context.Roi.ToPercentage()
+        </MudTd>
+        <MudTd DataLabel="Rendement" Style="text-align:right;">
+            @context.Yield.ToPercentage()
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Style="color:#787774;padding:16px;">Aucun actif</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AssetDto> Assets { get; set; } = [];
+}
