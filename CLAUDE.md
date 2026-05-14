@@ -189,31 +189,37 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 
 ## 7. Fonctionnalités du dashboard
 
-> ⚠️ **Section à compléter** — Les spécifications fonctionnelles détaillées feront l'objet d'un document dédié `Docs/SPECS.md`.
+> Spécifications fonctionnelles détaillées dans `Docs/SPECS.md`.
 
-### 7.1 Vue instantanée (snapshot du jour)
+### 7.1 Vue instantanée — onglet principal (`/`)
 
-| Visualisation | Type de graphique | Données |
+**En-tête KPI (5 cartes) :**
+- Valeur totale du portefeuille en EUR
+- Date de dernière mise à jour
+- Nombre d'actifs en portefeuille
+- ROI / Capital Engagé = Gain / (TotalPurchases − TotalReturns)
+- ROI / Total des Achats = Gain / TotalPurchases
+
+**Vue principale — 3 donuts côte à côte :**
+
+| Donut | Drill-down niveau 1 | Drill-down niveau 2 |
 |---|---|---|
-| Allocation par type de support | Donut chart | % et valeur EUR par support |
-| Allocation par type d'actif | Donut chart ou Treemap | % et valeur EUR par type d'actif |
-| Allocation par actif | Bar chart horizontal | Top N actifs triés par valeur décroissante |
-| Répartition géographique | Bar chart horizontal | % et valeur EUR par zone géographique |
-| Allocation par enveloppe fiscale | Donut chart | % et valeur EUR par enveloppe (PEA, CTO, AV, PER, Livrets) |
+| Classes d'actifs | Types d'actifs dans la classe | Actifs du type |
+| Types de supports | Supports/brokers du type | Actifs du support |
+| Niveaux de risque | Actifs du niveau | — |
 
-### 7.2 Vue historique (évolution dans le temps)
+Cliquer sur un secteur active le **mode Master-Detail** : les 2 autres donuts disparaissent, la hiérarchie sélectionnée s'affiche en plein écran. Au dernier niveau (feuille), un tableau apparaît sous le donut avec : nom, valeur actuelle (€), plus-value (€), ROI (%), rendement (%). Un bouton back permet de remonter niveau par niveau.
 
-| Visualisation | Type de graphique | Données |
-|---|---|---|
-| Évolution de la valeur totale | Courbe (line chart) | Valeur totale en EUR par date |
-| Évolution des allocations par support | Courbe multi-séries | % par support par date |
-| Évolution des allocations par type d'actif | Courbe multi-séries | % par type d'actif par date |
-| Évolution de la répartition géographique | Courbe multi-séries | % par zone géo par date |
+### 7.2 Vue historique — onglet `/historique`
+
+Courbe de performance indexée à 100 à la date T0 (première entrée disponible), comparant 3 séries : portefeuille, LifeStrategy 60, MSCI World.
 
 ### 7.3 KPIs globaux (en-tête)
 - Valeur totale du portefeuille en EUR
 - Nombre d'actifs en portefeuille
 - Date de dernière mise à jour des données
+- ROI / Capital Engagé (coloré vert/rouge, N/A si données manquantes)
+- ROI / Total des Achats (coloré vert/rouge, N/A si données manquantes)
 
 ---
 
@@ -327,7 +333,7 @@ Les composants sont à développer dans cet ordre :
 1. **Google Sheets** — ✅ Structure définie (section 6)
 2. **Google Apps Script** — ✅ ETL + API REST implémentés (`Scripts/`)
 3. **Azure Functions** — ✅ Endpoints REST implémentés (`Api/`) — proxy vers Apps Script
-4. **Blazor WASM** — Développer le dashboard avec Claude Code
+4. **Blazor WASM** — ✅ Dashboard implémenté (`Client/`)
 5. **CI/CD** — Configurer GitHub Actions + Azure Static Web Apps
 6. **Domaine custom** — Configurer le CNAME
 
