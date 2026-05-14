@@ -13,6 +13,7 @@ internal sealed class AppsScriptService : IAppsScriptService
     {
         public override int Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
+            if (reader.TokenType == JsonTokenType.Null) return 0;
             if (reader.TokenType == JsonTokenType.Number)
             {
                 if (reader.TryGetInt32(out var i)) return i;

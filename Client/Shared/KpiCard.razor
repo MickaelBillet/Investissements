@@ -2,7 +2,8 @@
     <MudCard Elevation="0">
         <MudCardContent>
             <MudText Typo="Typo.body2" Style="color:#787774;">@Label</MudText>
-            <MudText Style="font-size:36px;font-weight:700;color:#37352F;line-height:1.2;margin-top:4px;">
+            <MudText Style="font-size:36px;font-weight:700;color:#37352F;line-height:1.2;margin-top:4px;"
+                     Class="@ValueClass">
                 @Value
             </MudText>
         </MudCardContent>
@@ -10,6 +11,7 @@
 </MudItem>
 
 @code {
-    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
-    [Parameter, EditorRequired] public string Value { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label      { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Value      { get; set; } = string.Empty;
+    [Parameter]                 public string ValueClass { get; set; } = string.Empty;
 }

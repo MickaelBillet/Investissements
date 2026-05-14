@@ -19,7 +19,7 @@
     {
         <ApexChart TItem="DistributionItem"
                    Options="_options"
-                   Height="280"
+                   Height="@Height"
                    @ref="_chart"
                    OnDataPointSelection="HandleSliceClick">
             <ApexPointSeries TItem="DistributionItem"
@@ -33,12 +33,13 @@
 </MudPaper>
 
 @code {
-    [Parameter, EditorRequired] public string                      Title          { get; set; } = string.Empty;
-    [Parameter, EditorRequired] public IReadOnlyList<DistributionItem> Items      { get; set; } = [];
-    [Parameter]                 public bool                        CanGoBack      { get; set; }
-    [Parameter]                 public string[]                    Colors         { get; set; } = _defaultColors;
-    [Parameter]                 public EventCallback<string>       OnSliceClicked { get; set; }
-    [Parameter]                 public EventCallback               OnBackClicked  { get; set; }
+    [Parameter, EditorRequired] public string                          Title          { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<DistributionItem> Items          { get; set; } = [];
+    [Parameter]                 public bool                            CanGoBack      { get; set; }
+    [Parameter]                 public string[]                        Colors         { get; set; } = _defaultColors;
+    [Parameter]                 public int                             Height         { get; set; } = 280;
+    [Parameter]                 public EventCallback<string>           OnSliceClicked { get; set; }
+    [Parameter]                 public EventCallback                   OnBackClicked  { get; set; }
 
     private ApexChart<DistributionItem>? _chart;
 
