@@ -8,14 +8,17 @@ public class DashboardViewModel(IPortfolioService portfolioService)
 {
     private IReadOnlyList<AssetDto> _assets = [];
 
-    public SnapshotDto?  LastSnapshot  { get; private set; }
-    public bool          IsLoading     { get; private set; } = true;
-    public string?       ErrorMessage  { get; private set; }
-    public int           AssetCount    => _assets.Count;
+    public SnapshotDto? LastSnapshot  { get; private set; }
+    public bool         IsLoading     { get; private set; } = true;
+    public string?      ErrorMessage  { get; private set; }
+    public int          AssetCount    => _assets.Count;
 
     public PanelState AssetClassPanel  { get; } = new(PanelType.AssetClass);
     public PanelState SupportTypePanel { get; } = new(PanelType.SupportType);
     public PanelState RiskPanel        { get; } = new(PanelType.Risk);
+
+    public decimal? PortfolioRoiOnCapitalEngaged { get; private set; }
+    public decimal? PortfolioRoiOnTotalPurchases { get; private set; }
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -30,6 +33,7 @@ public class DashboardViewModel(IPortfolioService portfolioService)
             await Task.WhenAll(assetsTask, snapshotTask);
             _assets      = await assetsTask;
             LastSnapshot = await snapshotTask;
+            ComputePortfolioRoi();
         }
         catch (Exception ex)
         {
@@ -41,50 +45,81 @@ public class DashboardViewModel(IPortfolioService portfolioService)
         }
     }
 
-    public IReadOnlyList<DistributionItem> GetDistribution(PanelState panel)
-    {
-        var valid = _assets.Where(a => a.CurrentTotal is > 0).ToList();
-
-        var filtered = panel.Level >= 1
-            ? valid.Where(BuildFirstLevelFilter(panel))
-            : (IEnumerable<AssetDto>)valid;
-
-        Func<AssetDto, string> groupKey = (panel.Type, panel.Level) switch
+    public IReadOnlyList<DistributionItem> GetDistribution(PanelState panel) =>
+        panel.Type switch
         {
-            (PanelType.AssetClass,  0) => a => a.AssetClass,
-            (PanelType.AssetClass,  1) => a => a.AssetType,
-            (PanelType.SupportType, 0) => a => a.SupportType,
-            (PanelType.SupportType, 1) => a => a.Support,
-            (PanelType.Risk,        0) => a => a.Risk.ToString(),
-            _                          => a => a.Name
+            PanelType.AssetClass  => GetAssetClassDistribution(panel),
+            PanelType.SupportType => GetSupportTypeDistribution(panel),
+            PanelType.Risk        => GetRiskDistribution(panel),
+            _                     => []
         };
-
-        return ComputeDistribution(filtered, groupKey);
-    }
 
     public IReadOnlyList<AssetDto> GetAssetsForPanel(PanelState panel)
     {
         if (!panel.IsAtLeafLevel) return [];
-
-        var firstLevel = BuildFirstLevelFilter(panel);
-
         return panel.Type switch
         {
-            PanelType.AssetClass  => [.. _assets.Where(a => firstLevel(a) && a.AssetType == panel.Selected(1))],
-            PanelType.SupportType => [.. _assets.Where(a => firstLevel(a) && a.Support   == panel.Selected(1))],
-            PanelType.Risk        => [.. _assets.Where(firstLevel)],
+            PanelType.AssetClass  => GetLeafAssetsForAssetClass(panel.Selected(0)!, panel.Selected(1)!),
+            PanelType.SupportType => GetLeafAssetsForSupport(panel.Selected(1)!),
+            PanelType.Risk        => GetLeafAssetsForRisk(panel.Selected(0)!),
             _                     => []
         };
     }
 
-    private static Func<AssetDto, bool> BuildFirstLevelFilter(PanelState panel) =>
-        panel.Type switch
+    private IReadOnlyList<DistributionItem> GetAssetClassDistribution(PanelState panel) =>
+        panel.Level switch
         {
-            PanelType.AssetClass  => a => a.AssetClass  == panel.Selected(0),
-            PanelType.SupportType => a => a.SupportType == panel.Selected(0),
-            PanelType.Risk        => a => a.Risk.ToString() == panel.Selected(0),
-            _                     => _ => true
+            0 => ComputeDistribution(ActiveAssets(), a => a.AssetClass),
+            1 => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)), a => a.AssetType),
+            _ => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0) && a.AssetType == panel.Selected(1)), a => a.Name)
         };
+
+    private IReadOnlyList<DistributionItem> GetSupportTypeDistribution(PanelState panel) =>
+        panel.Level switch
+        {
+            0 => ComputeDistribution(ActiveAssets(), a => a.SupportType),
+            1 => ComputeDistribution(ActiveAssets().Where(a => a.SupportType == panel.Selected(0)), a => a.Support),
+            _ => ComputeDistribution(ActiveAssets().Where(a => a.SupportType == panel.Selected(0) && a.Support == panel.Selected(1)), a => a.Name)
+        };
+
+    private IReadOnlyList<DistributionItem> GetRiskDistribution(PanelState panel) =>
+        panel.Level switch
+        {
+            0 => ComputeDistribution(ActiveAssets(), a => a.Risk.ToString()),
+            _ => ComputeDistribution(ActiveAssets().Where(a => a.Risk.ToString() == panel.Selected(0)), a => a.Name)
+        };
+
+    private IReadOnlyList<AssetDto> GetLeafAssetsForAssetClass(string assetClass, string assetType) =>
+        [.. ActiveAssets()
+             .Where(a => a.AssetClass == assetClass && a.AssetType == assetType)
+             .OrderByDescending(a => a.CurrentTotal)];
+
+    private IReadOnlyList<AssetDto> GetLeafAssetsForSupport(string support) =>
+        [.. ActiveAssets()
+             .Where(a => a.Support == support)
+             .OrderByDescending(a => a.CurrentTotal)];
+
+    private IReadOnlyList<AssetDto> GetLeafAssetsForRisk(string risk) =>
+        [.. ActiveAssets()
+             .Where(a => a.Risk.ToString() == risk)
+             .OrderByDescending(a => a.CurrentTotal)];
+
+    private IEnumerable<AssetDto> ActiveAssets() =>
+        _assets.Where(a => a.CurrentTotal is > 0);
+
+    private void ComputePortfolioRoi()
+    {
+        if (LastSnapshot?.TotalPurchases is not > 0m) return;
+
+        var purchases      = LastSnapshot.TotalPurchases!.Value;
+        var returns        = LastSnapshot.TotalReturns ?? 0m;
+        var gain           = LastSnapshot.PortfolioTotal + returns - purchases;
+        var capitalEngaged = purchases - returns;
+
+        PortfolioRoiOnTotalPurchases = gain / purchases * 100m;
+        if (capitalEngaged > 0m)
+            PortfolioRoiOnCapitalEngaged = gain / capitalEngaged * 100m;
+    }
 
     private static IReadOnlyList<DistributionItem> ComputeDistribution(
         IEnumerable<AssetDto> assets,

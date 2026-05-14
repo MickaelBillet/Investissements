@@ -17,54 +17,60 @@ else
 {
     <MudStack Spacing="6">
 
-        <KpiHeader Snapshot="@ViewModel.LastSnapshot" AssetCount="@ViewModel.AssetCount" />
+        <KpiHeader Snapshot="@ViewModel.LastSnapshot"
+                   AssetCount="@ViewModel.AssetCount"
+                   RoiOnCapitalEngaged="@ViewModel.PortfolioRoiOnCapitalEngaged"
+                   RoiOnTotalPurchases="@ViewModel.PortfolioRoiOnTotalPurchases" />
 
-        <MudGrid Spacing="4">
-            <MudItem xs="12" md="6">
-                <DrillDownDonut Title="@ViewModel.AssetClassPanel.BreadcrumbLabel"
-                                Items="@ViewModel.GetDistribution(ViewModel.AssetClassPanel)"
-                                CanGoBack="@ViewModel.AssetClassPanel.CanGoBack"
-                                Colors="@_assetClassColors"
-                                OnSliceClicked="@(name => Drill(ViewModel.AssetClassPanel, name))"
-                                OnBackClicked="@(() => Back(ViewModel.AssetClassPanel))" />
-                @if (ViewModel.AssetClassPanel.IsAtLeafLevel)
-                {
-                    <AssetTable Assets="@ViewModel.GetAssetsForPanel(ViewModel.AssetClassPanel)" />
-                }
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <DrillDownDonut Title="@ViewModel.SupportTypePanel.BreadcrumbLabel"
-                                Items="@ViewModel.GetDistribution(ViewModel.SupportTypePanel)"
-                                CanGoBack="@ViewModel.SupportTypePanel.CanGoBack"
-                                Colors="@_supportTypeColors"
-                                OnSliceClicked="@(name => Drill(ViewModel.SupportTypePanel, name))"
-                                OnBackClicked="@(() => Back(ViewModel.SupportTypePanel))" />
-                @if (ViewModel.SupportTypePanel.IsAtLeafLevel)
-                {
-                    <AssetTable Assets="@ViewModel.GetAssetsForPanel(ViewModel.SupportTypePanel)" />
-                }
-            </MudItem>
-        </MudGrid>
-
-        <MudGrid Spacing="4">
-            <MudItem xs="12" md="6">
-                <DrillDownDonut Title="@ViewModel.RiskPanel.BreadcrumbLabel"
-                                Items="@ViewModel.GetDistribution(ViewModel.RiskPanel)"
-                                CanGoBack="@ViewModel.RiskPanel.CanGoBack"
-                                Colors="@_riskColors"
-                                OnSliceClicked="@(name => Drill(ViewModel.RiskPanel, name))"
-                                OnBackClicked="@(() => Back(ViewModel.RiskPanel))" />
-                @if (ViewModel.RiskPanel.IsAtLeafLevel)
-                {
-                    <AssetTable Assets="@ViewModel.GetAssetsForPanel(ViewModel.RiskPanel)" />
-                }
-            </MudItem>
-        </MudGrid>
+        @if (_activeHierarchy == ActiveHierarchy.None)
+        {
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="4">
+                    <DrillDownDonut Title="Classes d'actifs"
+                                    Items="@ViewModel.GetDistribution(ViewModel.AssetClassPanel)"
+                                    Colors="@_assetClassColors"
+                                    OnSliceClicked="@(name => DrillDown(ActiveHierarchy.AssetClass, ViewModel.AssetClassPanel, name))" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <DrillDownDonut Title="Types de supports"
+                                    Items="@ViewModel.GetDistribution(ViewModel.SupportTypePanel)"
+                                    Colors="@_supportTypeColors"
+                                    OnSliceClicked="@(name => DrillDown(ActiveHierarchy.SupportType, ViewModel.SupportTypePanel, name))" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <DrillDownDonut Title="Niveaux de risque"
+                                    Items="@ViewModel.GetDistribution(ViewModel.RiskPanel)"
+                                    Colors="@_riskColors"
+                                    OnSliceClicked="@(name => DrillDown(ActiveHierarchy.Risk, ViewModel.RiskPanel, name))" />
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            var panel  = ActivePanel;
+            var colors = ActiveColors;
+            <DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}")"
+                            Title="@panel.BreadcrumbLabel"
+                            Items="@ViewModel.GetDistribution(panel)"
+                            CanGoBack="true"
+                            Height="500"
+                            Colors="@colors"
+                            OnSliceClicked="@(name => DrillDown(_activeHierarchy, panel, name))"
+                            OnBackClicked="@(() => GoBack(panel))" />
+            @if (panel.IsAtLeafLevel)
+            {
+                <AssetTable Assets="@ViewModel.GetAssetsForPanel(panel)" />
+            }
+        }
 
     </MudStack>
 }
 
 @code {
+    private enum ActiveHierarchy { None, AssetClass, SupportType, Risk }
+
+    private ActiveHierarchy _activeHierarchy = ActiveHierarchy.None;
+
     private static readonly string[] _assetClassColors =
         ["#CE8BA0", "#E06D6D", "#4DAB9A", "#9B8DD6", "#D4A844", "#A0A0A0", "#787774", "#2383E2"];
 
@@ -74,20 +80,36 @@ else
     private static readonly string[] _riskColors =
         ["#4DAB9A", "#A0A0A0", "#D4A844", "#CE8BA0", "#E06D6D"];
 
+    private PanelState ActivePanel => _activeHierarchy switch
+    {
+        ActiveHierarchy.AssetClass  => ViewModel.AssetClassPanel,
+        ActiveHierarchy.SupportType => ViewModel.SupportTypePanel,
+        _                           => ViewModel.RiskPanel
+    };
+
+    private string[] ActiveColors => _activeHierarchy switch
+    {
+        ActiveHierarchy.AssetClass  => _assetClassColors,
+        ActiveHierarchy.SupportType => _supportTypeColors,
+        _                           => _riskColors
+    };
+
     protected override async Task OnInitializedAsync()
     {
         await ViewModel.InitializeAsync();
     }
 
-    private void Drill(PanelState panel, string name)
+    private void DrillDown(ActiveHierarchy hierarchy, PanelState panel, string name)
     {
+        if (panel.IsAtLeafLevel) return;
+        _activeHierarchy = hierarchy;
         panel.DrillDown(name);
-        StateHasChanged();
     }
 
-    private void Back(PanelState panel)
+    private void GoBack(PanelState panel)
     {
         panel.GoBack();
-        StateHasChanged();
+        if (!panel.CanGoBack)
+            _activeHierarchy = ActiveHierarchy.None;
     }
 }
