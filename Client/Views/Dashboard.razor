@@ -20,7 +20,8 @@ else
         <KpiHeader Snapshot="@ViewModel.LastSnapshot"
                    AssetCount="@ViewModel.AssetCount"
                    RoiOnCapitalEngaged="@ViewModel.PortfolioRoiOnCapitalEngaged"
-                   RoiOnTotalPurchases="@ViewModel.PortfolioRoiOnTotalPurchases" />
+                   RoiOnTotalPurchases="@ViewModel.PortfolioRoiOnTotalPurchases"
+                   AverageRisk="@ViewModel.AverageRisk" />
 
         @if (_activeHierarchy == ActiveHierarchy.None)
         {
@@ -49,28 +50,38 @@ else
         {
             var panel  = ActivePanel;
             var colors = ActiveColors;
-            <DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
-                            Title="@panel.BreadcrumbLabel"
-                            Items="@ViewModel.GetDistribution(panel)"
-                            CanGoBack="true"
-                            Height="500"
-                            Colors="@colors"
-                            OnSliceClicked="@(name => DrillDown(_activeHierarchy, panel, name))"
-                            OnBackClicked="@(() => GoBack(panel))">
-                <TopRightContent>
-                    @if (_activeHierarchy == ActiveHierarchy.AssetClass && panel.Selected(1) == "ETF_Stocks")
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="5">
+                    <DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
+                                    Title="@panel.BreadcrumbLabel"
+                                    Items="@ViewModel.GetDistribution(panel)"
+                                    CanGoBack="true"
+                                    Height="500"
+                                    Colors="@colors"
+                                    OnSliceClicked="@(name => DrillDown(_activeHierarchy, panel, name))"
+                                    OnBackClicked="@(() => GoBack(panel))">
+                        <TopRightContent>
+                            @if (_activeHierarchy == ActiveHierarchy.AssetClass && panel.Selected(1) == "ETF_Stocks")
+                            {
+                                <MudSwitch T="bool"
+                                           @bind-Value="@ViewModel.EtfStocksGroupByInformation"
+                                           Label="Grouper par thématique"
+                                           Color="MudBlazor.Color.Primary" />
+                            }
+                        </TopRightContent>
+                    </DrillDownDonut>
+                </MudItem>
+                <MudItem xs="12" md="7">
+                    @if (ViewModel.IsLeafLevel(panel))
                     {
-                        <MudSwitch T="bool"
-                                   @bind-Value="@ViewModel.EtfStocksGroupByInformation"
-                                   Label="Grouper par thématique"
-                                   Color="MudBlazor.Color.Primary" />
+                        <AssetTable Assets="@ViewModel.GetAssetsForPanel(panel)" />
                     }
-                </TopRightContent>
-            </DrillDownDonut>
-            @if (ViewModel.IsLeafLevel(panel))
-            {
-                <AssetTable Assets="@ViewModel.GetAssetsForPanel(panel)" />
-            }
+                    else
+                    {
+                        <DistributionTable Items="@ViewModel.GetDistribution(panel)" />
+                    }
+                </MudItem>
+            </MudGrid>
         }
 
     </MudStack>

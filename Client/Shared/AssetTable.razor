@@ -24,6 +24,13 @@
             @context.Yield.ToPercentage()
         </MudTd>
     </RowTemplate>
+    <FooterContent>
+        <MudTd Style="font-weight:600;">Total</MudTd>
+        <MudTd Style="text-align:right;font-weight:600;">
+            @Assets.Sum(a => a.CurrentTotal ?? 0m).ToEurAmount()
+        </MudTd>
+        <MudTd /><MudTd /><MudTd />
+    </FooterContent>
     <NoRecordsContent>
         <MudText Typo="Typo.body2" Style="color:#787774;padding:16px;">Aucun actif</MudText>
     </NoRecordsContent>
