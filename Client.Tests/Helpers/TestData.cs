@@ -10,12 +10,13 @@ internal static class TestData
         string  supportType  = "PEA",
         string  support      = "PEA TR",
         string  assetType    = "ETF_Stocks",
+        string  information  = "",
         int     risk         = 3,
         decimal currentTotal = 1000m,
         decimal? unrealizedGain = null,
         decimal? roi         = null,
         decimal? yield       = null) =>
-        new(1, name, assetClass, supportType, support, assetType, "",
+        new(1, name, assetClass, supportType, support, assetType, information,
             risk, null, null, null, currentTotal, unrealizedGain, yield, roi, 0m);
 
     public static SnapshotDto Snapshot(

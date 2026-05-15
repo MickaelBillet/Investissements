@@ -89,3 +89,44 @@ function testDoGetAllAsset() {
   const result = doGet(e);
   Logger.log(result.getContent());
 }
+
+function testDoGetAllSector() {
+  const e = {
+    parameter: {
+      apiKey  : "token-zapto",
+      service : "Sector",
+      action  : "getAll"
+    }
+  };
+
+  const result = doGet(e);
+  Logger.log(result.getContent());
+}
+
+function testGetEtfStocksByInformation() {
+  const e = {
+    parameter: {
+      apiKey  : "token-zapto",
+      service : "AssetType",
+      action  : "getEtfStocksByInformation"
+    }
+  };
+
+  const result = doGet(e);
+  Logger.log(result.getContent());
+}
+
+function testGetByAssetTypeAndInformation() {
+  const e = {
+    parameter: {
+      apiKey      : "token-zapto",
+      service     : "AssetType",
+      action      : "getByAssetTypeAndInformation",
+      assetType   : "ETF_Stocks",
+      information : "ETF Hydrogen"
+    }
+  };
+
+  const result = doGet(e);
+  Logger.log(result.getContent());
+}

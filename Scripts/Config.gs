@@ -37,13 +37,14 @@ const COL_ASSET_CLASS     = 2;  // C
 const COL_SUPPORT_TYPE    = 3;  // D
 const COL_SUPPORT         = 4;  // E
 const COL_ASSET_TYPE      = 5;  // F
-const COL_INFORMATION     = 6;  // G
-const COL_GEOGRAPHY       = 7;  // H
-const COL_RISK            = 8;  // I
-const COL_TOTAL_PURCHASES = 9;  // J
-const COL_TOTAL_SALES     = 10;  // K
-const COL_DIVIDENDS       = 11; // L
-const COL_CURRENT_TOTAL   = 12; // M
+const COL_SECTOR          = 6;  // G
+const COL_INFORMATION     = 7;  // H
+const COL_GEOGRAPHY       = 8;  // I
+const COL_RISK            = 9;  // J
+const COL_TOTAL_PURCHASES = 10; // K
+const COL_TOTAL_SALES     = 11; // L
+const COL_DIVIDENDS       = 12; // M
+const COL_CURRENT_TOTAL   = 13; // N
 
 // --- AssetClass enumeration ---
 const ASSET_CLASS = {

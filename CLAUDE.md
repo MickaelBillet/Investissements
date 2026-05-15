@@ -145,14 +145,16 @@ Une ligne par actif. Colonnes (index 0-based) :
 | 3 | D | `COL_SUPPORT_TYPE` | Type d'enveloppe (`SUPPORT_TYPE`) |
 | 4 | E | `COL_SUPPORT` | Enveloppe / broker (`SUPPORT`) |
 | 5 | F | `COL_ASSET_TYPE` | Type d'actif (`ASSET_TYPE`) |
-| 6 | G | `COL_INFORMATION` | Informations libres |
-| 7 | H | `COL_RISK` | Niveau de risque 0–4 (`RISK`) |
-| 8 | I | `COL_TOTAL_PURCHASES` | Total achats en EUR (peut être `"ND"`) |
-| 9 | J | `COL_TOTAL_SALES` | Total ventes en EUR |
-| 10 | K | `COL_DIVIDENDS` | Dividendes perçus en EUR |
-| 11 | L | `COL_CURRENT_TOTAL` | Valeur actuelle en EUR |
+| 6 | G | `COL_SECTOR` | Secteur économique (valeur libre) |
+| 7 | H | `COL_INFORMATION` | Informations libres |
+| 8 | I | `COL_GEOGRAPHY` | Zone géographique (valeur libre) |
+| 9 | J | `COL_RISK` | Niveau de risque 0–4 (`RISK`) |
+| 10 | K | `COL_TOTAL_PURCHASES` | Total achats en EUR (peut être `"ND"`) |
+| 11 | L | `COL_TOTAL_SALES` | Total ventes en EUR |
+| 12 | M | `COL_DIVIDENDS` | Dividendes perçus en EUR |
+| 13 | N | `COL_CURRENT_TOTAL` | Valeur actuelle en EUR |
 
-Les colonnes I–L sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
+Les colonnes K–N sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
 
 ### 6.3 Onglet `Snapshot` (DEST_ID)
 
@@ -360,10 +362,11 @@ GET ?apiKey=...&service=AssetClass&action=getAll
          │
     Router.gs → doGet(e)
          ├── AssetClass   → AssetClasseService.gs
-         ├── AssetType    → (inline dans Router.gs)
+         ├── AssetType    → AssetTypeService.gs
          ├── SupportType  → SupportTypeService.gs
          ├── Support      → SupportService.gs
          ├── Asset        → AssetService.gs
+         ├── Sector       → SectorService.gs
          └── Snapshot     → SnapshotService.gs
 ```
 
@@ -396,3 +399,37 @@ Ajouter une fonction de test pour chaque nouveau service ou action avant de dép
 ### 11.5 Enumerations (Config.gs)
 
 Toutes les valeurs de dimension sont définies comme constantes dans `Config.gs` (`ASSET_CLASS`, `ASSET_TYPE`, `SUPPORT_TYPE`, `SUPPORT`, `RISK`). Toujours utiliser ces constantes — ne jamais coder en dur des chaînes de caractères — pour rester cohérent avec ce qui est stocké dans la feuille.
+
+---
+
+## 12. Conventions de test — Règle absolue
+
+**Pour chaque nouvelle fonctionnalité, modification de comportement ou correction d'anomalie :**
+
+1. Mettre à jour ou ajouter les tests couvrant le changement
+2. Exécuter la suite complète et vérifier que tout est au vert
+
+Cette règle s'applique sans exception, quelle que soit la taille de la modification.
+
+### 12.1 Api / Azure Functions
+
+- Framework : **xUnit** + **Moq**
+- Projet : `Api.Tests/`
+- Commande : `dotnet test "Api.Tests/InvestissementsDashboard.Api.Tests.csproj"`
+- Pattern de nommage : `[MethodName]_[Scenario]_[ExpectedResult]`
+- Chaque nouveau service ou endpoint → tests unitaires sur `AssetsService`, `SnapshotService`, etc.
+
+### 12.2 Client / Blazor WASM
+
+- Framework : **bunit** + **Moq**
+- Projet : `Client.Tests/` (non inclus dans la solution — lancer directement)
+- Commande : `dotnet test "Client.Tests/InvestissementsDashboard.Client.Tests.csproj"`
+- `DashboardViewModel` → tests dans `ViewModels/DashboardViewModelTests.cs`
+- Composants Razor → tests dans `Components/`
+- Helpers de test centralisés dans `Helpers/TestData.cs`
+
+### 12.3 Scripts / Apps Script
+
+- Pas de framework de test automatisé — les tests sont des fonctions `test*` dans `Test.gs`
+- Ajouter une fonction de test pour chaque nouveau service ou action
+- Exécuter manuellement dans l'éditeur Apps Script avant tout déploiement

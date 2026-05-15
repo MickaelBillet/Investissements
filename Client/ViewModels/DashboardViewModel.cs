@@ -17,6 +17,8 @@ public class DashboardViewModel(IPortfolioService portfolioService)
     public PanelState SupportTypePanel { get; } = new(PanelType.SupportType);
     public PanelState RiskPanel        { get; } = new(PanelType.Risk);
 
+    public bool EtfStocksGroupByInformation { get; set; }
+
     public decimal? PortfolioRoiOnCapitalEngaged { get; private set; }
     public decimal? PortfolioRoiOnTotalPurchases { get; private set; }
 
@@ -45,6 +47,16 @@ public class DashboardViewModel(IPortfolioService portfolioService)
         }
     }
 
+    public bool IsLeafLevel(PanelState panel)
+    {
+        if (panel.Type == PanelType.AssetClass
+            && EtfStocksGroupByInformation
+            && panel.Selected(1) == "ETF_Stocks")
+            return panel.Level >= 3;
+
+        return panel.Type == PanelType.Risk ? panel.Level >= 1 : panel.Level >= 2;
+    }
+
     public IReadOnlyList<DistributionItem> GetDistribution(PanelState panel) =>
         panel.Type switch
         {
@@ -59,20 +71,38 @@ public class DashboardViewModel(IPortfolioService portfolioService)
         if (!panel.IsAtLeafLevel) return [];
         return panel.Type switch
         {
-            PanelType.AssetClass  => GetLeafAssetsForAssetClass(panel.Selected(0)!, panel.Selected(1)!),
+            PanelType.AssetClass  => GetLeafAssetsForAssetClass(
+                panel.Selected(0)!,
+                panel.Selected(1)!,
+                EtfStocksGroupByInformation && panel.Selected(1) == "ETF_Stocks" ? panel.Selected(2) : null),
             PanelType.SupportType => GetLeafAssetsForSupport(panel.Selected(1)!),
             PanelType.Risk        => GetLeafAssetsForRisk(panel.Selected(0)!),
             _                     => []
         };
     }
 
-    private IReadOnlyList<DistributionItem> GetAssetClassDistribution(PanelState panel) =>
-        panel.Level switch
+    private IReadOnlyList<DistributionItem> GetAssetClassDistribution(PanelState panel)
+    {
+        var isEtfGrouped = EtfStocksGroupByInformation && panel.Selected(1) == "ETF_Stocks";
+
+        return panel.Level switch
         {
             0 => ComputeDistribution(ActiveAssets(), a => a.AssetClass),
             1 => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)), a => a.AssetType),
-            _ => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0) && a.AssetType == panel.Selected(1)), a => a.Name)
+            2 when isEtfGrouped
+              => ComputeDistribution(
+                    ActiveAssets().Where(a => a.AssetClass == panel.Selected(0) && a.AssetType == "ETF_Stocks"),
+                    a => a.Information),
+            2 => ComputeDistribution(
+                    ActiveAssets().Where(a => a.AssetClass == panel.Selected(0) && a.AssetType == panel.Selected(1)),
+                    a => a.Name),
+            _ => ComputeDistribution(
+                    ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)
+                                           && a.AssetType == "ETF_Stocks"
+                                           && a.Information == panel.Selected(2)),
+                    a => a.Name)
         };
+    }
 
     private IReadOnlyList<DistributionItem> GetSupportTypeDistribution(PanelState panel) =>
         panel.Level switch
@@ -89,9 +119,11 @@ public class DashboardViewModel(IPortfolioService portfolioService)
             _ => ComputeDistribution(ActiveAssets().Where(a => a.Risk.ToString() == panel.Selected(0)), a => a.Name)
         };
 
-    private IReadOnlyList<AssetDto> GetLeafAssetsForAssetClass(string assetClass, string assetType) =>
+    private IReadOnlyList<AssetDto> GetLeafAssetsForAssetClass(string assetClass, string assetType, string? information = null) =>
         [.. ActiveAssets()
-             .Where(a => a.AssetClass == assetClass && a.AssetType == assetType)
+             .Where(a => a.AssetClass == assetClass
+                      && a.AssetType == assetType
+                      && (information == null || a.Information == information))
              .OrderByDescending(a => a.CurrentTotal)];
 
     private IReadOnlyList<AssetDto> GetLeafAssetsForSupport(string support) =>

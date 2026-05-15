@@ -39,6 +39,51 @@ public sealed class AssetsFunction
         }
     }
 
+    [Function(nameof(GetEtfStocksByInformation))]
+    public async Task<IActionResult> GetEtfStocksByInformation(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "assets/etfstocks/information")] HttpRequest req,
+        CancellationToken ct)
+    {
+        try
+        {
+            var aggregates = await _assetsService.GetEtfStocksByInformationAsync(ct);
+            return new OkObjectResult(aggregates);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to call Apps Script.");
+            return new StatusCodeResult(StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Failed to retrieve ETF stocks by information.");
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    [Function(nameof(GetByAssetTypeAndInformation))]
+    public async Task<IActionResult> GetByAssetTypeAndInformation(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "assets/etfstocks/information/{information}")] HttpRequest req,
+        string information,
+        CancellationToken ct)
+    {
+        try
+        {
+            var assets = await _assetsService.GetByAssetTypeAndInformationAsync("ETF_Stocks", information, ct);
+            return new OkObjectResult(assets);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to call Apps Script for information '{Information}'.", information);
+            return new StatusCodeResult(StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Failed to retrieve assets for information '{Information}'.", information);
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
     [Function(nameof(GetAssetsDistribution))]
     public async Task<IActionResult> GetAssetsDistribution(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "assets/distribution/{dimension}")] HttpRequest req,

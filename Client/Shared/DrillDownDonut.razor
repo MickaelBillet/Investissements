@@ -1,12 +1,18 @@
 <MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:16px 20px;height:100%;">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-        @if (CanGoBack)
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            @if (CanGoBack)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack"
+                               Size="MudBlazor.Size.Small"
+                               OnClick="@(() => OnBackClicked.InvokeAsync())" />
+            }
+            <MudText Typo="Typo.h3">@Title</MudText>
+        </MudStack>
+        @if (TopRightContent is not null)
         {
-            <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack"
-                           Size="MudBlazor.Size.Small"
-                           OnClick="@(() => OnBackClicked.InvokeAsync())" />
+            @TopRightContent
         }
-        <MudText Typo="Typo.h3">@Title</MudText>
     </MudStack>
 
     @if (Items.Count == 0)
@@ -38,8 +44,9 @@
     [Parameter]                 public bool                            CanGoBack      { get; set; }
     [Parameter]                 public string[]                        Colors         { get; set; } = _defaultColors;
     [Parameter]                 public int                             Height         { get; set; } = 280;
-    [Parameter]                 public EventCallback<string>           OnSliceClicked { get; set; }
-    [Parameter]                 public EventCallback                   OnBackClicked  { get; set; }
+    [Parameter]                 public EventCallback<string>           OnSliceClicked  { get; set; }
+    [Parameter]                 public EventCallback                   OnBackClicked   { get; set; }
+    [Parameter]                 public RenderFragment?                 TopRightContent { get; set; }
 
     private ApexChart<DistributionItem>? _chart;
 
@@ -84,10 +91,18 @@
         }
     };
 
-    protected override void OnParametersSet()
+    private IReadOnlyList<DistributionItem> _renderedItems = [];
+
+    protected override async Task OnParametersSetAsync()
     {
-        if (_options.Colors is not null && _options.Colors.SequenceEqual(Colors)) return;
-        _options.Colors = [.. Colors];
+        if (_options.Colors is null || !_options.Colors.SequenceEqual(Colors))
+            _options.Colors = [.. Colors];
+
+        if (_chart is not null && !Items.SequenceEqual(_renderedItems))
+        {
+            _renderedItems = Items;
+            await _chart.UpdateSeriesAsync();
+        }
     }
 
     private Task HandleSliceClick(SelectedData<DistributionItem> data)

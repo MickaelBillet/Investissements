@@ -22,6 +22,16 @@ function handleAssetType(action, params) {
       if (!params.assetType) return { error: "Missing parameter: assetType" };
       return getByAssetType(rows, params.assetType, portfolioTotal);
 
+    // --- Return ETF_Stocks grouped by COL_INFORMATION with aggregated metrics ---
+    case "getEtfStocksByInformation":
+      return getEtfStocksByInformation(rows, portfolioTotal);
+
+    // --- Return individual assets filtered by AssetType and information group ---
+    case "getByAssetTypeAndInformation":
+      if (!params.assetType) return { error: "Missing parameter: assetType" };
+      if (!params.information) return { error: "Missing parameter: information" };
+      return getByAssetTypeAndInformation(rows, params.assetType, params.information, portfolioTotal);
+
     default:
       return { error: "Unknown action: " + action };
   }
@@ -58,6 +68,38 @@ function getAssetTypeDistribution(rows, portfolioTotal) {
         ? Math.round(currentTotal / portfolioTotal * 10000) / 100
         : 0
     };
+  });
+}
+
+// --- Return ETF_Stocks grouped by COL_INFORMATION with aggregated metrics ---
+function getEtfStocksByInformation(rows, portfolioTotal) {
+  const etfRows = rows.filter(row => row[COL_ASSET_TYPE] === ASSET_TYPE.ETF_STOCKS);
+  if (etfRows.length === 0) return { error: "No ETF_Stocks found" };
+
+  const groups     = groupBy(etfRows, COL_INFORMATION);
+  const groupTotal = sumColumn(etfRows, COL_CURRENT_TOTAL);
+
+  return Object.keys(groups).map(information => {
+    const infoRows = groups[information];
+    return aggregateGroup(information, infoRows, groupTotal, portfolioTotal);
+  });
+}
+
+// --- Return individual assets filtered by AssetType and information group ---
+function getByAssetTypeAndInformation(rows, assetType, information, portfolioTotal) {
+  const filtered = rows.filter(
+    row => row[COL_ASSET_TYPE] === assetType && row[COL_INFORMATION] === information
+  );
+  if (filtered.length === 0) return { error: "No assets found for: " + assetType + " / " + information };
+
+  const groupTotal = sumColumn(filtered, COL_CURRENT_TOTAL);
+  return filtered.map(row => {
+    const asset = buildAssetRow(row);
+    asset.weightInGroup     = groupTotal !== 0
+      ? Math.round(row[COL_CURRENT_TOTAL] / groupTotal * 10000) / 100 : 0;
+    asset.weightInPortfolio = portfolioTotal !== 0
+      ? Math.round(row[COL_CURRENT_TOTAL] / portfolioTotal * 10000) / 100 : 0;
+    return asset;
   });
 }
 
