@@ -85,4 +85,82 @@ public class AssetsServiceTests
 
         mock.Verify(s => s.CallAsync<IReadOnlyList<DistributionDto>>(expectedService, "getDistribution", It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task GetEtfStocksByInformationAsync_WhenAppsScriptReturnsGroups_ReturnsThem()
+    {
+        var expected = new[]
+        {
+            new AggregateDto("World", 5000m, 0m, 0m, 6000m, false, 1000m, 0m, 20m, 60m, 50m),
+            new AggregateDto("Europe", 2000m, 0m, 0m, 2400m, false, 400m, 0m, 20m, 40m, 20m)
+        };
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<AggregateDto>>(
+                "AssetType", "getEtfStocksByInformation",
+                It.IsAny<IReadOnlyDictionary<string, string>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await CreateService(mock).GetEtfStocksByInformationAsync();
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("World", result[0].Name);
+        Assert.Equal("Europe", result[1].Name);
+    }
+
+    [Fact]
+    public async Task GetEtfStocksByInformationAsync_WhenAppsScriptReturnsNull_ReturnsEmptyList()
+    {
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<AggregateDto>>(
+                "AssetType", "getEtfStocksByInformation",
+                It.IsAny<IReadOnlyDictionary<string, string>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<AggregateDto>?)null);
+
+        var result = await CreateService(mock).GetEtfStocksByInformationAsync();
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetByAssetTypeAndInformationAsync_WhenAppsScriptReturnsAssets_ReturnsThem()
+    {
+        var expected = new[]
+        {
+            new AssetDto(1, "MSCI World ETF", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "World", 4,
+                5000m, 0m, 0m, 6000m, 1000m, 0m, 20m, 60m)
+        };
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetDto>>(
+                "AssetType", "getByAssetTypeAndInformation",
+                It.IsAny<IReadOnlyDictionary<string, string>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await CreateService(mock).GetByAssetTypeAndInformationAsync("ETF_Stocks", "World");
+
+        Assert.Single(result);
+        Assert.Equal("MSCI World ETF", result[0].Name);
+        mock.Verify(s => s.CallAsync<IReadOnlyList<AssetDto>>(
+            "AssetType", "getByAssetTypeAndInformation",
+            It.Is<IReadOnlyDictionary<string, string>?>(d =>
+                d != null && d["assetType"] == "ETF_Stocks" && d["information"] == "World"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetByAssetTypeAndInformationAsync_WhenAppsScriptReturnsNull_ReturnsEmptyList()
+    {
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetDto>>(
+                "AssetType", "getByAssetTypeAndInformation",
+                It.IsAny<IReadOnlyDictionary<string, string>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<AssetDto>?)null);
+
+        var result = await CreateService(mock).GetByAssetTypeAndInformationAsync("ETF_Stocks", "World");
+
+        Assert.Empty(result);
+    }
 }

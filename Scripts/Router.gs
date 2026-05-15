@@ -38,6 +38,9 @@ function doGet(e) {
       case "Asset":
         result = handleAsset(action, e.parameter);
         break;
+      case "Sector":
+        result = handleSector(action, e.parameter);
+        break;
       case "Snapshot":
         result = handleSnapshot(action, e.parameter);
         break;
@@ -140,12 +143,13 @@ function buildAssetRow(row) {
 
   return {
     id           : parseInt(row[COL_ID], 10),
-    name         : row[COL_NAME],
-    assetClass   : row[COL_ASSET_CLASS],
-    supportType  : row[COL_SUPPORT_TYPE],
-    support      : row[COL_SUPPORT],
-    assetType    : row[COL_ASSET_TYPE],
-    information  : row[COL_INFORMATION],
+    name         : String(row[COL_NAME]        ?? ""),
+    assetClass   : String(row[COL_ASSET_CLASS]  ?? ""),
+    supportType  : String(row[COL_SUPPORT_TYPE] ?? ""),
+    support      : String(row[COL_SUPPORT]      ?? ""),
+    assetType    : String(row[COL_ASSET_TYPE]   ?? ""),
+    sector       : String(row[COL_SECTOR]       ?? ""),
+    information  : String(row[COL_INFORMATION]  ?? ""),
     risk         : parseInt(row[COL_RISK], 10),
     totalPurchases: hasFinancialData ? tp   : null,
     totalSales    : hasFinancialData ? ts   : null,

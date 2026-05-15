@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
@@ -7,6 +9,27 @@ namespace InvestissementsDashboard.Api.Services;
 
 internal sealed class AppsScriptService : IAppsScriptService
 {
+    // Google Sheets can return any field as a number instead of a string.
+    // This converter handles all string fields robustly.
+    private sealed class FlexibleStringConverter : JsonConverter<string>
+    {
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            => reader.TokenType switch
+            {
+                JsonTokenType.String => reader.GetString(),
+                JsonTokenType.Number => reader.TryGetInt64(out var l)
+                                        ? l.ToString()
+                                        : reader.GetDouble().ToString(CultureInfo.InvariantCulture),
+                JsonTokenType.True   => "true",
+                JsonTokenType.False  => "false",
+                JsonTokenType.Null   => null,
+                _                   => null
+            };
+
+        public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+            => writer.WriteStringValue(value);
+    }
+
     // Google Sheets can return numeric IDs as strings or floats (e.g. "5.0").
     // This converter handles all int/int? fields robustly.
     private sealed class FlexibleIntConverter : JsonConverter<int>
@@ -40,7 +63,7 @@ internal sealed class AppsScriptService : IAppsScriptService
     {
         PropertyNameCaseInsensitive = true,
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
-        Converters = { new FlexibleIntConverter() }
+        Converters = { new FlexibleIntConverter(), new FlexibleStringConverter() }
     };
 
     private readonly HttpClient _httpClient;
@@ -56,17 +79,26 @@ internal sealed class AppsScriptService : IAppsScriptService
         _apiKey     = configuration[AppsScriptApiKeyKey] ?? throw new InvalidOperationException($"{AppsScriptApiKeyKey} is not configured.");
     }
 
-    public async Task<T?> CallAsync<T>(string service, string action, CancellationToken ct = default)
+    public Task<T?> CallAsync<T>(string service, string action, CancellationToken ct = default)
+        => CallAsync<T>(service, action, null, ct);
+
+    public async Task<T?> CallAsync<T>(string service, string action, IReadOnlyDictionary<string, string>? extraParams, CancellationToken ct = default)
     {
-        var response = await _httpClient.GetAsync(BuildRequestUrl(service, action), ct);
+        var response = await _httpClient.GetAsync(BuildRequestUrl(service, action, extraParams), ct);
         EnsureHttpSuccess(response, service, action);
         var content = await response.Content.ReadAsStringAsync(ct);
         ThrowIfAppsScriptError(content, service, action);
         return JsonSerializer.Deserialize<T>(content, JsonOptions);
     }
 
-    private string BuildRequestUrl(string service, string action)
-        => $"{_baseUrl}?apiKey={_apiKey}&service={service}&action={action}";
+    private string BuildRequestUrl(string service, string action, IReadOnlyDictionary<string, string>? extraParams = null)
+    {
+        var sb = new StringBuilder($"{_baseUrl}?apiKey={_apiKey}&service={service}&action={action}");
+        if (extraParams is not null)
+            foreach (var (k, v) in extraParams)
+                sb.Append($"&{Uri.EscapeDataString(k)}={Uri.EscapeDataString(v)}");
+        return sb.ToString();
+    }
 
     private void EnsureHttpSuccess(HttpResponseMessage response, string service, string action)
     {

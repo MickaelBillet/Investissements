@@ -90,4 +90,26 @@ public class DrillDownDonutTests : BunitContext
 
         Assert.Contains("Mon titre", cut.Markup);
     }
+
+    [Fact]
+    public void DrillDownDonut_WhenTopRightContentProvided_RendersItInHeader()
+    {
+        var cut = Render<DrillDownDonut>(p => p
+            .Add(c => c.Title,            "ETF Stocks")
+            .Add(c => c.Items,            [])
+            .Add(c => c.TopRightContent,  b => b.AddMarkupContent(0, "<span id='top-right'>Mon contenu</span>")));
+
+        Assert.Contains("Mon contenu", cut.Markup);
+    }
+
+    [Fact]
+    public void DrillDownDonut_WhenTopRightContentIsNull_NoExtraContentInHeader()
+    {
+        var cut = Render<DrillDownDonut>(p => p
+            .Add(c => c.Title, "ETF Stocks")
+            .Add(c => c.Items, []));
+
+        // Default render should not throw and title must be present
+        Assert.Contains("ETF Stocks", cut.Markup);
+    }
 }

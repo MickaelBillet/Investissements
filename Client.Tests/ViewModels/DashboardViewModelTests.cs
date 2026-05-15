@@ -190,4 +190,144 @@ public class DashboardViewModelTests
         Assert.Single(result);
         Assert.Equal("A", result[0].Name);
     }
+
+    // ── IsLeafLevel ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public void IsLeafLevel_WhenAssetClassLevel2AndToggleOff_ReturnsTrue()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.AssetClassPanel.DrillDown("Stocks");
+        vm.AssetClassPanel.DrillDown("ETF_Stocks");
+
+        Assert.True(vm.IsLeafLevel(vm.AssetClassPanel));
+    }
+
+    [Fact]
+    public void IsLeafLevel_WhenAssetClassLevel2EtfStocksAndToggleOn_ReturnsFalse()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.AssetClassPanel.DrillDown("Stocks");
+        vm.AssetClassPanel.DrillDown("ETF_Stocks");
+        vm.EtfStocksGroupByInformation = true;
+
+        Assert.False(vm.IsLeafLevel(vm.AssetClassPanel));
+    }
+
+    [Fact]
+    public void IsLeafLevel_WhenAssetClassLevel3AndToggleOn_ReturnsTrue()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.AssetClassPanel.DrillDown("Stocks");
+        vm.AssetClassPanel.DrillDown("ETF_Stocks");
+        vm.AssetClassPanel.DrillDown("World");
+        vm.EtfStocksGroupByInformation = true;
+
+        Assert.True(vm.IsLeafLevel(vm.AssetClassPanel));
+    }
+
+    [Fact]
+    public void IsLeafLevel_WhenOtherAssetTypeLevel2AndToggleOn_ReturnsTrue()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.AssetClassPanel.DrillDown("Stocks");
+        vm.AssetClassPanel.DrillDown("Stock");
+        vm.EtfStocksGroupByInformation = true;
+
+        // Toggle only applies to ETF_Stocks — other types remain leaf at level 2
+        Assert.True(vm.IsLeafLevel(vm.AssetClassPanel));
+    }
+
+    [Fact]
+    public void IsLeafLevel_WhenRiskLevel1_ReturnsTrue()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.RiskPanel.DrillDown("3");
+
+        Assert.True(vm.IsLeafLevel(vm.RiskPanel));
+    }
+
+    // ── GetDistribution ETF grouping ──────────────────────────────────────────
+
+    [Fact]
+    public async Task GetDistribution_WhenEtfStocksLevel2AndToggleOn_GroupsByInformation()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(name: "MSCI World",    assetClass: "Stocks", assetType: "ETF_Stocks", information: "World",  currentTotal: 6_000m),
+            TestData.Asset(name: "Stoxx 600",     assetClass: "Stocks", assetType: "ETF_Stocks", information: "Europe", currentTotal: 3_000m),
+            TestData.Asset(name: "Hydrogen",      assetClass: "Stocks", assetType: "ETF_Stocks", information: "Europe", currentTotal: 1_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        vm.AssetClassPanel.DrillDown("Stocks");
+        vm.AssetClassPanel.DrillDown("ETF_Stocks");
+        vm.EtfStocksGroupByInformation = true;
+
+        var distribution = vm.GetDistribution(vm.AssetClassPanel);
+
+        Assert.Equal(2, distribution.Count);
+        Assert.Contains(distribution, d => d.Name == "World");
+        Assert.Contains(distribution, d => d.Name == "Europe");
+    }
+
+    [Fact]
+    public async Task GetDistribution_WhenEtfStocksLevel2AndToggleOff_GroupsByName()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(name: "MSCI World", assetClass: "Stocks", assetType: "ETF_Stocks", information: "World",  currentTotal: 6_000m),
+            TestData.Asset(name: "Stoxx 600",  assetClass: "Stocks", assetType: "ETF_Stocks", information: "Europe", currentTotal: 3_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        vm.AssetClassPanel.DrillDown("Stocks");
+        vm.AssetClassPanel.DrillDown("ETF_Stocks");
+        vm.EtfStocksGroupByInformation = false;
+
+        var distribution = vm.GetDistribution(vm.AssetClassPanel);
+
+        Assert.Equal(2, distribution.Count);
+        Assert.Contains(distribution, d => d.Name == "MSCI World");
+        Assert.Contains(distribution, d => d.Name == "Stoxx 600");
+    }
+
+    [Fact]
+    public async Task GetDistribution_WhenEtfStocksLevel3AndToggleOn_GroupsByName()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(name: "MSCI World",  assetClass: "Stocks", assetType: "ETF_Stocks", information: "World",  currentTotal: 6_000m),
+            TestData.Asset(name: "World Small", assetClass: "Stocks", assetType: "ETF_Stocks", information: "World",  currentTotal: 2_000m),
+            TestData.Asset(name: "Stoxx 600",   assetClass: "Stocks", assetType: "ETF_Stocks", information: "Europe", currentTotal: 3_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        vm.AssetClassPanel.DrillDown("Stocks");
+        vm.AssetClassPanel.DrillDown("ETF_Stocks");
+        vm.AssetClassPanel.DrillDown("World");
+        vm.EtfStocksGroupByInformation = true;
+
+        var distribution = vm.GetDistribution(vm.AssetClassPanel);
+
+        Assert.Equal(2, distribution.Count);
+        Assert.Contains(distribution, d => d.Name == "MSCI World");
+        Assert.Contains(distribution, d => d.Name == "World Small");
+        Assert.DoesNotContain(distribution, d => d.Name == "Stoxx 600");
+    }
+
+    [Fact]
+    public async Task GetAssetsForPanel_WhenEtfGroupedAtLevel3_FiltersAssetsByInformationGroup()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(name: "MSCI World",  assetClass: "Stocks", assetType: "ETF_Stocks", information: "World",  currentTotal: 6_000m),
+            TestData.Asset(name: "World Small", assetClass: "Stocks", assetType: "ETF_Stocks", information: "World",  currentTotal: 2_000m),
+            TestData.Asset(name: "Stoxx 600",   assetClass: "Stocks", assetType: "ETF_Stocks", information: "Europe", currentTotal: 3_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        vm.AssetClassPanel.DrillDown("Stocks");
+        vm.AssetClassPanel.DrillDown("ETF_Stocks");
+        vm.AssetClassPanel.DrillDown("World");
+        vm.EtfStocksGroupByInformation = true;
+
+        var result = vm.GetAssetsForPanel(vm.AssetClassPanel);
+
+        Assert.Equal(2, result.Count);
+        Assert.All(result, a => Assert.Equal("World", a.Information));
+        Assert.DoesNotContain(result, a => a.Name == "Stoxx 600");
+    }
 }

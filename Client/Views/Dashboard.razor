@@ -49,15 +49,25 @@ else
         {
             var panel  = ActivePanel;
             var colors = ActiveColors;
-            <DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}")"
+            <DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
                             Title="@panel.BreadcrumbLabel"
                             Items="@ViewModel.GetDistribution(panel)"
                             CanGoBack="true"
                             Height="500"
                             Colors="@colors"
                             OnSliceClicked="@(name => DrillDown(_activeHierarchy, panel, name))"
-                            OnBackClicked="@(() => GoBack(panel))" />
-            @if (panel.IsAtLeafLevel)
+                            OnBackClicked="@(() => GoBack(panel))">
+                <TopRightContent>
+                    @if (_activeHierarchy == ActiveHierarchy.AssetClass && panel.Selected(1) == "ETF_Stocks")
+                    {
+                        <MudSwitch T="bool"
+                                   @bind-Value="@ViewModel.EtfStocksGroupByInformation"
+                                   Label="Grouper par thématique"
+                                   Color="MudBlazor.Color.Primary" />
+                    }
+                </TopRightContent>
+            </DrillDownDonut>
+            @if (ViewModel.IsLeafLevel(panel))
             {
                 <AssetTable Assets="@ViewModel.GetAssetsForPanel(panel)" />
             }
@@ -101,7 +111,7 @@ else
 
     private void DrillDown(ActiveHierarchy hierarchy, PanelState panel, string name)
     {
-        if (panel.IsAtLeafLevel) return;
+        if (ViewModel.IsLeafLevel(panel)) return;
         _activeHierarchy = hierarchy;
         panel.DrillDown(name);
     }

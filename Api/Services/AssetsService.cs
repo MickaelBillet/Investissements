@@ -42,4 +42,17 @@ internal sealed class AssetsService : IAssetsService
         var result = await _appsScript.CallAsync<IReadOnlyList<DistributionDto>>(service, "getDistribution", ct);
         return result ?? [];
     }
+
+    public async Task<IReadOnlyList<AggregateDto>> GetEtfStocksByInformationAsync(CancellationToken ct = default)
+    {
+        var result = await _appsScript.CallAsync<IReadOnlyList<AggregateDto>>("AssetType", "getEtfStocksByInformation", null, ct);
+        return result ?? [];
+    }
+
+    public async Task<IReadOnlyList<AssetDto>> GetByAssetTypeAndInformationAsync(string assetType, string information, CancellationToken ct = default)
+    {
+        var extra = new Dictionary<string, string> { ["assetType"] = assetType, ["information"] = information };
+        var result = await _appsScript.CallAsync<IReadOnlyList<AssetDto>>("AssetType", "getByAssetTypeAndInformation", extra, ct);
+        return result ?? [];
+    }
 }
