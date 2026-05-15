@@ -9,6 +9,7 @@ var host = new HostBuilder()
         services.AddHttpClient<IAppsScriptService, AppsScriptService>();
         services.AddScoped<IAssetsService, AssetsService>();
         services.AddScoped<ISnapshotService, SnapshotService>();
+        services.AddScoped<IPortfolioMetricsService, PortfolioMetricsService>();
     })
     .Build();
 

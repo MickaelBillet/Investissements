@@ -6,7 +6,8 @@ namespace InvestissementsDashboard.Client.ViewModels;
 
 public class DashboardViewModel(IPortfolioService portfolioService)
 {
-    private IReadOnlyList<AssetDto> _assets = [];
+    private IReadOnlyList<AssetDto>  _assets  = [];
+    private PortfolioMetricsDto?     _metrics;
 
     public SnapshotDto? LastSnapshot  { get; private set; }
     public bool         IsLoading     { get; private set; } = true;
@@ -19,8 +20,9 @@ public class DashboardViewModel(IPortfolioService portfolioService)
 
     public bool EtfStocksGroupByInformation { get; set; }
 
-    public decimal? PortfolioRoiOnCapitalEngaged { get; private set; }
-    public decimal? PortfolioRoiOnTotalPurchases { get; private set; }
+    public decimal? PortfolioRoiOnCapitalEngaged => _metrics?.RoiOnCapitalEngaged;
+    public decimal? PortfolioRoiOnTotalPurchases => _metrics?.RoiOnTotalPurchases;
+    public decimal? AverageRisk                  => _metrics?.AverageRisk;
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -32,10 +34,11 @@ public class DashboardViewModel(IPortfolioService portfolioService)
         {
             var assetsTask   = portfolioService.GetAssetsAsync(ct);
             var snapshotTask = portfolioService.GetLastSnapshotAsync(ct);
-            await Task.WhenAll(assetsTask, snapshotTask);
+            var metricsTask  = portfolioService.GetMetricsAsync(ct);
+            await Task.WhenAll(assetsTask, snapshotTask, metricsTask);
             _assets      = await assetsTask;
             LastSnapshot = await snapshotTask;
-            ComputePortfolioRoi();
+            _metrics     = await metricsTask;
         }
         catch (Exception ex)
         {
@@ -138,20 +141,6 @@ public class DashboardViewModel(IPortfolioService portfolioService)
 
     private IEnumerable<AssetDto> ActiveAssets() =>
         _assets.Where(a => a.CurrentTotal is > 0);
-
-    private void ComputePortfolioRoi()
-    {
-        if (LastSnapshot?.TotalPurchases is not > 0m) return;
-
-        var purchases      = LastSnapshot.TotalPurchases!.Value;
-        var returns        = LastSnapshot.TotalReturns ?? 0m;
-        var gain           = LastSnapshot.PortfolioTotal + returns - purchases;
-        var capitalEngaged = purchases - returns;
-
-        PortfolioRoiOnTotalPurchases = gain / purchases * 100m;
-        if (capitalEngaged > 0m)
-            PortfolioRoiOnCapitalEngaged = gain / capitalEngaged * 100m;
-    }
 
     private static IReadOnlyList<DistributionItem> ComputeDistribution(
         IEnumerable<AssetDto> assets,

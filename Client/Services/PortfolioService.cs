@@ -24,4 +24,7 @@ internal sealed class PortfolioService(HttpClient httpClient) : IPortfolioServic
         var result = await httpClient.GetFromJsonAsync<SnapshotDto[]>("/api/snapshot/history", ct);
         return result ?? [];
     }
+
+    public Task<PortfolioMetricsDto?> GetMetricsAsync(CancellationToken ct = default)
+        => httpClient.GetFromJsonAsync<PortfolioMetricsDto>("/api/portfolio/metrics", ct);
 }

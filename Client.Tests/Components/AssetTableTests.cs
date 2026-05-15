@@ -69,4 +69,20 @@ public class AssetTableTests : BunitContext
 
         Assert.Contains("—", cut.Markup);
     }
+
+    [Fact]
+    public void AssetTable_FooterDisplaysSumOfCurrentTotal()
+    {
+        var assets = new[]
+        {
+            TestData.Asset(name: "A", currentTotal: 5_000m),
+            TestData.Asset(name: "B", currentTotal: 3_000m)
+        };
+
+        var cut = Render<AssetTable>(p => p.Add(c => c.Assets, assets));
+
+        Assert.Contains("Total", cut.Markup);
+        Assert.Contains("8",     cut.Markup); // 8 000
+        Assert.Contains("€",     cut.Markup);
+    }
 }

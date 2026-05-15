@@ -18,6 +18,17 @@ public class DashboardViewModelTests
             .ReturnsAsync(assets);
         mock.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((SnapshotDto?)null);
+        mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PortfolioMetricsDto?)null);
+        return mock;
+    }
+
+    private static Mock<IPortfolioService> MockWithMetrics(PortfolioMetricsDto metrics)
+    {
+        var mock = new Mock<IPortfolioService>();
+        mock.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        mock.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>())).ReturnsAsync((SnapshotDto?)null);
+        mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(metrics);
         return mock;
     }
 
@@ -189,6 +200,54 @@ public class DashboardViewModelTests
 
         Assert.Single(result);
         Assert.Equal("A", result[0].Name);
+    }
+
+    // ── PortfolioRoi + AverageRisk (proxy vers API metrics) ──────────────────
+
+    [Fact]
+    public async Task PortfolioRoi_WhenMetricsIsNull_BothRoisAreNull()
+    {
+        var vm = CreateVm(MockWithAssets());
+        await vm.InitializeAsync();
+
+        Assert.Null(vm.PortfolioRoiOnTotalPurchases);
+        Assert.Null(vm.PortfolioRoiOnCapitalEngaged);
+    }
+
+    [Fact]
+    public async Task PortfolioRoiOnTotalPurchases_ExposesValueFromMetrics()
+    {
+        var vm = CreateVm(MockWithMetrics(new PortfolioMetricsDto(10m, 9.09m, 2.5m)));
+        await vm.InitializeAsync();
+
+        Assert.Equal(10m, vm.PortfolioRoiOnTotalPurchases);
+    }
+
+    [Fact]
+    public async Task PortfolioRoiOnCapitalEngaged_ExposesValueFromMetrics()
+    {
+        var vm = CreateVm(MockWithMetrics(new PortfolioMetricsDto(10m, 9.09m, 2.5m)));
+        await vm.InitializeAsync();
+
+        Assert.Equal(9.09m, vm.PortfolioRoiOnCapitalEngaged);
+    }
+
+    [Fact]
+    public async Task AverageRisk_WhenMetricsIsNull_IsNull()
+    {
+        var vm = CreateVm(MockWithAssets());
+        await vm.InitializeAsync();
+
+        Assert.Null(vm.AverageRisk);
+    }
+
+    [Fact]
+    public async Task AverageRisk_ExposesValueFromMetrics()
+    {
+        var vm = CreateVm(MockWithMetrics(new PortfolioMetricsDto(null, null, 2.3m)));
+        await vm.InitializeAsync();
+
+        Assert.Equal(2.3m, vm.AverageRisk);
     }
 
     // ── IsLeafLevel ───────────────────────────────────────────────────────────
