@@ -8,7 +8,9 @@ SRS_12 La date de la dernière mise à jour des données doit être affichée
 
 SRS_13 Le nombre total d’actifs en portefeuille doit être affiché
 
-SRS_15 Le ROI du portefeuille (2valeurs) en fonction de la valeur totale des achats et de la valeur actuelle du portefeuille 
+SRS_15 Le ROI du portefeuille (2 valeurs) en fonction de la valeur totale des achats et de la valeur actuelle du portefeuille
+
+SRS_17 Le risque moyen du portefeuille (0–4) doit être affiché, calculé comme la moyenne pondérée par la valeur actuelle des actifs
 
 #### Répartition par classes d’actifs
 
@@ -48,6 +50,14 @@ SRS_08 Un contrôle graphique doit permettre de revenir au graphique à secteurs
 #### Détail des actifs
 
 SRS_14 Lorsque le dernier niveau de drill-down est atteint (actifs du type, actifs du support, actifs du niveau de risque), un tableau s'affiche en dessous du graphique à secteurs présentant pour chaque actif : le nom, la valeur actuelle en euros, la plus-value latente en euros, le ROI en % et le rendement en %
+
+#### ETF Stocks — Groupement par thématique
+
+SRS_18 Lorsque le drill-down Classes d'actifs atteint le type d'actif `ETF_Stocks`, un toggle "Grouper par thématique" doit permettre d'activer un niveau intermédiaire groupant les ETF_Stocks par leur champ `information` avant de descendre aux actifs individuels
+
+#### Layout en mode Master-Detail
+
+SRS_19 En mode Master-Detail (drill-down actif), le graphique à secteurs occupe la partie gauche de la vue et le tableau de données (distribution ou actifs selon le niveau) occupe la partie droite en mode côte à côte
 
 #### Vue historique
 

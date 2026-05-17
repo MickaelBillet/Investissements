@@ -84,9 +84,9 @@ Azure Static Web Apps + nom de domaine custom
 - Aucune intervention manuelle requise
 
 ### 4.3 Azure Functions (backend C#)
-- Détient la clé API Google Sheets (stockée dans App Settings)
+- Détient l'URL et le token de l'Apps Script Web App (stockés dans App Settings)
 - Expose des endpoints REST consommés par le Blazor WASM
-- Interroge Google Sheets API v4 et retourne les données transformées
+- Appelle l'Apps Script Web App et transforme la réponse en DTOs C#
 - Liées à Azure Static Web Apps (sécurité interne, pas d'exposition publique)
 
 ### 4.4 Blazor WASM (frontend C#)
@@ -195,22 +195,25 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 
 ### 7.1 Vue instantanée — onglet principal (`/`)
 
-**En-tête KPI (5 cartes) :**
+**En-tête KPI (6 cartes) :**
 - Valeur totale du portefeuille en EUR
 - Date de dernière mise à jour
 - Nombre d'actifs en portefeuille
-- ROI / Capital Engagé = Gain / (TotalPurchases − TotalReturns)
-- ROI / Total des Achats = Gain / TotalPurchases
+- ROI / Capital Engagé = TotalReturns / PortfolioTotal × 100 (calculé côté API)
+- ROI / Total des Achats = TotalReturns / TotalPurchases × 100 (calculé côté API)
+- Risque moyen pondéré (0–4) = moyenne pondérée par valeur actuelle (calculé côté API)
 
 **Vue principale — 3 donuts côte à côte :**
 
-| Donut | Drill-down niveau 1 | Drill-down niveau 2 |
-|---|---|---|
-| Classes d'actifs | Types d'actifs dans la classe | Actifs du type |
-| Types de supports | Supports/brokers du type | Actifs du support |
-| Niveaux de risque | Actifs du niveau | — |
+| Donut | Niveau 1 | Niveau 2 | Niveau 3 (ETF_Stocks + toggle) |
+|---|---|---|---|
+| Classes d'actifs | Types d'actifs dans la classe | Actifs du type | Thématiques ETF → Actifs |
+| Types de supports | Supports/brokers du type | Actifs du support | — |
+| Niveaux de risque | Actifs du niveau | — | — |
 
-Cliquer sur un secteur active le **mode Master-Detail** : les 2 autres donuts disparaissent, la hiérarchie sélectionnée s'affiche en plein écran. Au dernier niveau (feuille), un tableau apparaît sous le donut avec : nom, valeur actuelle (€), plus-value (€), ROI (%), rendement (%). Un bouton back permet de remonter niveau par niveau.
+Cliquer sur un secteur active le **mode Master-Detail** : les 2 autres donuts disparaissent. Layout : donut à gauche (5/12) + tableau à droite (7/12). Aux niveaux intermédiaires, le tableau affiche la distribution (`DistributionTable`). Au niveau feuille, il affiche les actifs (`AssetTable` : nom, valeur actuelle (€), plus-value (€), ROI (%), rendement (%)). Un bouton back remonte niveau par niveau.
+
+Quand ETF_Stocks est sélectionné (hiérarchie Classes d'actifs), un toggle **"Grouper par thématique"** insère un niveau intermédiaire groupant par champ `information` avant d'atteindre les actifs individuels.
 
 ### 7.2 Vue historique — onglet `/historique`
 
@@ -222,6 +225,7 @@ Courbe de performance indexée à 100 à la date T0 (première entrée disponibl
 - Date de dernière mise à jour des données
 - ROI / Capital Engagé (coloré vert/rouge, N/A si données manquantes)
 - ROI / Total des Achats (coloré vert/rouge, N/A si données manquantes)
+- Risque moyen pondéré (0–4), affiché `—` si indisponible
 
 ---
 
@@ -324,7 +328,7 @@ jobs:
 |---|---|---|
 | 1 | ~~Structure détaillée des onglets du Google Sheets~~ — résolu, voir section 6 | — |
 | 2 | Nombre d'actifs à afficher dans le top holdings (10, 15, 20 ?) | Fonctionnalité dashboard |
-| 3 | Palette de couleurs souhaitée pour les graphiques | UI/UX |
+| 3 | ~~Palette de couleurs souhaitée pour les graphiques~~ — définie dans `Client/Docs/Claude.md` section 6 | — |
 | 4 | ~~Heure d'exécution quotidienne de l'Apps Script~~ — 06h00 (après clôture des marchés européens) | — |
 | 5 | Sous-domaine ou racine du domaine custom ? (ex: `dashboard.mondomaine.com`) | Déploiement |
 

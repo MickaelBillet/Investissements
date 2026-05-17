@@ -27,12 +27,14 @@ Api/
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
 └── Services/
-    ├── IAppsScriptService.cs   # Interface HTTP vers l'Apps Script
-    ├── AppsScriptService.cs    # Implémentation — appelle le Web App
+    ├── IAppsScriptService.cs      # Interface HTTP vers l'Apps Script
+    ├── AppsScriptService.cs       # Implémentation — appelle le Web App
     ├── IAssetsService.cs
-    ├── AssetsService.cs        # Délègue à IAppsScriptService
+    ├── AssetsService.cs           # Délègue à IAppsScriptService
     ├── ISnapshotService.cs
-    └── SnapshotService.cs      # Délègue à IAppsScriptService
+    ├── SnapshotService.cs         # Délègue à IAppsScriptService
+    ├── IPortfolioMetricsService.cs
+    └── PortfolioMetricsService.cs # Compose AssetsService + SnapshotService
 ```
 
 ---
@@ -71,14 +73,17 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 
 ## 6. Endpoints
 
-| Méthode | Route | Service Apps Script |
+| Méthode | Route | Source |
 |---|---|---|
-| GET | `/api/snapshot` | `Snapshot.getLast` |
-| GET | `/api/snapshot/history` | `Snapshot.getHistory` |
-| GET | `/api/assets` | `Asset.getAll` |
-| GET | `/api/assets/distribution/{dimension}` | `{Dimension}.getDistribution` |
+| GET | `/api/snapshot` | Apps Script `Snapshot.getLast` |
+| GET | `/api/snapshot/history` | Apps Script `Snapshot.getHistory` |
+| GET | `/api/assets` | Apps Script `Asset.getAll` |
+| GET | `/api/assets/distribution/{dimension}` | Apps Script `{Dimension}.getDistribution` |
+| GET | `/api/assets/etfstocks/information` | Apps Script `AssetType.getEtfStocksByInformation` |
+| GET | `/api/assets/etfstocks/information/{information}` | Apps Script `AssetType.getByAssetTypeAndInformation` |
+| GET | `/api/portfolio/metrics` | Compose `AssetsService` + `SnapshotService` |
 
-Dimensions valides : `assetClass`, `assetType`, `support`, `supportType`.
+Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
 
 ---
 
@@ -88,13 +93,14 @@ Dimensions valides : `assetClass`, `assetType`, `support`, `supportType`.
 - `PropertyNameCaseInsensitive = true` — les DTOs C# (PascalCase) matchent le JSON camelCase de l'Apps Script
 - `NumberHandling = AllowReadingFromString` — Google Sheets peut retourner des nombres comme strings
 - `FlexibleIntConverter` — gère les IDs et risks retournés comme floats ou strings (`"5.0"` → `5`)
+- `FlexibleStringConverter` — tolère les tokens JSON Number là où un string est attendu (ex : champ `information` numérique)
 
 ---
 
 ## 8. Règles d'implémentation
 
 - Un fichier par Function dans `Functions/`
-- Toujours logger les erreurs avant de retourner un 500
+- Logger les erreurs avant de retourner un 500 ou 502 (`HttpRequestException` → 502, autres → 500)
 - Pas de logique métier dans les Functions — déléguer aux services
 - Tests unitaires xUnit pour chaque service (mock `IAppsScriptService`)
 - `InternalsVisibleTo("DynamicProxyGenAssembly2")` dans `AssemblyInfo.cs` pour Moq sur interfaces internes

@@ -184,12 +184,16 @@ Regroupe les actifs par **type d'actif** (`ETF_Stocks`, `OPCVM`, `Crypto`, etc.)
 | `getAll` | — | `Aggregate[]` — tous les types avec métriques complètes |
 | `getDistribution` | — | `Distribution[]` — poids de chaque type |
 | `getByAssetType` | `assetType` ✱ | `Asset[]` — actifs individuels du type demandé |
+| `getEtfStocksByInformation` | — | `Aggregate[]` — ETF_Stocks groupés par champ `information` |
+| `getByAssetTypeAndInformation` | `assetType` ✱, `information` ✱ | `Asset[]` — actifs du type filtrés par `information` |
 
 **Exemples**
 ```
 ?service=AssetType&action=getAll
 ?service=AssetType&action=getDistribution
 ?service=AssetType&action=getByAssetType&assetType=ETF_Stocks
+?service=AssetType&action=getEtfStocksByInformation
+?service=AssetType&action=getByAssetTypeAndInformation&assetType=ETF_Stocks&information=World
 ```
 
 Valeurs valides pour `assetType` : voir `ASSET_TYPE` dans `Config.gs`.
@@ -269,7 +273,28 @@ Expose les **actifs individuels** avec leurs métriques complètes, filtrables p
 
 ---
 
-### 3.6 Snapshot
+### 3.6 Sector
+
+Regroupe les actifs par **secteur économique** (valeur libre issue de la colonne `Sector` de l'onglet Asset).
+
+| Action | Paramètres | Réponse |
+|---|---|---|
+| `getAll` | — | `Aggregate[]` — tous les secteurs avec métriques complètes |
+| `getDistribution` | — | `Distribution[]` (id=null) — poids de chaque secteur |
+| `getBySector` | `sector` ✱ | `Asset[]` — actifs individuels du secteur demandé |
+
+**Exemples**
+```
+?service=Sector&action=getAll
+?service=Sector&action=getDistribution
+?service=Sector&action=getBySector&sector=Technology
+```
+
+> Le champ `id` est toujours `null` dans les réponses `Distribution` de ce service car le secteur est une valeur libre sans table de référence.
+
+---
+
+### 3.7 Snapshot
 
 Accès à l'**historique quotidien** de la valeur totale du portefeuille.
 

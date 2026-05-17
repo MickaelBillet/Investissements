@@ -8,7 +8,7 @@
 
 ## 1. Vue d'ensemble
 
-L'Api expose 4 endpoints REST en lecture seule. Chaque endpoint délègue à l'Apps Script Web App via `IAppsScriptService`. Les endpoints sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps.
+L'Api expose 7 endpoints REST en lecture seule. Chaque endpoint délègue à l'Apps Script Web App via `IAppsScriptService` (sauf `PortfolioMetricsFunction` qui compose plusieurs services). Les endpoints sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps.
 
 **Base URL (local)** : `http://localhost:7071`  
 **Base URL (prod)** : interne au Static Web Apps
@@ -78,7 +78,72 @@ Retourne la distribution du portefeuille par dimension, avec le poids de chaque 
 
 ---
 
-### 2.3 `GET /api/snapshot`
+### 2.3 `GET /api/assets/etfstocks/information`
+
+Retourne les ETF_Stocks groupés par champ `information`, avec métriques agrégées.
+
+**Réponse** : `AggregateDto[]`
+
+```json
+[
+  {
+    "name": "World",
+    "totalPurchases": 12000.00,
+    "totalSales": 0.00,
+    "dividends": 0.00,
+    "currentTotal": 14500.00,
+    "hasIncompleteData": false,
+    "unrealizedGain": 2500.00,
+    "yield": 0.00,
+    "roi": 20.83,
+    "weightInGroup": 100.00,
+    "weightInPortfolio": 27.36
+  }
+]
+```
+
+---
+
+### 2.4 `GET /api/assets/etfstocks/information/{information}`
+
+Retourne les actifs de type `ETF_Stocks` filtrés par valeur du champ `information`.
+
+**Paramètre de route** : `information` — valeur libre correspondant au champ `information` de l'actif
+
+**Réponse** : `AssetDto[]`
+
+Même structure que `GET /api/assets`.
+
+---
+
+### 2.5 `GET /api/portfolio/metrics`
+
+Retourne les métriques agrégées du portefeuille calculées côté API.
+
+**Réponse** : `PortfolioMetricsDto`
+
+```json
+{
+  "roiOnTotalPurchases": 15.23,
+  "roiOnCapitalEngaged": 11.08,
+  "averageRisk": 2.8
+}
+```
+
+**Formules de calcul :**
+```
+RoiOnTotalPurchases = TotalReturns / TotalPurchases × 100
+RoiOnCapitalEngaged = TotalReturns / PortfolioTotal × 100
+AverageRisk         = Σ(risk_i × currentTotal_i) / Σ(currentTotal_i)  [actifs avec currentTotal > 0]
+```
+
+**Notes :**
+- `roiOnTotalPurchases` et `roiOnCapitalEngaged` sont `null` si `TotalPurchases` ou `PortfolioTotal` sont nuls ou indisponibles
+- `averageRisk` est `null` si la valeur totale des actifs actifs est zéro
+
+---
+
+### 2.6 `GET /api/snapshot`
 
 Retourne le dernier snapshot du portefeuille.
 
@@ -100,7 +165,7 @@ Retourne le dernier snapshot du portefeuille.
 
 ---
 
-### 2.4 `GET /api/snapshot/history`
+### 2.7 `GET /api/snapshot/history`
 
 Retourne l'historique complet des snapshots en ordre chronologique ascendant.
 
@@ -115,7 +180,9 @@ Même structure que `GET /api/snapshot`.
 | Code | Cas |
 |---|---|
 | `200 OK` | Succès |
-| `500 Internal Server Error` | Erreur Apps Script ou désérialisation échouée |
+| `400 Bad Request` | Paramètre invalide (ex : dimension inconnue sur `/api/assets/distribution/{dimension}`) |
+| `502 Bad Gateway` | Erreur HTTP lors de l'appel à l'Apps Script |
+| `500 Internal Server Error` | Erreur inattendue (désérialisation, calcul) |
 
 ---
 
@@ -123,9 +190,11 @@ Même structure que `GET /api/snapshot`.
 
 Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 
-| DTO | Fichier |
-|---|---|
-| `AssetDto` | `Shared/Models/AssetDto.cs` |
-| `DistributionDto` | `Shared/Models/DistributionDto.cs` |
-| `SnapshotDto` | `Shared/Models/SnapshotDto.cs` |
-| `AggregateDto` | `Shared/Models/AggregateDto.cs` (prévu, non utilisé) |
+| DTO | Fichier | Champs |
+|---|---|---|
+| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, information, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio |
+| `DistributionDto` | `Shared/Models/DistributionDto.cs` | id?, name, currentTotal, weightInPortfolio |
+| `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, portfolioTotal, lifeStrategy60?, msciWorld?, totalPurchases?, totalReturns? |
+| `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnTotalPurchases?, roiOnCapitalEngaged?, averageRisk? |
+
+> Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.
