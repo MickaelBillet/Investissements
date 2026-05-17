@@ -19,9 +19,9 @@ internal sealed class PortfolioService(HttpClient httpClient) : IPortfolioServic
         return await response.Content.ReadFromJsonAsync<SnapshotDto>(cancellationToken: ct);
     }
 
-    public async Task<IReadOnlyList<SnapshotDto>> GetHistoryAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<PerformancePointDto>> GetIndexedHistoryAsync(CancellationToken ct = default)
     {
-        var result = await httpClient.GetFromJsonAsync<SnapshotDto[]>("/api/snapshot/history", ct);
+        var result = await httpClient.GetFromJsonAsync<PerformancePointDto[]>("/api/portfolio/metrics/history", ct);
         return result ?? [];
     }
 

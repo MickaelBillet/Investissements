@@ -10,11 +10,11 @@ public class HistoryViewModelTests
 {
     private static HistoryViewModel CreateVm(Mock<IPortfolioService> mock) => new(mock.Object);
 
-    private static Mock<IPortfolioService> MockWithHistory(params SnapshotDto[] snapshots)
+    private static Mock<IPortfolioService> MockWithHistory(params PerformancePointDto[] points)
     {
         var mock = new Mock<IPortfolioService>();
-        mock.Setup(s => s.GetHistoryAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(snapshots);
+        mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(points);
         return mock;
     }
 
@@ -24,8 +24,8 @@ public class HistoryViewModelTests
     public async Task InitializeAsync_WhenHistoryIsComplete_PopulatesThreeSeries()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(new DateOnly(2025, 1, 1), 10_000m, 100m, 100m),
-            TestData.Snapshot(new DateOnly(2025, 1, 2), 11_000m, 110m, 105m));
+            TestData.PerformancePoint(new DateOnly(2025, 1, 1)),
+            TestData.PerformancePoint(new DateOnly(2025, 1, 2), 105m, 103m, 98m));
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
@@ -38,12 +38,10 @@ public class HistoryViewModelTests
     }
 
     [Fact]
-    public async Task InitializeAsync_WhenNoCompleteSnapshots_LeavesSeriesEmpty()
+    public async Task InitializeAsync_WhenHistoryIsEmpty_LeavesSeriesEmpty()
     {
-        // LifeStrategy60 est null → snapshot incomplet, ignoré
-        var mock = MockWithHistory(
-            new SnapshotDto(new DateOnly(2025, 1, 1), 10_000m, null, 100m, null, null));
-        var vm = CreateVm(mock);
+        var mock = MockWithHistory();
+        var vm   = CreateVm(mock);
 
         await vm.InitializeAsync();
 
@@ -55,7 +53,7 @@ public class HistoryViewModelTests
     public async Task InitializeAsync_WhenServiceThrows_SetsErrorMessageAndLoadingFalse()
     {
         var mock = new Mock<IPortfolioService>();
-        mock.Setup(s => s.GetHistoryAsync(It.IsAny<CancellationToken>()))
+        mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Service indisponible"));
         var vm = CreateVm(mock);
 
@@ -68,61 +66,58 @@ public class HistoryViewModelTests
     [Fact]
     public async Task InitializeAsync_WhenAlreadyLoaded_DoesNotCallServiceAgain()
     {
-        var mock = MockWithHistory(
-            TestData.Snapshot(new DateOnly(2025, 1, 1), 10_000m, 100m, 100m));
-        var vm = CreateVm(mock);
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        var vm   = CreateVm(mock);
 
         await vm.InitializeAsync();
         await vm.InitializeAsync();
 
-        mock.Verify(s => s.GetHistoryAsync(It.IsAny<CancellationToken>()), Times.Once);
+        mock.Verify(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // ── Indexation des séries ─────────────────────────────────────────────────
+    // ── Mapping des séries ────────────────────────────────────────────────────
 
     [Fact]
-    public async Task IndexSeries_FirstEntry_IsAlways100ForAllThreeSeries()
+    public async Task InitializeAsync_MapsPortfolioValues()
     {
+        var d0 = new DateOnly(2025, 1, 1);
+        var d1 = new DateOnly(2025, 1, 2);
         var mock = MockWithHistory(
-            TestData.Snapshot(new DateOnly(2025, 1, 1), 10_000m, 100m, 200m),
-            TestData.Snapshot(new DateOnly(2025, 1, 2), 12_000m, 120m, 240m));
+            TestData.PerformancePoint(d0, portfolio: 100m),
+            TestData.PerformancePoint(d1, portfolio: 110m));
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
 
+        Assert.Equal(d0,   vm.PortfolioSeries[0].Date);
         Assert.Equal(100m, vm.PortfolioSeries[0].Value);
-        Assert.Equal(100m, vm.LifeStrategySeries[0].Value);
-        Assert.Equal(100m, vm.MsciWorldSeries[0].Value);
+        Assert.Equal(d1,   vm.PortfolioSeries[1].Date);
+        Assert.Equal(110m, vm.PortfolioSeries[1].Value);
     }
 
     [Fact]
-    public async Task IndexSeries_SubsequentEntries_AreRelativeToT0()
+    public async Task InitializeAsync_WhenLifeStrategy60IsNull_ExcludedFromSeries()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(new DateOnly(2025, 1, 1), 10_000m, 100m, 100m),
-            TestData.Snapshot(new DateOnly(2025, 1, 2), 11_000m, 110m, 95m));
+            TestData.PerformancePoint(lifeStrategy: null));
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
 
-        Assert.Equal(110m, vm.PortfolioSeries[1].Value,    precision: 2);
-        Assert.Equal(110m, vm.LifeStrategySeries[1].Value, precision: 2);
-        Assert.Equal(95m,  vm.MsciWorldSeries[1].Value,    precision: 2);
+        Assert.Single(vm.PortfolioSeries);
+        Assert.Empty(vm.LifeStrategySeries);
     }
 
     [Fact]
-    public async Task IndexSeries_DatesArePreserved()
+    public async Task InitializeAsync_WhenMsciWorldIsNull_ExcludedFromSeries()
     {
-        var date1 = new DateOnly(2025, 1, 1);
-        var date2 = new DateOnly(2025, 1, 2);
-        var mock  = MockWithHistory(
-            TestData.Snapshot(date1, 10_000m, 100m, 100m),
-            TestData.Snapshot(date2, 11_000m, 110m, 95m));
+        var mock = MockWithHistory(
+            TestData.PerformancePoint(msciWorld: null));
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
 
-        Assert.Equal(date1, vm.PortfolioSeries[0].Date);
-        Assert.Equal(date2, vm.PortfolioSeries[1].Date);
+        Assert.Single(vm.PortfolioSeries);
+        Assert.Empty(vm.MsciWorldSeries);
     }
 }

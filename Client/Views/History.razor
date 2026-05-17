@@ -15,9 +15,11 @@ else if (ViewModel.ErrorMessage is not null)
 }
 else
 {
-    <HistoryChart PortfolioSeries="@ViewModel.PortfolioSeries"
-                  LifeStrategySeries="@ViewModel.LifeStrategySeries"
-                  MsciWorldSeries="@ViewModel.MsciWorldSeries" />
+    <div style="height: calc(100vh - 180px);">
+        <HistoryChart PortfolioSeries="@ViewModel.PortfolioSeries"
+                      LifeStrategySeries="@ViewModel.LifeStrategySeries"
+                      MsciWorldSeries="@ViewModel.MsciWorldSeries" />
+    </div>
 }
 
 @code {

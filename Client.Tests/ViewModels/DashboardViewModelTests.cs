@@ -48,6 +48,20 @@ public class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task AssetCount_ExcludesAssetsWithZeroCurrentTotal()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(currentTotal: 1_000m),
+            TestData.Asset(currentTotal: 0m),
+            TestData.Asset(currentTotal: 500m));
+        var vm = CreateVm(mock);
+
+        await vm.InitializeAsync();
+
+        Assert.Equal(2, vm.AssetCount);
+    }
+
+    [Fact]
     public async Task InitializeAsync_WhenServiceThrows_SetsErrorMessageAndLoadingFalse()
     {
         var mock = new Mock<IPortfolioService>();
