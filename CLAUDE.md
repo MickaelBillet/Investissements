@@ -199,8 +199,9 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 - Valeur totale du portefeuille en EUR
 - Date de dernière mise à jour
 - Nombre d'actifs en portefeuille
-- ROI / Capital Engagé = TotalReturns / PortfolioTotal × 100 (calculé côté API)
-- ROI / Total des Achats = TotalReturns / TotalPurchases × 100 (calculé côté API)
+- ROI (Capital Engagé) = TotalReturns / PortfolioTotal × 100 (calculé côté API)
+- ROI (Total des achats) = TotalReturns / TotalPurchases × 100 (calculé côté API)
+  — TotalReturns = plus-values réalisées (F57), TotalPurchases = total achats (F65)
 - Risque moyen pondéré (0–4) = moyenne pondérée par valeur actuelle (calculé côté API)
 
 **Vue principale — 3 donuts côte à côte :**
@@ -223,8 +224,8 @@ Courbe de performance indexée à 100 à la date T0 (première entrée disponibl
 - Valeur totale du portefeuille en EUR
 - Nombre d'actifs en portefeuille
 - Date de dernière mise à jour des données
-- ROI / Capital Engagé (coloré vert/rouge, N/A si données manquantes)
-- ROI / Total des Achats (coloré vert/rouge, N/A si données manquantes)
+- ROI (Capital Engagé) (coloré vert/rouge, N/A si données manquantes)
+- ROI (Total des achats) (coloré vert/rouge, N/A si données manquantes)
 - Risque moyen pondéré (0–4), affiché `—` si indisponible
 
 ---

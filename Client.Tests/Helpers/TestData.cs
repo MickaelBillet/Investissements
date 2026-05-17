@@ -20,9 +20,18 @@ internal static class TestData
             risk, null, null, null, currentTotal, unrealizedGain, yield, roi, 0m);
 
     public static SnapshotDto Snapshot(
-        DateOnly? date         = null,
-        decimal   portfolio    = 10_000m,
-        decimal?  lifeStrategy = 100m,
-        decimal?  msciWorld    = 100m) =>
-        new(date ?? new DateOnly(2025, 1, 1), portfolio, lifeStrategy, msciWorld, null, null);
+        DateOnly? date           = null,
+        decimal   portfolio      = 10_000m,
+        decimal?  lifeStrategy   = 100m,
+        decimal?  msciWorld      = 100m,
+        decimal   totalPurchases = 10_000m,
+        decimal   totalReturns   = 0m) =>
+        new(date ?? new DateOnly(2025, 1, 1), portfolio, lifeStrategy, msciWorld, totalPurchases, totalReturns);
+
+    public static PerformancePointDto PerformancePoint(
+        DateOnly? date          = null,
+        decimal   portfolio     = 100m,
+        decimal?  lifeStrategy  = 100m,
+        decimal?  msciWorld     = 100m) =>
+        new(date ?? new DateOnly(2025, 1, 1), portfolio, lifeStrategy, msciWorld);
 }

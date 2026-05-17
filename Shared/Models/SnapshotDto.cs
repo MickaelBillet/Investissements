@@ -5,6 +5,6 @@ public record SnapshotDto(
     decimal PortfolioTotal,
     decimal? LifeStrategy60,
     decimal? MsciWorld,
-    decimal? TotalPurchases,
-    decimal? TotalReturns
+    decimal TotalPurchases,
+    decimal TotalReturns
 );

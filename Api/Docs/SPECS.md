@@ -137,6 +137,9 @@ RoiOnCapitalEngaged = TotalReturns / PortfolioTotal × 100
 AverageRisk         = Σ(risk_i × currentTotal_i) / Σ(currentTotal_i)  [actifs avec currentTotal > 0]
 ```
 
+> `TotalReturns` = plus-values réalisées depuis l'origine (cellule F57 du Bilan).  
+> `TotalPurchases` = total des achats depuis l'origine (cellule F65 du Bilan).
+
 **Notes :**
 - `roiOnTotalPurchases` et `roiOnCapitalEngaged` sont `null` si `TotalPurchases` ou `PortfolioTotal` sont nuls ou indisponibles
 - `averageRisk` est `null` si la valeur totale des actifs actifs est zéro

@@ -12,7 +12,7 @@ public class DashboardViewModel(IPortfolioService portfolioService)
     public SnapshotDto? LastSnapshot  { get; private set; }
     public bool         IsLoading     { get; private set; } = true;
     public string?      ErrorMessage  { get; private set; }
-    public int          AssetCount    => _assets.Count;
+    public int          AssetCount    => ActiveAssets().Count();
 
     public PanelState AssetClassPanel  { get; } = new(PanelType.AssetClass);
     public PanelState SupportTypePanel { get; } = new(PanelType.SupportType);

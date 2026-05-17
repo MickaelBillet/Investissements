@@ -8,6 +8,28 @@ namespace InvestissementsDashboard.Api.Functions;
 
 public sealed class PortfolioMetricsFunction(IPortfolioMetricsService metricsService, ILogger<PortfolioMetricsFunction> logger)
 {
+    [Function(nameof(GetIndexedHistory))]
+    public async Task<IActionResult> GetIndexedHistory(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "portfolio/metrics/history")] HttpRequest req,
+        CancellationToken ct)
+    {
+        try
+        {
+            var history = await metricsService.GetIndexedHistoryAsync(ct);
+            return new OkObjectResult(history);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, "Failed to call Apps Script while computing indexed history.");
+            return new StatusCodeResult(StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Failed to compute indexed history.");
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
     [Function(nameof(GetPortfolioMetrics))]
     public async Task<IActionResult> GetPortfolioMetrics(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "portfolio/metrics")] HttpRequest req,

@@ -8,7 +8,10 @@ SRS_12 La date de la dernière mise à jour des données doit être affichée
 
 SRS_13 Le nombre total d’actifs en portefeuille doit être affiché
 
-SRS_15 Le ROI du portefeuille (2 valeurs) en fonction de la valeur totale des achats et de la valeur actuelle du portefeuille
+SRS_15 Le ROI du portefeuille doit être affiché sous 2 formes :
+- ROI (Total des achats) = TotalReturns / TotalPurchases × 100
+- ROI (Capital Engagé) = TotalReturns / PortfolioTotal × 100
+où TotalReturns = plus-values réalisées depuis l'origine
 
 SRS_17 Le risque moyen du portefeuille (0–4) doit être affiché, calculé comme la moyenne pondérée par la valeur actuelle des actifs
 

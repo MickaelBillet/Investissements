@@ -2,9 +2,9 @@
     <KpiCard Label="Valeur totale"          Value="@(Snapshot?.PortfolioTotal.ToEurAmount() ?? "—")" />
     <KpiCard Label="Dernière mise à jour"   Value="@(Snapshot?.Date.ToString("dd/MM/yyyy") ?? "—")" />
     <KpiCard Label="Actifs en portefeuille" Value="@AssetCount.ToString()" />
-    <KpiCard Label="ROI / Capital Engagé"   Value="@(RoiOnCapitalEngaged?.ToPercentage() ?? "N/A")"
+    <KpiCard Label="ROI (Capital Engagé)"   Value="@(RoiOnCapitalEngaged?.ToPercentage() ?? "N/A")"
              ValueClass="@RoiOnCapitalEngaged.CssRoiClass()" />
-    <KpiCard Label="ROI / Total des Achats" Value="@(RoiOnTotalPurchases?.ToPercentage() ?? "N/A")"
+    <KpiCard Label="ROI (Total des achats)" Value="@(RoiOnTotalPurchases?.ToPercentage() ?? "N/A")"
              ValueClass="@RoiOnTotalPurchases.CssRoiClass()" />
     <KpiCard Label="Risque moyen (0 – 4)"   Value="@(AverageRisk?.ToString("F1") ?? "—")" />
 </MudGrid>

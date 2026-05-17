@@ -93,34 +93,38 @@ function snapshotQuotidien() {
     "yyyy-MM-dd"
   );
 
-  // --- Guard: do not snapshot twice on the same day ---
-  const lastRow = sheetSnap.getLastRow();
-  if (lastRow > 1) {
-    const lastDate = Utilities.formatDate(
-      new Date(sheetSnap.getRange(lastRow, 1).getValue()),
-      Session.getScriptTimeZone(),
-      "yyyy-MM-dd"
-    );
-    if (lastDate === today) {
-      Logger.log("⚠️ Snapshot already exists for today, aborting.");
-      return;
-    }
-  }
-
   // --- Step 1: sync current values from source sheet ---
   syncCurrentTotal();
 
   // --- Step 2: compute aggregates from Assets sheet ---
   const rows           = getAssetsData();
   const portfolioTotal = Math.round((getPortfolioTotal(rows)) * 100) / 100;
-  const totalPurchases = Math.round(resultSheet.getRange(TOTAL_PURCHASES).getValue() * 100) / 100; 
-  const totalReturns   = Math.round(resultSheet.getRange(TOTAL_RETURNS).getValue() * 100) / 100; 
+  const totalPurchases = Math.round(resultSheet.getRange(TOTAL_PURCHASES).getValue() * 100) / 100;
+  const totalReturns   = Math.round(resultSheet.getRange(TOTAL_RETURNS).getValue() * 100) / 100;
 
   // --- Step 3: fetch reference stock values ---
   const refStockValues = fetchStockValues();
 
-  // --- Step 4: append snapshot row ---
-  sheetSnap.appendRow([today, portfolioTotal, refStockValues[0], refStockValues[1], totalPurchases, totalReturns]);
+  // --- Step 4: overwrite existing row for today, or append ---
+  const lastRow = sheetSnap.getLastRow();
+  let targetRow = null;
+  if (lastRow > 1) {
+    const lastDate = Utilities.formatDate(
+      new Date(sheetSnap.getRange(lastRow, 1).getValue()),
+      Session.getScriptTimeZone(),
+      "yyyy-MM-dd"
+    );
+    if (lastDate === today) targetRow = lastRow;
+  }
+
+  const rowData = [today, portfolioTotal, refStockValues[0], refStockValues[1], totalPurchases, totalReturns];
+  if (targetRow) {
+    sheetSnap.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+    Logger.log("♻️ Snapshot " + today + " overwritten — portfolio total: " + portfolioTotal + " €");
+  } else {
+    sheetSnap.appendRow(rowData);
+    Logger.log("✅ Snapshot " + today + " — portfolio total: " + portfolioTotal + " €");
+  }
 
   Logger.log("✅ Snapshot " + today + " — portfolio total: " + portfolioTotal + " €");
 }

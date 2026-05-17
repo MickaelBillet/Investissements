@@ -1,6 +1,5 @@
 using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
-using InvestissementsDashboard.Shared.Models;
 
 namespace InvestissementsDashboard.Client.ViewModels;
 
@@ -21,8 +20,10 @@ public class HistoryViewModel(IPortfolioService portfolioService)
         ErrorMessage = null;
         try
         {
-            var history = await portfolioService.GetHistoryAsync(ct);
-            IndexSeries(history);
+            var data = await portfolioService.GetIndexedHistoryAsync(ct);
+            PortfolioSeries    = [.. data.Select(p => new IndexedPoint(p.Date, p.Portfolio))];
+            LifeStrategySeries = [.. data.Where(p => p.LifeStrategy60.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy60!.Value))];
+            MsciWorldSeries    = [.. data.Where(p => p.MsciWorld.HasValue).Select(p => new IndexedPoint(p.Date, p.MsciWorld!.Value))];
         }
         catch (Exception ex)
         {
@@ -32,20 +33,5 @@ public class HistoryViewModel(IPortfolioService portfolioService)
         {
             IsLoading = false;
         }
-    }
-
-    private void IndexSeries(IReadOnlyList<SnapshotDto> history)
-    {
-        var complete = history
-            .Where(s => s.PortfolioTotal > 0 && s.LifeStrategy60.HasValue && s.MsciWorld.HasValue)
-            .OrderBy(s => s.Date)
-            .ToList();
-
-        if (complete.Count == 0) return;
-
-        var t0 = complete[0];
-        PortfolioSeries    = [.. complete.Select(s => new IndexedPoint(s.Date, s.PortfolioTotal / t0.PortfolioTotal * 100m))];
-        LifeStrategySeries = [.. complete.Select(s => new IndexedPoint(s.Date, s.LifeStrategy60!.Value / t0.LifeStrategy60!.Value * 100m))];
-        MsciWorldSeries    = [.. complete.Select(s => new IndexedPoint(s.Date, s.MsciWorld!.Value / t0.MsciWorld!.Value * 100m))];
     }
 }
