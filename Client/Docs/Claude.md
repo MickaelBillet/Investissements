@@ -31,14 +31,14 @@ Client/
 ├── Layout/       → MainLayout.razor, NavMenu.razor
 ├── Model/        → DistributionItem.cs, IndexedPoint.cs, PanelState.cs
 ├── Services/     → IPortfolioService.cs, PortfolioService.cs
-├── Shared/       → DrillDownDonut.razor, AssetTable.razor,
+├── Shared/       → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor
 ├── ViewModels/   → DashboardViewModel.cs, HistoryViewModel.cs
 ├── Views/        → Dashboard.razor (/), History.razor (/historique)
 └── wwwroot/      → index.html, css/app.css, favicon
 
 Client.Tests/
-├── Components/   → KpiHeaderTests, AssetTableTests, DrillDownDonutTests
+├── Components/   → KpiHeaderTests, AssetTableTests, DistributionTableTests, DrillDownDonutTests
 ├── Extensions/   → DecimalExtensionsTests
 ├── Helpers/      → TestData (factory d'AssetDto et SnapshotDto de test)
 ├── Models/       → PanelStateTests
@@ -70,30 +70,44 @@ Client.Tests/
 `PanelState` (dans `Client/Model/`) gère l'état de navigation d'une hiérarchie. `DashboardViewModel` en expose trois instances publiques :
 
 ```csharp
-public PanelState AssetClassPanel  { get; } = new(PanelType.AssetClass);   // 3 niveaux
+public PanelState AssetClassPanel  { get; } = new(PanelType.AssetClass);   // 3 ou 4 niveaux selon toggle
 public PanelState SupportTypePanel { get; } = new(PanelType.SupportType);  // 3 niveaux
 public PanelState RiskPanel        { get; } = new(PanelType.Risk);         // 2 niveaux
 ```
 
 Méthodes : `DrillDown(name)`, `GoBack()`. Propriétés : `Level`, `CanGoBack`, `IsAtLeafLevel`, `Selected(level)`, `BreadcrumbLabel`.
 
+**Ne pas utiliser `panel.IsAtLeafLevel` directement dans les Views** — appeler `ViewModel.IsLeafLevel(panel)` qui prend en compte le toggle ETF et le type de panel.
+
 ### 7.2 API unifiée du ViewModel
 
 ```csharp
 IReadOnlyList<DistributionItem> GetDistribution(PanelState panel)  // données du donut
 IReadOnlyList<AssetDto>         GetAssetsForPanel(PanelState panel) // données du tableau (feuille seulement)
+bool                            IsLeafLevel(PanelState panel)       // true si niveau feuille atteint
 ```
 
-`GetDistribution` sélectionne automatiquement le bon filtre et le bon groupement selon `panel.Type` et `panel.Level`.
+`GetDistribution` sélectionne automatiquement le bon filtre et le bon groupement selon `panel.Type`, `panel.Level` et `EtfStocksGroupByInformation`.
+
+`EtfStocksGroupByInformation` (bool, bindable via `@bind-Value`) active le regroupement des ETF_Stocks par champ `information` et ajoute un niveau intermédiaire dans la hiérarchie Classes d'actifs.
+
+**Services appelés à l'initialisation :**
+```csharp
+portfolioService.GetAssetsAsync(ct)        // → _assets
+portfolioService.GetLastSnapshotAsync(ct)  // → LastSnapshot
+portfolioService.GetMetricsAsync(ct)       // → _metrics (ROI + AverageRisk)
+```
 
 ### 7.3 DrillDownDonut — directive @key obligatoire
 
-ApexCharts for Blazor ne redessine pas le graphique sur simple mise à jour des paramètres. Toujours ajouter `@key` pour forcer la recréation du composant quand le niveau change :
+ApexCharts for Blazor ne redessine pas le graphique sur simple mise à jour des paramètres. Toujours ajouter `@key` pour forcer la recréation du composant quand le niveau ou le toggle change :
 
 ```razor
-<DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}")"
+<DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
                 Items="@ViewModel.GetDistribution(panel)" ... />
 ```
+
+**Slot `TopRightContent`** : `RenderFragment` facultatif affiché en haut à droite du titre. Utilisé pour placer le `MudSwitch` ETF_Stocks dans `Dashboard.razor`. Ce contenu n'est rendu que si non null — le composant `DrillDownDonut` n'a aucune connaissance du toggle.
 
 ### 7.4 Extensions décimales
 

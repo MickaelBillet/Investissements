@@ -26,6 +26,7 @@ Deux responsabilités :
 | `SupportTypeService.gs` | Service `SupportType` |
 | `SupportService.gs` | Service `Support` |
 | `AssetService.gs` | Service `Asset` |
+| `SectorService.gs` | Service `Sector` |
 | `Test.gs` | Fonctions de test manuelles |
 
 ---
@@ -53,6 +54,7 @@ GET ?apiKey=...&service=AssetClass&action=getAll
          ├── SupportType  → SupportTypeService.gs
          ├── Support      → SupportService.gs
          ├── Asset        → AssetService.gs
+         ├── Sector       → SectorService.gs
          └── Snapshot     → SnapshotService.gs
 ```
 
