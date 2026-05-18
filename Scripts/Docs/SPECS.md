@@ -1,8 +1,8 @@
 # SPECS.md — Scripts Google Apps Script
 
-**Statut :** En cours  
-**Version :** 1.0  
-**Date :** 2026-05-04  
+**Statut :** Implémenté  
+**Version :** 1.1  
+**Date :** 2026-05-18  
 
 ---
 
@@ -294,7 +294,32 @@ Regroupe les actifs par **secteur économique** (valeur libre issue de la colonn
 
 ---
 
-### 3.7 Snapshot
+### 3.7 Geography
+
+Calcule la **répartition géographique pondérée** pour les actifs de type marché (Stocks, ETF, Obligations).
+
+| Action | Paramètres | Réponse |
+|---|---|---|
+| `getDistribution` | `assetClass` ○ (`Stocks` ou `Bonds`) | `Distribution[]` — poids de chaque zone géographique |
+
+**Exemples**
+```
+?service=Geography&action=getDistribution
+?service=Geography&action=getDistribution&assetClass=Stocks
+?service=Geography&action=getDistribution&assetClass=Bonds
+```
+
+**Filtre d'éligibilité :**
+- Classes d'actifs : `GEOGRAPHY_ASSET_CLASSES` = `["Stocks", "Bonds"]`
+- Types d'actifs : `GEOGRAPHY_ASSET_TYPES` = `["Stock", "ETF_Stocks", "ETF_Bunds", "MarketBonds", "UnlistedBonds"]`
+
+**Parsing du champ `geography` :** format `Zone1 : X% - Zone2 : Y%`. La valeur `currentTotal` de l'actif est ventilée proportionnellement sur chaque zone. Les lignes avec `currentTotal ≤ 0` sont ignorées.
+
+> Le champ `id` est toujours `null` — les zones géographiques sont des valeurs libres sans table de référence.
+
+---
+
+### 3.8 Snapshot
 
 Accès à l'**historique quotidien** de la valeur totale du portefeuille.
 
@@ -332,6 +357,7 @@ Accès à l'**historique quotidien** de la valeur totale du portefeuille.
 | `Asset` | `getDistribution` | — | Distribution |
 | `Asset` | `getByRisk` | `risk` ✱ | Actif individuel |
 | `Asset` | `getDistributionByRisk` | — | Groupe |
+| `Geography` | `getDistribution` | `assetClass` ○ | Distribution |
 | `Snapshot` | `getLast` | — | Snapshot |
 | `Snapshot` | `getHistory` | `limit` ○ | Snapshot[] |
 
