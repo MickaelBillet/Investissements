@@ -7,9 +7,12 @@
 <MudLayout>
     <MudAppBar Elevation="0" Dense="false" Color="MudBlazor.Color.Surface"
                Style="border-bottom:1px solid #E9E9E7;">
-        <MudText Style="font-size:18px;font-weight:700;color:#37352F;">
-            Suivi des Investissements
-        </MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <img src="icon.svg" alt="logo" style="width:28px;height:28px;" />
+            <MudText Style="font-size:18px;font-weight:700;color:#37352F;">
+                Suivi des Investissements
+            </MudText>
+        </MudStack>
         <MudSpacer />
         <MudButton Href="/" Color="MudBlazor.Color.Default" Variant="Variant.Text"
                    StartIcon="@Icons.Material.Outlined.PieChart">
