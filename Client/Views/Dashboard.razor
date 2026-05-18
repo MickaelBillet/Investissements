@@ -89,10 +89,11 @@ else
                     else if (geoClass is not null && _selectedZone is not null)
                     {
                         <MudStack Spacing="2">
-                            <MudButton Variant="Variant.Text"
-                                       StartIcon="@Icons.Material.Outlined.ArrowBack"
+                            <MudButton Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Outlined.Public"
+                                       Style="align-self: flex-start;"
                                        OnClick="@(() => _selectedZone = null)">
-                                Retour
+                                Répartition géographique
                             </MudButton>
                             <AssetTable Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)" />
                         </MudStack>
