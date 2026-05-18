@@ -47,6 +47,7 @@ SRS_16 Le contenu de la vue principale (du dashboard) intègre les 3 graphiques 
 
 SRS_08 Un contrôle graphique doit permettre de revenir au graphique à secteurs précédent et de revenir à la vue précédente
 - Classes d’actifs(Parent) → (Detail)Types d’actifs(Parent) → (Detail)Actifs du type
+- Classes d’actifs(Parent) → Stocks ou Bonds → (Géographie)Zones → (Detail)Actifs de la zone
 - Types de supports(Parent) → (Detail)Supports(Parent) → (Detail)Actifs du support
 - Niveaux de risque(Parent) → (Detail)Actifs du niveau
 
@@ -57,6 +58,12 @@ SRS_14 Lorsque le dernier niveau de drill-down est atteint (actifs du type, acti
 #### ETF Stocks — Groupement par thématique
 
 SRS_18 Lorsque le drill-down Classes d'actifs atteint le type d'actif `ETF_Stocks`, un toggle "Grouper par thématique" doit permettre d'activer un niveau intermédiaire groupant les ETF_Stocks par leur champ `information` avant de descendre aux actifs individuels
+
+#### Répartition géographique
+
+SRS_20 Lorsque le drill-down Classes d'actifs atteint le niveau 1 (type d'actif) sur la classe `Stocks` ou `Bonds`, la colonne droite du mode Master-Detail affiche un deuxième graphique à secteurs représentant la répartition géographique pondérée des actifs éligibles (types `Stock`, `ETF_Stocks`, `ETF_Bunds`, `MarketBonds`, `UnlistedBonds`). La pondération par zone est calculée à partir du champ `geography` de l'actif, au format `Zone1 : X% - Zone2 : Y%`.
+
+SRS_21 Lorsque l'utilisateur sélectionne une zone géographique sur ce graphique, un tableau remplace le graphique et liste les actifs de la classe dont le champ `geography` contient la zone sélectionnée. Un bouton retour permet de revenir au graphique géographique.
 
 #### Layout en mode Master-Detail
 

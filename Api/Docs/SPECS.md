@@ -8,7 +8,7 @@
 
 ## 1. Vue d'ensemble
 
-L'Api expose 7 endpoints REST en lecture seule. Chaque endpoint délègue à l'Apps Script Web App via `IAppsScriptService` (sauf `PortfolioMetricsFunction` qui compose plusieurs services). Les endpoints sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps.
+L'Api expose 8 endpoints REST en lecture seule. Chaque endpoint délègue à l'Apps Script Web App via `IAppsScriptService` (sauf `PortfolioMetricsFunction` qui compose plusieurs services). Les endpoints sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps.
 
 **Base URL (local)** : `http://localhost:7071`  
 **Base URL (prod)** : interne au Static Web Apps
@@ -178,6 +178,33 @@ Même structure que `GET /api/snapshot`.
 
 ---
 
+### 2.8 `GET /api/portfolio/geography/{assetClass}`
+
+Retourne la répartition géographique pondérée pour une classe d'actifs.
+
+**Paramètre de route** : `assetClass` — valeurs valides : `Stocks`, `Bonds`
+
+**Réponse** : `DistributionDto[]`
+
+```json
+[
+  {
+    "id": null,
+    "name": "États-Unis",
+    "currentTotal": 18500.00,
+    "weightInPortfolio": 52.84
+  }
+]
+```
+
+**Notes :**
+- Seuls les actifs de types `Stock`, `ETF_Stocks`, `ETF_Bunds`, `MarketBonds`, `UnlistedBonds` sont pris en compte
+- Le champ `geography` de chaque actif est parsé depuis le format `Zone1 : X% - Zone2 : Y%` — la valeur courante de l'actif est ventilée proportionnellement par zone
+- `id` est toujours `null` (les zones géographiques sont des valeurs libres sans table de référence)
+- Résultats triés par `currentTotal` décroissant
+
+---
+
 ## 3. Codes de réponse
 
 | Code | Cas |
@@ -195,7 +222,7 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 
 | DTO | Fichier | Champs |
 |---|---|---|
-| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, information, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio |
+| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio |
 | `DistributionDto` | `Shared/Models/DistributionDto.cs` | id?, name, currentTotal, weightInPortfolio |
 | `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, portfolioTotal, lifeStrategy60?, msciWorld?, totalPurchases?, totalReturns? |
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnTotalPurchases?, roiOnCapitalEngaged?, averageRisk? |

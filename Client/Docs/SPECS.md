@@ -62,6 +62,7 @@ Quand une hiérarchie est active, la vue affiche :
 |---|---|---|---|---|
 | Classes d'actifs | AssetClass | AssetType | Actifs (feuille) | — |
 | Classes d'actifs (ETF_Stocks + toggle) | AssetClass | AssetType=ETF_Stocks | Information (thématique) | Actifs (feuille) |
+| Classes d'actifs (Stocks/Bonds + géographie) | AssetClass | Stocks ou Bonds | Zone géographique | Actifs (feuille) |
 | Types de supports | SupportType | Support | Actifs (feuille) | — |
 | Niveaux de risque | Risk | Actifs (feuille) | — | — |
 
@@ -80,6 +81,14 @@ Les champs `null` (données incomplètes) sont affichés `—`.
 
 Colonnes affichées : Nom, Valeur actuelle (€), Poids (%).  
 Footer : total de la colonne Valeur actuelle.
+
+### 3.7 Répartition géographique (Stocks / Bonds — niveau 1)
+
+Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélectionnée est `Stocks` ou `Bonds`, la colonne droite du mode Master-Detail affiche un donut géographique (`DrillDownDonut`) à la place du tableau de distribution habituel.
+
+Ce donut est alimenté par `ViewModel.GetGeographyForClass(assetClass)`, pré-chargé en parallèle au démarrage depuis `GET /api/portfolio/geography/{assetClass}`.
+
+Cliquer sur une zone géographique remplace le donut par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs de la classe dont le champ `geography` contient la zone. Un bouton **Retour** ramène au donut géographique. Ce niveau de navigation est géré par `_selectedZone` dans `Dashboard.razor` (indépendant de `PanelState`).
 
 ---
 
