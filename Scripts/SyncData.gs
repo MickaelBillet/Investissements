@@ -33,14 +33,15 @@ function syncCurrentTotal() {
       continue;
     }
 
-    // Read all 4 values from source row
-    const totalPurchases = resultData[sourceRow][COL_SOURCE_TOTAL_PURCHASES] || "ND";
-    const totalSales     = resultData[sourceRow][COL_SOURCE_TOTAL_SALES] || 0;
-    const dividends      = resultData[sourceRow][COL_SOURCE_DIVIDEND] || 0;
-    const current        = resultData[sourceRow][COL_SOURCE_CURRENT_TOTAL] || 0;
+    // Read all 5 values from source row
+    const risk            = resultData[sourceRow][COL_SOURCE_RISK] || "ND";
+    const totalPurchases  = resultData[sourceRow][COL_SOURCE_TOTAL_PURCHASES] || "ND";
+    const totalSales      = resultData[sourceRow][COL_SOURCE_TOTAL_SALES] || 0;
+    const dividends       = resultData[sourceRow][COL_SOURCE_DIVIDEND] || 0;
+    const current         = resultData[sourceRow][COL_SOURCE_CURRENT_TOTAL] || 0;
 
-    // Write all 4 values in one single operation
-    assetSheet.getRange(i + 1, COL_TOTAL_PURCHASES + 1, 1, 4).setValues([[totalPurchases, totalSales, dividends, current]]);
+    // Write all () values in one single operation
+    assetSheet.getRange(i + 1, COL_RISK + 1, 1, 5).setValues([[risk, totalPurchases, totalSales, dividends, current]]);
 
     Logger.log("✅ " + name + " → " + current);    
   }
