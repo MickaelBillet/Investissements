@@ -17,7 +17,7 @@ public class GeographyServiceTests
     }
 
     private static AssetDto Asset(string assetClass, string assetType, string geography, decimal currentTotal) =>
-        new(1, "Test", assetClass, "PEA", "PEA TR", assetType, "", geography, 3,
+        new(1, "Test", assetClass, "PEA", "PEA TR", assetType, "", "", geography, 3,
             null, null, null, currentTotal, null, null, null, 0m);
 
     // ── ParseGeography ────────────────────────────────────────────────────────
@@ -102,6 +102,20 @@ public class GeographyServiceTests
 
         var europe = result.First(d => d.Name == "Europe");
         Assert.Equal(1000m, europe.CurrentTotal);
+    }
+
+    [Fact]
+    public async Task GetDistributionAsync_ExcludesEtfBunds()
+    {
+        var svc = CreateService(MockAssets(
+            Asset("Bonds", "MarketBonds", "Europe : 100%", 1000m),
+            Asset("Bonds", "ETF_Bunds",   "USA : 100%",    2000m)));
+
+        var result = await svc.GetDistributionAsync("Bonds");
+
+        Assert.Single(result);
+        Assert.Equal("Europe", result[0].Name);
+        Assert.Equal(1000m, result[0].CurrentTotal);
     }
 
     [Fact]

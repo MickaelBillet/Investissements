@@ -7,6 +7,7 @@ public record AssetDto(
     string SupportType,
     string Support,
     string AssetType,
+    string Sector,
     string Information,
     string Geography,
     int Risk,

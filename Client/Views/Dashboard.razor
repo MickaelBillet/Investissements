@@ -78,24 +78,47 @@ else
                             ? panel.Selected(0)
                             : null;
                     }
-                    @if (geoClass is not null && _selectedZone is null)
+                    @if (geoClass is not null && _selectedZone is null && _selectedSector is null)
                     {
-                        <DrillDownDonut @key="@($"geo:{geoClass}")"
-                                        Title="@($"Zones géographiques — {ViewModel.GetPanelTitle(panel)}")"
-                                        Items="@ViewModel.GetGeographyForClass(geoClass)"
-                                        Colors="@_geographyColors"
-                                        OnSliceClicked="@(zone => _selectedZone = zone)" />
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" md="6">
+                                <DrillDownDonut @key="@($"geo:{geoClass}")"
+                                                Title="@($"Zones géographiques — {ViewModel.GetPanelTitle(panel)}")"
+                                                Items="@ViewModel.GetGeographyForClass(geoClass)"
+                                                Colors="@_geographyColors"
+                                                OnSliceClicked="@(zone => { _selectedZone = zone; _selectedSector = null; })" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <DrillDownDonut @key="@($"sector:{geoClass}")"
+                                                Title="@($"Secteurs — {ViewModel.GetPanelTitle(panel)}")"
+                                                Items="@ViewModel.GetSectorForClass(geoClass)"
+                                                Colors="@_sectorColors"
+                                                OnSliceClicked="@(sector => { _selectedSector = sector; _selectedZone = null; })" />
+                            </MudItem>
+                        </MudGrid>
                     }
                     else if (geoClass is not null && _selectedZone is not null)
                     {
                         <MudStack Spacing="2">
-                            <MudButton Variant="Variant.Outlined"
-                                       StartIcon="@Icons.Material.Outlined.Public"
+                            <MudButton Variant="Variant.Text"
+                                       StartIcon="@Icons.Material.Outlined.ArrowBack"
                                        Style="align-self: flex-start;"
                                        OnClick="@(() => _selectedZone = null)">
-                                Répartition géographique
+                                Retour
                             </MudButton>
                             <AssetTable Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)" />
+                        </MudStack>
+                    }
+                    else if (geoClass is not null && _selectedSector is not null)
+                    {
+                        <MudStack Spacing="2">
+                            <MudButton Variant="Variant.Text"
+                                       StartIcon="@Icons.Material.Outlined.ArrowBack"
+                                       Style="align-self: flex-start;"
+                                       OnClick="@(() => _selectedSector = null)">
+                                Retour
+                            </MudButton>
+                            <AssetTable Assets="@ViewModel.GetAssetsForSector(geoClass, _selectedSector)" />
                         </MudStack>
                     }
                     else if (ViewModel.IsLeafLevel(panel))
@@ -118,6 +141,7 @@ else
 
     private ActiveHierarchy _activeHierarchy = ActiveHierarchy.None;
     private string?         _selectedZone;
+    private string?         _selectedSector;
 
     private static readonly string[] _assetClassColors =
         ["#CE8BA0", "#E06D6D", "#4DAB9A", "#9B8DD6", "#D4A844", "#A0A0A0", "#787774", "#2383E2"];
@@ -130,6 +154,9 @@ else
 
     private static readonly string[] _geographyColors =
         ["#2383E2", "#4DAB9A", "#D4A844", "#CE8BA0", "#E06D6D", "#9B8DD6", "#A0A0A0", "#787774"];
+
+    private static readonly string[] _sectorColors =
+        ["#D4A844", "#CE8BA0", "#9B8DD6", "#4DAB9A", "#E06D6D", "#2383E2", "#787774", "#A0A0A0"];
 
     private PanelState ActivePanel => _activeHierarchy switch
     {
@@ -155,12 +182,14 @@ else
         if (ViewModel.IsLeafLevel(panel)) return;
         _activeHierarchy = hierarchy;
         _selectedZone    = null;
+        _selectedSector  = null;
         panel.DrillDown(name);
     }
 
     private void GoBack(PanelState panel)
     {
-        _selectedZone = null;
+        _selectedZone   = null;
+        _selectedSector = null;
         panel.GoBack();
         if (!panel.CanGoBack)
             _activeHierarchy = ActiveHierarchy.None;

@@ -397,6 +397,88 @@ public class DashboardViewModelTests
         Assert.DoesNotContain(distribution, d => d.Name == "Stoxx 600");
     }
 
+    // ── GetSectorForClass ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetSectorForClass_GroupsBySectorForGivenAssetClass()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(assetClass: "Stocks", sector: "Technology", currentTotal: 6_000m),
+            TestData.Asset(assetClass: "Stocks", sector: "Finance",    currentTotal: 4_000m),
+            TestData.Asset(assetClass: "Bonds",  sector: "Finance",    currentTotal: 2_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetSectorForClass("Stocks");
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, d => d.Name == "Technology");
+        Assert.Contains(result, d => d.Name == "Finance");
+    }
+
+    [Fact]
+    public async Task GetSectorForClass_ExcludesEtfBunds()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(assetClass: "Bonds", assetType: "MarketBonds",  sector: "Finance", currentTotal: 4_000m),
+            TestData.Asset(assetClass: "Bonds", assetType: "ETF_Bunds",    sector: "Finance", currentTotal: 2_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetSectorForClass("Bonds");
+
+        Assert.Single(result);
+        Assert.Equal(4_000m, result[0].CurrentTotal);
+    }
+
+    [Fact]
+    public async Task GetSectorForClass_ExcludesAssetsWithEmptySector()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(assetClass: "Stocks", sector: "Technology", currentTotal: 6_000m),
+            TestData.Asset(assetClass: "Stocks", sector: "",            currentTotal: 2_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetSectorForClass("Stocks");
+
+        Assert.Single(result);
+        Assert.Equal("Technology", result[0].Name);
+    }
+
+    // ── GetAssetsForSector ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAssetsForSector_FiltersAssetsByClassAndSector()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(name: "A", assetClass: "Stocks", sector: "Technology", currentTotal: 6_000m),
+            TestData.Asset(name: "B", assetClass: "Stocks", sector: "Finance",    currentTotal: 4_000m),
+            TestData.Asset(name: "C", assetClass: "Bonds",  sector: "Technology", currentTotal: 2_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetAssetsForSector("Stocks", "Technology");
+
+        Assert.Single(result);
+        Assert.Equal("A", result[0].Name);
+    }
+
+    [Fact]
+    public async Task GetAssetsForSector_IsSortedByCurrentTotalDescending()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(name: "Small", assetClass: "Stocks", sector: "Technology", currentTotal: 1_000m),
+            TestData.Asset(name: "Large", assetClass: "Stocks", sector: "Technology", currentTotal: 5_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetAssetsForSector("Stocks", "Technology");
+
+        Assert.Equal("Large", result[0].Name);
+        Assert.Equal("Small", result[1].Name);
+    }
+
     [Fact]
     public async Task GetAssetsForPanel_WhenEtfGroupedAtLevel3_FiltersAssetsByInformationGroup()
     {
