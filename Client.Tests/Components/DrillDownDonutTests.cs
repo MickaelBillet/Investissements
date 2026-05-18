@@ -70,8 +70,8 @@ public class DrillDownDonutTests : BunitContext
     {
         var items = new[]
         {
-            new DistributionItem("Stocks", 10_000m, 60m),
-            new DistributionItem("Bonds",  6_000m,  40m)
+            new DistributionItem("Stocks", "Actions",    10_000m, 60m),
+            new DistributionItem("Bonds",  "Obligations", 6_000m, 40m)
         };
 
         var cut = Render<DrillDownDonut>(p => p

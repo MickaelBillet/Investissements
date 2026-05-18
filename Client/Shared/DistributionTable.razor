@@ -8,7 +8,7 @@
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">Poids</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Nom" Style="font-weight:500;">@context.Name</MudTd>
+        <MudTd DataLabel="Nom" Style="font-weight:500;">@context.Label</MudTd>
         <MudTd DataLabel="Valeur actuelle" Style="text-align:right;">
             @context.CurrentTotal.ToEurAmount()
         </MudTd>

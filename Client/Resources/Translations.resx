@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter</value></resheader>
+
+  <!-- Asset classes -->
+  <data name="Stocks"        xml:space="preserve"><value>Actions</value></data>
+  <data name="Bonds"         xml:space="preserve"><value>Obligations</value></data>
+  <data name="Cash"          xml:space="preserve"><value>Liquidités</value></data>
+  <data name="PrivateDebt"   xml:space="preserve"><value>Dette privée</value></data>
+  <data name="RealEstate"    xml:space="preserve"><value>Immobilier</value></data>
+  <data name="Commodities"   xml:space="preserve"><value>Matières premières</value></data>
+  <data name="Crypto"        xml:space="preserve"><value>Crypto-monnaies</value></data>
+  <data name="Miscellaneous" xml:space="preserve"><value>Divers</value></data>
+
+  <!-- Asset types -->
+  <data name="Stock"                xml:space="preserve"><value>Action</value></data>
+  <data name="ETF_Stocks"           xml:space="preserve"><value>ETF Actions</value></data>
+  <data name="ETF_Bunds"            xml:space="preserve"><value>ETF Obligations</value></data>
+  <data name="Cash_Deposite"        xml:space="preserve"><value>Dépôt</value></data>
+  <data name="MarketBonds"          xml:space="preserve"><value>Obligations cotées</value></data>
+  <data name="Savings"              xml:space="preserve"><value>Épargne</value></data>
+  <data name="Direct_loans_P2P"     xml:space="preserve"><value>Prêts P2P</value></data>
+  <data name="SCI_SCPI"             xml:space="preserve"><value>SCI/SCPI</value></data>
+  <data name="ETC_ETC_Commodities"  xml:space="preserve"><value>ETC Matières premières</value></data>
+  <data name="UnlistedBonds"        xml:space="preserve"><value>Obligations non cotées</value></data>
+  <data name="OPCVM"                xml:space="preserve"><value>OPCVM</value></data>
+  <data name="EuroFunds"            xml:space="preserve"><value>Fonds euros</value></data>
+  <data name="MoneyMarketETF"       xml:space="preserve"><value>ETF monétaire</value></data>
+
+  <!-- Support types -->
+  <data name="AccountBank"    xml:space="preserve"><value>Compte bancaire</value></data>
+  <data name="Booklet"        xml:space="preserve"><value>Livret</value></data>
+  <data name="Platform"       xml:space="preserve"><value>Plateforme</value></data>
+  <data name="LifeInsurance"  xml:space="preserve"><value>Assurance vie</value></data>
+
+  <!-- Risk levels -->
+  <data name="Risk_0" xml:space="preserve"><value>Sans risque</value></data>
+  <data name="Risk_1" xml:space="preserve"><value>Très faible</value></data>
+  <data name="Risk_2" xml:space="preserve"><value>Faible</value></data>
+  <data name="Risk_3" xml:space="preserve"><value>Moyen</value></data>
+  <data name="Risk_4" xml:space="preserve"><value>Élevé</value></data>
+
+</root>

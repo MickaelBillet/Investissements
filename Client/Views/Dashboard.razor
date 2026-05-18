@@ -53,7 +53,7 @@ else
             <MudGrid Spacing="4">
                 <MudItem xs="12" md="5">
                     <DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
-                                    Title="@panel.BreadcrumbLabel"
+                                    Title="@ViewModel.GetPanelTitle(panel)"
                                     Items="@ViewModel.GetDistribution(panel)"
                                     CanGoBack="true"
                                     Height="500"
@@ -81,7 +81,7 @@ else
                     @if (geoClass is not null && _selectedZone is null)
                     {
                         <DrillDownDonut @key="@($"geo:{geoClass}")"
-                                        Title="@($"Zones géographiques — {geoClass}")"
+                                        Title="@($"Zones géographiques — {ViewModel.GetPanelTitle(panel)}")"
                                         Items="@ViewModel.GetGeographyForClass(geoClass)"
                                         Colors="@_geographyColors"
                                         OnSliceClicked="@(zone => _selectedZone = zone)" />
