@@ -142,16 +142,16 @@ public class PortfolioMetricsServiceTests
     }
 
     [Fact]
-    public async Task GetMetricsAsync_AverageRisk_IsRoundedToOneDecimal()
+    public async Task GetMetricsAsync_AverageRisk_IsRoundedToTwoDecimals()
     {
-        // (1×1000 + 3×2000) / 3000 = 7/3 ≈ 2.333... → 2.3
+        // (1×1000 + 3×2000) / 3000 = 7/3 ≈ 2.333... → 2.33
         var svc = CreateService(
             MockAssets(Asset(risk: 1, currentTotal: 1_000m), Asset(risk: 3, currentTotal: 2_000m)),
             MockSnapshot(null));
 
         var result = await svc.GetMetricsAsync();
 
-        Assert.Equal(2.3m, result.AverageRisk);
+        Assert.Equal(2.33m, result.AverageRisk);
     }
 
     // ── GetIndexedHistoryAsync ────────────────────────────────────────────────

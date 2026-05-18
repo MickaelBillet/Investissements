@@ -67,6 +67,6 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
         var active     = assets.Where(a => a.CurrentTotal is > 0).ToList();
         var totalValue = active.Sum(a => a.CurrentTotal ?? 0m);
         if (totalValue == 0m) return null;
-        return Math.Round(active.Sum(a => (decimal)a.Risk * (a.CurrentTotal ?? 0m)) / totalValue, 1);
+        return Math.Round(active.Sum(a => (decimal)a.Risk * (a.CurrentTotal ?? 0m)) / totalValue, 2);
     }
 }

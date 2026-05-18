@@ -6,7 +6,7 @@
              ValueClass="@RoiOnCapitalEngaged.CssRoiClass()" />
     <KpiCard Label="ROI (Total des achats)" Value="@(RoiOnTotalPurchases?.ToPercentage() ?? "N/A")"
              ValueClass="@RoiOnTotalPurchases.CssRoiClass()" />
-    <KpiCard Label="Risque moyen (0 – 4)"   Value="@(AverageRisk?.ToString("F1") ?? "—")" />
+    <KpiCard Label="Risque moyen (0 – 4)"   Value="@(AverageRisk?.ToString("F2") ?? "—")" />
 </MudGrid>
 
 @code {
