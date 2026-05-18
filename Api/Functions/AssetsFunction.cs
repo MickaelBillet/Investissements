@@ -84,7 +84,7 @@ public sealed class AssetsFunction
         }
     }
 
-    [Function(nameof(GetAssetsDistribution))]
+[Function(nameof(GetAssetsDistribution))]
     public async Task<IActionResult> GetAssetsDistribution(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "assets/distribution/{dimension}")] HttpRequest req,
         string dimension,

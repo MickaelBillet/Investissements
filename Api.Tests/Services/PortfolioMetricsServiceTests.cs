@@ -40,7 +40,7 @@ public class PortfolioMetricsServiceTests
         => new(date, portfolio, lifeStrategy, msciWorld, totalPurchases, totalReturns);
 
     private static AssetDto Asset(int risk, decimal currentTotal) =>
-        new(1, "Test", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", risk,
+        new(1, "Test", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", risk,
             null, null, null, currentTotal, null, null, null, 0m);
 
     // ── RoiOnTotalPurchases = TotalReturns / TotalPurchases × 100 ─────────────

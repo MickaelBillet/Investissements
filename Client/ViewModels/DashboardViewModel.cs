@@ -6,8 +6,10 @@ namespace InvestissementsDashboard.Client.ViewModels;
 
 public class DashboardViewModel(IPortfolioService portfolioService)
 {
-    private IReadOnlyList<AssetDto>  _assets  = [];
-    private PortfolioMetricsDto?     _metrics;
+    private IReadOnlyList<AssetDto>        _assets           = [];
+    private IReadOnlyList<DistributionDto> _geoStocks        = [];
+    private IReadOnlyList<DistributionDto> _geoBonds         = [];
+    private PortfolioMetricsDto?           _metrics;
 
     public SnapshotDto? LastSnapshot  { get; private set; }
     public bool         IsLoading     { get; private set; } = true;
@@ -32,13 +34,21 @@ public class DashboardViewModel(IPortfolioService portfolioService)
         ErrorMessage = null;
         try
         {
-            var assetsTask   = portfolioService.GetAssetsAsync(ct);
-            var snapshotTask = portfolioService.GetLastSnapshotAsync(ct);
-            var metricsTask  = portfolioService.GetMetricsAsync(ct);
-            await Task.WhenAll(assetsTask, snapshotTask, metricsTask);
+            static Task<IReadOnlyList<DistributionDto>> SafeGeo(Task<IReadOnlyList<DistributionDto>> t) =>
+                t.ContinueWith(r => r.IsCompletedSuccessfully ? r.Result : (IReadOnlyList<DistributionDto>)[],
+                               TaskScheduler.Default);
+
+            var assetsTask    = portfolioService.GetAssetsAsync(ct);
+            var snapshotTask  = portfolioService.GetLastSnapshotAsync(ct);
+            var metricsTask   = portfolioService.GetMetricsAsync(ct);
+            var geoStocksTask = SafeGeo(portfolioService.GetGeographyDistributionAsync("Stocks", ct));
+            var geoBondsTask  = SafeGeo(portfolioService.GetGeographyDistributionAsync("Bonds", ct));
+            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, geoStocksTask, geoBondsTask);
             _assets      = await assetsTask;
             LastSnapshot = await snapshotTask;
             _metrics     = await metricsTask;
+            _geoStocks   = await geoStocksTask;
+            _geoBonds    = await geoBondsTask;
         }
         catch (Exception ex)
         {
@@ -83,6 +93,21 @@ public class DashboardViewModel(IPortfolioService portfolioService)
             _                     => []
         };
     }
+
+    // --- Geography (pre-loaded from API, filtered client-side for zone drill-down) ---
+
+    public IReadOnlyList<DistributionItem> GetGeographyForClass(string assetClass)
+    {
+        var distribution = assetClass == "Stocks" ? _geoStocks : _geoBonds;
+        return [.. distribution.Select(d => new DistributionItem(d.Name, d.CurrentTotal, d.WeightInPortfolio))];
+    }
+
+    public IReadOnlyList<AssetDto> GetAssetsForZone(string assetClass, string zone) =>
+        [.. ActiveAssets()
+             .Where(a => a.AssetClass == assetClass && a.Geography.Contains(zone))
+             .OrderByDescending(a => a.CurrentTotal)];
+
+    // --- Private distribution methods ---
 
     private IReadOnlyList<DistributionItem> GetAssetClassDistribution(PanelState panel)
     {

@@ -16,9 +16,9 @@ public class AssetsServiceTests
     {
         var expected = new[]
         {
-            new AssetDto(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", 4,
+            new AssetDto(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", 4,
                 5000m, 0m, 0m, 6000m, 1000m, 0m, 20m, 60m),
-            new AssetDto(2, "Livret A", "Cash", "Booklet", "Livret A", "Savings", "", 0,
+            new AssetDto(2, "Livret A", "Cash", "Booklet", "Livret A", "Savings", "", "", 0,
                 3000m, 0m, 0m, 3000m, 0m, 0m, 0m, 40m)
         };
         var mock = new Mock<IAppsScriptService>();
@@ -128,7 +128,7 @@ public class AssetsServiceTests
     {
         var expected = new[]
         {
-            new AssetDto(1, "MSCI World ETF", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "World", 4,
+            new AssetDto(1, "MSCI World ETF", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "World", "", 4,
                 5000m, 0m, 0m, 6000m, 1000m, 0m, 20m, 60m)
         };
         var mock = new Mock<IAppsScriptService>();

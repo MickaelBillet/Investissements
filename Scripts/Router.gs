@@ -41,6 +41,9 @@ function doGet(e) {
       case "Sector":
         result = handleSector(action, e.parameter);
         break;
+      case "Geography":
+        result = handleGeography(action, e.parameter);
+        break;
       case "Snapshot":
         result = handleSnapshot(action, e.parameter);
         break;
@@ -150,6 +153,7 @@ function buildAssetRow(row) {
     assetType    : String(row[COL_ASSET_TYPE]   ?? ""),
     sector       : String(row[COL_SECTOR]       ?? ""),
     information  : String(row[COL_INFORMATION]  ?? ""),
+    geography    : String(row[COL_GEOGRAPHY]    ?? ""),
     risk         : parseInt(row[COL_RISK], 10),
     totalPurchases: hasFinancialData ? tp   : null,
     totalSales    : hasFinancialData ? ts   : null,
