@@ -8,6 +8,7 @@ public record AssetDto(
     string Support,
     string AssetType,
     string Information,
+    string Geography,
     int Risk,
     decimal? TotalPurchases,
     decimal? TotalSales,

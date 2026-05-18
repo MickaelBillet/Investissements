@@ -72,7 +72,32 @@ else
                     </DrillDownDonut>
                 </MudItem>
                 <MudItem xs="12" md="7">
-                    @if (ViewModel.IsLeafLevel(panel))
+                    @{
+                        var geoClass = _activeHierarchy == ActiveHierarchy.AssetClass && panel.Level == 1
+                            && (panel.Selected(0) == "Stocks" || panel.Selected(0) == "Bonds")
+                            ? panel.Selected(0)
+                            : null;
+                    }
+                    @if (geoClass is not null && _selectedZone is null)
+                    {
+                        <DrillDownDonut @key="@($"geo:{geoClass}")"
+                                        Title="@($"Zones géographiques — {geoClass}")"
+                                        Items="@ViewModel.GetGeographyForClass(geoClass)"
+                                        Colors="@_geographyColors"
+                                        OnSliceClicked="@(zone => _selectedZone = zone)" />
+                    }
+                    else if (geoClass is not null && _selectedZone is not null)
+                    {
+                        <MudStack Spacing="2">
+                            <MudButton Variant="Variant.Text"
+                                       StartIcon="@Icons.Material.Outlined.ArrowBack"
+                                       OnClick="@(() => _selectedZone = null)">
+                                Retour
+                            </MudButton>
+                            <AssetTable Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)" />
+                        </MudStack>
+                    }
+                    else if (ViewModel.IsLeafLevel(panel))
                     {
                         <AssetTable Assets="@ViewModel.GetAssetsForPanel(panel)" />
                     }
@@ -91,6 +116,7 @@ else
     private enum ActiveHierarchy { None, AssetClass, SupportType, Risk }
 
     private ActiveHierarchy _activeHierarchy = ActiveHierarchy.None;
+    private string?         _selectedZone;
 
     private static readonly string[] _assetClassColors =
         ["#CE8BA0", "#E06D6D", "#4DAB9A", "#9B8DD6", "#D4A844", "#A0A0A0", "#787774", "#2383E2"];
@@ -100,6 +126,9 @@ else
 
     private static readonly string[] _riskColors =
         ["#4DAB9A", "#A0A0A0", "#D4A844", "#CE8BA0", "#E06D6D"];
+
+    private static readonly string[] _geographyColors =
+        ["#2383E2", "#4DAB9A", "#D4A844", "#CE8BA0", "#E06D6D", "#9B8DD6", "#A0A0A0", "#787774"];
 
     private PanelState ActivePanel => _activeHierarchy switch
     {
@@ -124,11 +153,13 @@ else
     {
         if (ViewModel.IsLeafLevel(panel)) return;
         _activeHierarchy = hierarchy;
+        _selectedZone    = null;
         panel.DrillDown(name);
     }
 
     private void GoBack(PanelState panel)
     {
+        _selectedZone = null;
         panel.GoBack();
         if (!panel.CanGoBack)
             _activeHierarchy = ActiveHierarchy.None;

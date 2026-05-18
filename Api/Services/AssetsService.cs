@@ -55,4 +55,6 @@ internal sealed class AssetsService : IAssetsService
         var result = await _appsScript.CallAsync<IReadOnlyList<AssetDto>>("AssetType", "getByAssetTypeAndInformation", extra, ct);
         return result ?? [];
     }
+
+
 }

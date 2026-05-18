@@ -130,3 +130,13 @@ function testGetByAssetTypeAndInformation() {
   const result = doGet(e);
   Logger.log(result.getContent());
 }
+
+function testGeographyGetDistribution() {
+  const e = { parameter: { apiKey: "token-zapto", service: "Geography", action: "getDistribution" } };
+  Logger.log(doGet(e).getContent());
+}
+
+function testGeographyGetByZone() {
+  const e = { parameter: { apiKey: "token-zapto", service: "Geography", action: "getByZone", zone: "Europe" } };
+  Logger.log(doGet(e).getContent());
+}

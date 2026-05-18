@@ -103,6 +103,16 @@ const SUPPORT = {
   KRAKEN     : "Kraken"
 };
 
+// --- Geography filter: asset classes and types eligible for geographic breakdown ---
+const GEOGRAPHY_ASSET_CLASSES = [ASSET_CLASS.STOCKS, ASSET_CLASS.BONDS];
+const GEOGRAPHY_ASSET_TYPES   = [
+  ASSET_TYPE.STOCK,
+  ASSET_TYPE.ETF_STOCKS,
+  ASSET_TYPE.ETF_BONDS,
+  ASSET_TYPE.MARKET_BONDS,
+  ASSET_TYPE.UNLISTED_BONDS
+];
+
 /// --- Risk scale (0=risk free, 1=very low, 4=high) ---
 const RISK = {
   RISK_FREE: 0,
