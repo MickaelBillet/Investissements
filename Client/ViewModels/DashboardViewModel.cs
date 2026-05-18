@@ -120,6 +120,22 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
              .Where(a => a.AssetClass == assetClass && a.Geography.Contains(zone))
              .OrderByDescending(a => a.CurrentTotal)];
 
+    private static readonly HashSet<string> GeoAndSectorEligibleTypes =
+        ["Stock", "ETF_Stocks", "MarketBonds", "UnlistedBonds"];
+
+    public IReadOnlyList<DistributionItem> GetSectorForClass(string assetClass) =>
+        ComputeDistribution(
+            ActiveAssets().Where(a => a.AssetClass == assetClass
+                                   && GeoAndSectorEligibleTypes.Contains(a.AssetType)
+                                   && !string.IsNullOrEmpty(a.Sector)),
+            a => a.Sector,
+            localizationService.Translate);
+
+    public IReadOnlyList<AssetDto> GetAssetsForSector(string assetClass, string sector) =>
+        [.. ActiveAssets()
+             .Where(a => a.AssetClass == assetClass && a.Sector == sector)
+             .OrderByDescending(a => a.CurrentTotal)];
+
     // --- Private distribution methods ---
 
     private IReadOnlyList<DistributionItem> GetAssetClassDistribution(PanelState panel)

@@ -62,7 +62,7 @@ public class AssetTableTests : BunitContext
     public void AssetTable_WhenCurrentTotalIsNull_DisplaysDash()
     {
         var nullAsset = new AssetDto(
-            1, "NullAsset", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", 3,
+            1, "NullAsset", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 3,
             null, null, null, null, null, null, null, 0m);
 
         var cut = Render<AssetTable>(p => p.Add(c => c.Assets, [nullAsset]));

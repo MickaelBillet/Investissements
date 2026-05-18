@@ -6,7 +6,7 @@ namespace InvestissementsDashboard.Api.Services;
 internal sealed class GeographyService(IAssetsService assetsService) : IGeographyService
 {
     private static readonly HashSet<string> EligibleAssetTypes =
-        ["Stock", "ETF_Stocks", "ETF_Bunds", "MarketBonds", "UnlistedBonds"];
+        ["Stock", "ETF_Stocks", "MarketBonds", "UnlistedBonds"];
 
     public async Task<IReadOnlyList<DistributionDto>> GetDistributionAsync(
         string assetClass, CancellationToken ct = default)

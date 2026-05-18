@@ -54,6 +54,27 @@
   <data name="Platform"       xml:space="preserve"><value>Plateforme</value></data>
   <data name="LifeInsurance"  xml:space="preserve"><value>Assurance vie</value></data>
 
+  <!-- Sectors (free text from Google Sheets — fallback to raw value if not found) -->
+  <data name="Technology"               xml:space="preserve"><value>Technologie</value></data>
+  <data name="Healthcare"               xml:space="preserve"><value>Santé</value></data>
+  <data name="Financial"                xml:space="preserve"><value>Finance</value></data>
+  <data name="Energy"                   xml:space="preserve"><value>Énergie</value></data>
+  <data name="Industrial"               xml:space="preserve"><value>Industrie</value></data>
+  <data name="Materials"                xml:space="preserve"><value>Matériaux</value></data>
+  <data name="Consumer_Staples"         xml:space="preserve"><value>Conso. courante</value></data>
+  <data name="Consumer_Discretionary"   xml:space="preserve"><value>Conso. cyclique</value></data>
+  <data name="Communication"            xml:space="preserve"><value>Communication</value></data>
+  <data name="Utilities"                xml:space="preserve"><value>Services aux collectivités</value></data>
+  <data name="Real_Estate"              xml:space="preserve"><value>Immobilier</value></data>
+  <data name="Diversified"              xml:space="preserve"><value>Diversifié</value></data>
+  <data name="Infrastructure"           xml:space="preserve"><value>Infrastructure</value></data>
+  <data name="Automotive"               xml:space="preserve"><value>Automobile</value></data>
+  <data name="Government"               xml:space="preserve"><value>Gouvernement</value></data>
+  <data name="Defense"                  xml:space="preserve"><value>Defense</value></data>
+  <data name="Entertainment"            xml:space="preserve"><value>Divertissement</value></data>
+  <data name="Airlines"                 xml:space="preserve"><value>Transport aérien</value></data>
+
+
   <!-- Risk levels -->
   <data name="Risk_0" xml:space="preserve"><value>Sans risque</value></data>
   <data name="Risk_1" xml:space="preserve"><value>Très faible</value></data>
