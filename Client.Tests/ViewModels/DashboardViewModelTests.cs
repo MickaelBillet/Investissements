@@ -9,7 +9,17 @@ namespace InvestissementsDashboard.Client.Tests.ViewModels;
 
 public class DashboardViewModelTests
 {
-    private static DashboardViewModel CreateVm(Mock<IPortfolioService> mock) => new(mock.Object);
+    private static readonly Mock<ILocalizationService> _locMock = CreateLocMock();
+
+    private static Mock<ILocalizationService> CreateLocMock()
+    {
+        var mock = new Mock<ILocalizationService>();
+        mock.Setup(l => l.Translate(It.IsAny<string>())).Returns((string k) => k);
+        return mock;
+    }
+
+    private static DashboardViewModel CreateVm(Mock<IPortfolioService> mock) =>
+        new(mock.Object, _locMock.Object);
 
     private static Mock<IPortfolioService> MockWithAssets(params AssetDto[] assets)
     {
@@ -20,6 +30,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((SnapshotDto?)null);
         mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PortfolioMetricsDto?)null);
+        mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         return mock;
     }
 
@@ -29,6 +41,8 @@ public class DashboardViewModelTests
         mock.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         mock.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>())).ReturnsAsync((SnapshotDto?)null);
         mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(metrics);
+        mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         return mock;
     }
 

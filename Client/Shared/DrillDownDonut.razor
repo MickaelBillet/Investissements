@@ -32,7 +32,7 @@
                              Items="@Items"
                              SeriesType="SeriesType.Donut"
                              ShowDataLabels="true"
-                             XValue="@(e => e.Name)"
+                             XValue="@(e => e.Label)"
                              YValue="@(e => (decimal)e.CurrentTotal)" />
         </ApexChart>
     }

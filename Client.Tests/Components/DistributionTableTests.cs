@@ -28,8 +28,8 @@ public class DistributionTableTests : BunitContext
     {
         var items = new[]
         {
-            new DistributionItem("ETF_Stocks", 10_000m, 60m),
-            new DistributionItem("Bonds",       6_000m,  40m)
+            new DistributionItem("ETF_Stocks", "ETF_Stocks", 10_000m, 60m),
+            new DistributionItem("Bonds",       "Bonds",       6_000m,  40m)
         };
 
         var cut = Render<DistributionTable>(p => p
@@ -42,7 +42,7 @@ public class DistributionTableTests : BunitContext
     [Fact]
     public void DistributionTable_DisplaysFormattedCurrentTotal()
     {
-        var items = new[] { new DistributionItem("Stocks", 12_345.67m, 100m) };
+        var items = new[] { new DistributionItem("Stocks", "Stocks", 12_345.67m, 100m) };
 
         var cut = Render<DistributionTable>(p => p
             .Add(c => c.Items, items));
@@ -54,7 +54,7 @@ public class DistributionTableTests : BunitContext
     [Fact]
     public void DistributionTable_DisplaysFormattedWeight()
     {
-        var items = new[] { new DistributionItem("Stocks", 10_000m, 75.5m) };
+        var items = new[] { new DistributionItem("Stocks", "Stocks", 10_000m, 75.5m) };
 
         var cut = Render<DistributionTable>(p => p
             .Add(c => c.Items, items));
@@ -68,8 +68,8 @@ public class DistributionTableTests : BunitContext
     {
         var items = new[]
         {
-            new DistributionItem("Stocks", 10_000m, 60m),
-            new DistributionItem("Bonds",   6_000m,  40m)
+            new DistributionItem("Stocks", "Stocks", 10_000m, 60m),
+            new DistributionItem("Bonds",  "Bonds",   6_000m,  40m)
         };
 
         var cut = Render<DistributionTable>(p => p

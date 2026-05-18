@@ -4,7 +4,7 @@ using InvestissementsDashboard.Shared.Models;
 
 namespace InvestissementsDashboard.Client.ViewModels;
 
-public class DashboardViewModel(IPortfolioService portfolioService)
+public class DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
 {
     private IReadOnlyList<AssetDto>        _assets           = [];
     private IReadOnlyList<DistributionDto> _geoStocks        = [];
@@ -60,6 +60,19 @@ public class DashboardViewModel(IPortfolioService portfolioService)
         }
     }
 
+    public string GetPanelTitle(PanelState panel)
+    {
+        if (panel.Level == 0) return panel.BreadcrumbLabel;
+
+        var segments = Enumerable.Range(0, panel.Level)
+            .Select(i => panel.Selected(i)!)
+            .Select(key => panel.Type == PanelType.Risk
+                ? localizationService.Translate($"Risk_{key}")
+                : localizationService.Translate(key));
+
+        return string.Join(" › ", segments);
+    }
+
     public bool IsLeafLevel(PanelState panel)
     {
         if (panel.Type == PanelType.AssetClass
@@ -99,7 +112,7 @@ public class DashboardViewModel(IPortfolioService portfolioService)
     public IReadOnlyList<DistributionItem> GetGeographyForClass(string assetClass)
     {
         var distribution = assetClass == "Stocks" ? _geoStocks : _geoBonds;
-        return [.. distribution.Select(d => new DistributionItem(d.Name, d.CurrentTotal, d.WeightInPortfolio))];
+        return [.. distribution.Select(d => new DistributionItem(d.Name, d.Name, d.CurrentTotal, d.WeightInPortfolio))];
     }
 
     public IReadOnlyList<AssetDto> GetAssetsForZone(string assetClass, string zone) =>
@@ -115,8 +128,8 @@ public class DashboardViewModel(IPortfolioService portfolioService)
 
         return panel.Level switch
         {
-            0 => ComputeDistribution(ActiveAssets(), a => a.AssetClass),
-            1 => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)), a => a.AssetType),
+            0 => ComputeDistribution(ActiveAssets(), a => a.AssetClass, localizationService.Translate),
+            1 => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)), a => a.AssetType, localizationService.Translate),
             2 when isEtfGrouped
               => ComputeDistribution(
                     ActiveAssets().Where(a => a.AssetClass == panel.Selected(0) && a.AssetType == "ETF_Stocks"),
@@ -135,7 +148,7 @@ public class DashboardViewModel(IPortfolioService portfolioService)
     private IReadOnlyList<DistributionItem> GetSupportTypeDistribution(PanelState panel) =>
         panel.Level switch
         {
-            0 => ComputeDistribution(ActiveAssets(), a => a.SupportType),
+            0 => ComputeDistribution(ActiveAssets(), a => a.SupportType, localizationService.Translate),
             1 => ComputeDistribution(ActiveAssets().Where(a => a.SupportType == panel.Selected(0)), a => a.Support),
             _ => ComputeDistribution(ActiveAssets().Where(a => a.SupportType == panel.Selected(0) && a.Support == panel.Selected(1)), a => a.Name)
         };
@@ -143,7 +156,7 @@ public class DashboardViewModel(IPortfolioService portfolioService)
     private IReadOnlyList<DistributionItem> GetRiskDistribution(PanelState panel) =>
         panel.Level switch
         {
-            0 => ComputeDistribution(ActiveAssets(), a => a.Risk.ToString()),
+            0 => ComputeDistribution(ActiveAssets(), a => a.Risk.ToString(), k => localizationService.Translate($"Risk_{k}")),
             _ => ComputeDistribution(ActiveAssets().Where(a => a.Risk.ToString() == panel.Selected(0)), a => a.Name)
         };
 
@@ -169,7 +182,8 @@ public class DashboardViewModel(IPortfolioService portfolioService)
 
     private static IReadOnlyList<DistributionItem> ComputeDistribution(
         IEnumerable<AssetDto> assets,
-        Func<AssetDto, string> groupKey)
+        Func<AssetDto, string> groupKey,
+        Func<string, string>? translateKey = null)
     {
         var list  = assets.ToList();
         var total = list.Sum(a => a.CurrentTotal ?? 0);
@@ -180,6 +194,7 @@ public class DashboardViewModel(IPortfolioService portfolioService)
                 var groupTotal = g.Sum(a => a.CurrentTotal ?? 0);
                 return new DistributionItem(
                     g.Key,
+                    translateKey?.Invoke(g.Key) ?? g.Key,
                     groupTotal,
                     total > 0 ? groupTotal / total * 100m : 0m);
             })

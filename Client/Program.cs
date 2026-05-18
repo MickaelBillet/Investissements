@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using InvestissementsDashboard.Client;
@@ -12,6 +13,11 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddMudServices();
 builder.Services.AddApexCharts();
+builder.Services.AddLocalization();
+builder.Services.AddSingleton<ILocalizationService, LocalizationService>();
+
+CultureInfo.DefaultThreadCurrentCulture   = new CultureInfo("fr-FR");
+CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("fr-FR");
 
 var apiBase = builder.HostEnvironment.IsDevelopment()
     ? new Uri("http://localhost:7071/")
