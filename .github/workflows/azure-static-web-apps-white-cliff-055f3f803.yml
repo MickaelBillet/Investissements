@@ -35,6 +35,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           skip_app_build: true
+          skip_api_build: true
           app_location: 'Client/publish/wwwroot'
           output_location: ''
           api_location: 'Api/publish'
