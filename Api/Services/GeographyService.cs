@@ -30,7 +30,7 @@ internal sealed class GeographyService(IAssetsService assetsService) : IGeograph
 
         var total = zoneMap.Values.Sum();
 
-        return [.. zoneMap
+        return zoneMap
             .Select(kv => new DistributionDto(
                 Id               : null,
                 Name             : kv.Key,
@@ -38,7 +38,8 @@ internal sealed class GeographyService(IAssetsService assetsService) : IGeograph
                 WeightInPortfolio: total > 0m
                     ? Math.Round(kv.Value / total * 100m, 2)
                     : 0m))
-            .OrderByDescending(d => d.CurrentTotal)];
+            .OrderByDescending(d => d.CurrentTotal)
+            .ToArray();
     }
 
     // Parse "Zone1 : X% - Zone2 : Y%" → (zone, pct) pairs
@@ -46,13 +47,15 @@ internal sealed class GeographyService(IAssetsService assetsService) : IGeograph
     {
         if (string.IsNullOrWhiteSpace(geography)) yield break;
 
-        foreach (var part in geography.Split(" - "))
+        var parts = geography.Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var part in parts)
         {
-            var sepIdx = part.LastIndexOf(" : ");
+            var sepIdx = part.LastIndexOf(":");
             if (sepIdx == -1) continue;
 
             var zone   = part[..sepIdx].Trim();
-            var pctStr = part[(sepIdx + 3)..].Replace("%", "").Trim();
+            var pctStr = part[(sepIdx + 1)..].Replace("%", "").Trim();
 
             if (!string.IsNullOrEmpty(zone)
                 && decimal.TryParse(pctStr, NumberStyles.Number, CultureInfo.InvariantCulture, out var pct))
