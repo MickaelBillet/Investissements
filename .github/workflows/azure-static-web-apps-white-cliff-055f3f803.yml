@@ -25,9 +25,6 @@ jobs:
       - name: Publish Client
         run: dotnet publish Client/InvestissementsDashboard.Client.csproj -c Release -o Client/publish
 
-      - name: Publish Api
-        run: dotnet publish Api/InvestissementsDashboard.Api.csproj -c Release -o Api/publish
-
       - name: Deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -35,7 +32,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           skip_app_build: true
-          skip_api_build: true
           app_location: 'Client/publish/wwwroot'
           output_location: ''
-          api_location: 'Api/publish'
+          api_location: 'Api'
