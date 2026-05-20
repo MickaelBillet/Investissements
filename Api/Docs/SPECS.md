@@ -1,8 +1,8 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 1.0  
-**Date :** 2026-05-08
+**Version :** 1.1  
+**Date :** 2026-05-20
 
 ---
 
@@ -222,7 +222,7 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 
 | DTO | Fichier | Champs |
 |---|---|---|
-| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio |
+| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, sector, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio |
 | `DistributionDto` | `Shared/Models/DistributionDto.cs` | id?, name, currentTotal, weightInPortfolio |
 | `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, portfolioTotal, lifeStrategy60?, msciWorld?, totalPurchases?, totalReturns? |
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnTotalPurchases?, roiOnCapitalEngaged?, averageRisk? |

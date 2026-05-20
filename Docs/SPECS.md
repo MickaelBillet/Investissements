@@ -48,6 +48,7 @@ SRS_16 Le contenu de la vue principale (du dashboard) intègre les 3 graphiques 
 SRS_08 Un contrôle graphique doit permettre de revenir au graphique à secteurs précédent et de revenir à la vue précédente
 - Classes d’actifs(Parent) → (Detail)Types d’actifs(Parent) → (Detail)Actifs du type
 - Classes d’actifs(Parent) → Stocks ou Bonds → (Géographie)Zones → (Detail)Actifs de la zone
+- Classes d’actifs(Parent) → Stocks ou Bonds → (Secteur)Secteur économique → (Detail)Actifs du secteur
 - Types de supports(Parent) → (Detail)Supports(Parent) → (Detail)Actifs du support
 - Niveaux de risque(Parent) → (Detail)Actifs du niveau
 
@@ -61,9 +62,13 @@ SRS_18 Lorsque le drill-down Classes d'actifs atteint le type d'actif `ETF_Stock
 
 #### Répartition géographique
 
-SRS_20 Lorsque le drill-down Classes d'actifs atteint le niveau 1 (type d'actif) sur la classe `Stocks` ou `Bonds`, la colonne droite du mode Master-Detail affiche un deuxième graphique à secteurs représentant la répartition géographique pondérée des actifs éligibles (types `Stock`, `ETF_Stocks`, `ETF_Bunds`, `MarketBonds`, `UnlistedBonds`). La pondération par zone est calculée à partir du champ `geography` de l'actif, au format `Zone1 : X% - Zone2 : Y%`.
+SRS_20 Lorsque le drill-down Classes d'actifs atteint le niveau 1 (type d'actif) sur la classe `Stocks` ou `Bonds`, la colonne droite du mode Master-Detail affiche **deux graphiques à secteurs côte à côte** : la répartition géographique pondérée et la répartition par secteur économique des actifs éligibles.
 
-SRS_21 Lorsque l'utilisateur sélectionne une zone géographique sur ce graphique, un tableau remplace le graphique et liste les actifs de la classe dont le champ `geography` contient la zone sélectionnée. Un bouton retour permet de revenir au graphique géographique.
+SRS_21 Lorsque l'utilisateur sélectionne une zone géographique sur le graphique de répartition géographique (Stocks/Bonds niveau 1), un tableau remplace les deux graphiques et liste les actifs de la classe dont le champ `geography` contient la zone sélectionnée. Un bouton retour permet de revenir aux deux graphiques.
+
+SRS_22 Lorsque l'utilisateur sélectionne un secteur économique sur le graphique de répartition par secteur (Stocks/Bonds niveau 1), un tableau remplace les deux graphiques et liste les actifs de la classe appartenant à ce secteur. Un bouton retour permet de revenir aux deux graphiques.
+
+SRS_23 Les sélections zone géographique et secteur économique sont mutuellement exclusives — en sélectionner une efface l'autre.
 
 #### Layout en mode Master-Detail
 
