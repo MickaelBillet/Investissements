@@ -1,8 +1,8 @@
 # SPECS.md — Client (Blazor WASM)
 
 **Statut :** Implémenté  
-**Version :** 1.1  
-**Date :** 2026-05-17
+**Version :** 1.2  
+**Date :** 2026-05-20
 
 ---
 
@@ -63,6 +63,7 @@ Quand une hiérarchie est active, la vue affiche :
 | Classes d'actifs | AssetClass | AssetType | Actifs (feuille) | — |
 | Classes d'actifs (ETF_Stocks + toggle) | AssetClass | AssetType=ETF_Stocks | Information (thématique) | Actifs (feuille) |
 | Classes d'actifs (Stocks/Bonds + géographie) | AssetClass | Stocks ou Bonds | Zone géographique | Actifs (feuille) |
+| Classes d'actifs (Stocks/Bonds + secteur) | AssetClass | Stocks ou Bonds | Secteur économique | Actifs (feuille) |
 | Types de supports | SupportType | Support | Actifs (feuille) | — |
 | Niveaux de risque | Risk | Actifs (feuille) | — | — |
 
@@ -82,13 +83,18 @@ Les champs `null` (données incomplètes) sont affichés `—`.
 Colonnes affichées : Nom, Valeur actuelle (€), Poids (%).  
 Footer : total de la colonne Valeur actuelle.
 
-### 3.7 Répartition géographique (Stocks / Bonds — niveau 1)
+### 3.7 Répartition géographique et par secteur (Stocks / Bonds — niveau 1)
 
-Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélectionnée est `Stocks` ou `Bonds`, la colonne droite du mode Master-Detail affiche un donut géographique (`DrillDownDonut`) à la place du tableau de distribution habituel.
+Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélectionnée est `Stocks` ou `Bonds`, la colonne droite affiche **deux donuts côte à côte** à la place du tableau de distribution habituel :
 
-Ce donut est alimenté par `ViewModel.GetGeographyForClass(assetClass)`, pré-chargé en parallèle au démarrage depuis `GET /api/portfolio/geography/{assetClass}`.
+- **Zones géographiques** : alimenté par `ViewModel.GetGeographyForClass(assetClass)`, pré-chargé au démarrage depuis `GET /api/portfolio/geography/{assetClass}`
+- **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, calculé côté client depuis les actifs chargés
 
-Cliquer sur une zone géographique remplace le donut par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs de la classe dont le champ `geography` contient la zone. Un bouton **Retour** ramène au donut géographique. Ce niveau de navigation est géré par `_selectedZone` dans `Dashboard.razor` (indépendant de `PanelState`).
+**Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `_selectedZone` dans `Dashboard.razor`.
+
+**Navigation secteur** : cliquer sur un secteur remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForSector(assetClass, sector)` — actifs dont le champ `sector` correspond au secteur. Bouton **Retour** ramène aux deux donuts. Géré par `_selectedSector` dans `Dashboard.razor`.
+
+`_selectedZone` et `_selectedSector` sont mutuellement exclusifs — en sélectionner un efface l'autre. Les deux sont indépendants de `PanelState`.
 
 ---
 
