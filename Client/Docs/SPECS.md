@@ -1,7 +1,7 @@
 # SPECS.md — Client (Blazor WASM)
 
 **Statut :** Implémenté  
-**Version :** 1.2  
+**Version :** 1.3  
 **Date :** 2026-05-20
 
 ---
@@ -31,6 +31,18 @@ Le dashboard expose deux pages :
 | Risque moyen (0 – 4) | `PortfolioMetricsDto.AverageRisk` | `—` |
 
 Les cartes ROI sont colorées en vert (`roi-positive`) si positif, rouge (`roi-negative`) si négatif, neutre si `null`.
+
+Les cartes **Valeur totale**, **ROI (Capital Engagé)** et **ROI (Total des achats)** affichent à droite de leur valeur deux chips de variation :
+
+| Chip | Calcul | Source |
+|---|---|---|
+| J (quotidien) | `(last − prev) / \|ref\| × 100` | dernier vs avant-dernier snapshot |
+| S (hebdomadaire) | idem | dernier vs snapshot ≤ J−7 |
+
+- Valeur totale : variation relative de `PortfolioTotal`
+- ROI : variation relative du taux ROI — `\|ROI_ref\|` au dénominateur pour gérer les ROI négatifs
+- Chip vert/rouge via `roi-positive` / `roi-negative`, `null` si historique insuffisant ou `ROI_ref = 0`
+- Calculés côté Client dans `DashboardViewModel` depuis `_snapshotHistory` (`GET /api/snapshot/history`)
 
 ---
 
@@ -112,10 +124,21 @@ Les séries de référence sont masquées si les données sont indisponibles.
 
 ---
 
-## 5. Formatage
+## 5. Page de chargement
+
+Affichée pendant les deux phases de démarrage :
+1. **Phase WASM** (`index.html`) : pendant le téléchargement du runtime Blazor
+2. **Phase données** (`Dashboard.razor`) : pendant les appels API parallèles à l'initialisation
+
+Overlay plein écran (`position: fixed`, `z-index: 9999`) — couvre la barre de navigation. Texte "Chargement" animé en typewriter (lettre par lettre, 1s), maintenu 1s, puis réinitialisé — sans écriture inversée. Police 38px semi-bold, couleur `#787774`. Classes CSS : `.loading-screen`, `.loading-text` dans `css/app.css`.
+
+---
+
+## 6. Formatage
 
 | Méthode | Exemple de sortie |
 |---|---|
 | `value.ToEurAmount()` | `€ 12 345,67` |
 | `value.ToPercentage()` | `15,50 %` |
 | `value.CssRoiClass()` | `"roi-positive"` / `"roi-negative"` / `""` |
+| `value.ToSignedPercentage()` | `"+1,23 %"` / `"-0,45 %"` |

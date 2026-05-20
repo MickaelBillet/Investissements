@@ -36,6 +36,8 @@ Client/
 ├── ViewModels/   → DashboardViewModel.cs, HistoryViewModel.cs
 ├── Views/        → Dashboard.razor (/), History.razor (/historique)
 └── wwwroot/      → index.html, css/app.css, favicon
+                     appsettings.json          (ApiBaseUrl vide — fallback sur BaseAddress en prod)
+                     appsettings.Development.json  (ApiBaseUrl: http://localhost:7071/)
 
 Client.Tests/
 ├── Components/   → KpiHeaderTests, AssetTableTests, DistributionTableTests, DrillDownDonutTests
@@ -51,6 +53,7 @@ Client.Tests/
 - Grille responsive : `MudGrid` + `MudItem` avec breakpoints xs/md/lg
 - Toujours `MudText`, `MudStack`, `MudPaper` plutôt que div/p/span bruts
 - Icônes : `Icons.Material.Outlined.*` (pas de FontAwesome ni autre lib)
+- Toujours qualifier `MudBlazor.Size.*` (jamais `Size.*` seul) — ambiguïté avec `ApexCharts.Size`
 
 ## 6. Palette de couleurs
 
@@ -91,12 +94,30 @@ bool                            IsLeafLevel(PanelState panel)       // true si n
 
 `EtfStocksGroupByInformation` (bool, bindable via `@bind-Value`) active le regroupement des ETF_Stocks par champ `information` et ajoute un niveau intermédiaire dans la hiérarchie Classes d'actifs.
 
-**Services appelés à l'initialisation :**
+**Services appelés à l'initialisation (en parallèle) :**
 ```csharp
-portfolioService.GetAssetsAsync(ct)        // → _assets
-portfolioService.GetLastSnapshotAsync(ct)  // → LastSnapshot
-portfolioService.GetMetricsAsync(ct)       // → _metrics (ROI + AverageRisk)
+portfolioService.GetAssetsAsync(ct)            // → _assets
+portfolioService.GetLastSnapshotAsync(ct)      // → LastSnapshot
+portfolioService.GetMetricsAsync(ct)           // → _metrics (ROI + AverageRisk)
+portfolioService.GetSnapshotHistoryAsync(ct)   // → _snapshotHistory (variations J/S)
+portfolioService.GetGeographyDistributionAsync // → _geoStocks / _geoBonds
 ```
+
+**Propriétés de variation (calculées côté client depuis `_snapshotHistory`) :**
+
+| Propriété | Formule |
+|---|---|
+| `DailyVariationPercent` | `(last - prev) / prev × 100` — variation relative valeur portefeuille J |
+| `WeeklyVariationPercent` | idem sur 7 jours |
+| `DailyROICapitalEngagedVariation` | `(ROI_today - ROI_ref) / \|ROI_ref\| × 100` — variation relative ROI CE J |
+| `WeeklyROICapitalEngagedVariation` | idem sur 7 jours |
+| `DailyROITotalPurchasesVariation` | variation relative ROI TP J |
+| `WeeklyROITotalPurchasesVariation` | idem sur 7 jours |
+
+Retournent `null` si historique insuffisant ou si `ROI_ref == 0`.
+
+**`KpiCard` — slot `SubContent` :**
+`KpiCard` accepte un `RenderFragment? SubContent` affiché à droite de la valeur (même ligne, `MudStack Row`). Utilisé pour les chips de variation J/S dans `KpiHeader.razor`.
 
 ### 7.3 DrillDownDonut — directive @key obligatoire
 
@@ -118,6 +139,7 @@ Toujours formater les montants et pourcentages via `DecimalExtensions` :
 | `value.ToEurAmount()` | `€ 12 345,67` |
 | `value.ToPercentage()` | `15,50 %` |
 | `value.CssRoiClass()` | `"roi-positive"` / `"roi-negative"` / `""` |
+| `value.ToSignedPercentage()` | `"+1,23 %"` / `"-0,45 %"` (préfixe `+` si ≥ 0) |
 
 ## 8. Tests
 
