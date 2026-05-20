@@ -10,7 +10,7 @@ Couche backend serverless entre le Google Apps Script et le Blazor WASM. Détien
 
 | Élément | Choix |
 |---|---|
-| Runtime | .NET 10, Azure Functions v4 isolated worker |
+| Runtime | .NET 8, Azure Functions v4 isolated worker (net8.0 requis — contrainte Azure SWA managed functions) |
 | Modèle HTTP | `Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore` |
 | Tests | xUnit + Moq |
 | Déploiement | Lié à Azure Static Web Apps (Managed Functions) |
@@ -26,15 +26,23 @@ Api/
 ├── host.json                   # Config Azure Functions
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
-└── Services/
-    ├── IAppsScriptService.cs      # Interface HTTP vers l'Apps Script
-    ├── AppsScriptService.cs       # Implémentation — appelle le Web App
-    ├── IAssetsService.cs
-    ├── AssetsService.cs           # Délègue à IAppsScriptService
-    ├── ISnapshotService.cs
-    ├── SnapshotService.cs         # Délègue à IAppsScriptService
-    ├── IPortfolioMetricsService.cs
-    └── PortfolioMetricsService.cs # Compose AssetsService + SnapshotService
+├── Interfaces/                 # Interfaces des services
+│   ├── IAppsScriptService.cs
+│   ├── IAssetsService.cs
+│   ├── IGeographyService.cs
+│   ├── IPortfolioMetricsService.cs
+│   └── ISnapshotService.cs
+├── JsonConverter/              # Converters System.Text.Json
+│   ├── FlexibleIntConverter.cs
+│   └── FlexibleStringConverter.cs
+├── Services/
+│   ├── AppsScriptService.cs       # Implémentation — appelle le Web App
+│   ├── AssetsService.cs           # Délègue à IAppsScriptService
+│   ├── GeographyService.cs        # Parsing géographique pondéré
+│   ├── PortfolioMetricsService.cs # Compose AssetsService + SnapshotService
+│   └── SnapshotService.cs         # Délègue à IAppsScriptService
+└── Properties/
+    └── AssemblyInfo.cs
 ```
 
 ---
@@ -82,8 +90,11 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/assets/etfstocks/information` | Apps Script `AssetType.getEtfStocksByInformation` |
 | GET | `/api/assets/etfstocks/information/{information}` | Apps Script `AssetType.getByAssetTypeAndInformation` |
 | GET | `/api/portfolio/metrics` | Compose `AssetsService` + `SnapshotService` |
+| GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis `Asset.getAll` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
+
+Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`.
 
 ---
 

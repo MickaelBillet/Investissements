@@ -273,37 +273,61 @@ investment-dashboard/
 ### 8.3 Pipeline GitHub Actions
 
 ```yaml
-name: Deploy to Azure Static Web Apps
+name: Azure Static Web Apps CI/CD
 on:
   push:
     branches: [main]
 jobs:
-  deploy:
+  build_and_deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build and deploy
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+      - name: Restore
+        run: dotnet restore
+      - name: Test
+        run: dotnet test Api.Tests/InvestissementsDashboard.Api.Tests.csproj --no-restore
+      - name: Publish Client
+        run: dotnet publish Client/InvestissementsDashboard.Client.csproj -c Release -o Client/publish
+      - name: Deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WHITE_CLIFF_055F3F803 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          app_location: "Client"
-          api_location: "Api"
-          output_location: "wwwroot"
+          action: upload
+          skip_app_build: true
+          app_location: 'Client/publish/wwwroot'
+          output_location: ''
+          api_location: 'Api'
 ```
+
+> Le Client (net10.0) est pré-compilé par le runner CI car .NET 10 n'est pas disponible dans Oryx.
+> L'Api (net8.0) est passée en source à Azure — Oryx la construit (net8.0 est supporté par les managed functions SWA).
 
 ### 8.4 Variables et secrets
 
 | Secret | Stockage | Accessible par |
 |---|---|---|
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | GitHub Secrets | GitHub Actions uniquement |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN_WHITE_CLIFF_055F3F803` | GitHub Secrets | GitHub Actions uniquement |
 | `APPS_SCRIPT_URL` | Azure Function App Settings | Azure Function uniquement |
 | `APPS_SCRIPT_API_KEY` | Azure Function App Settings | Azure Function uniquement |
 | `GOOGLE_SHEET_ID` | Azure Function App Settings | Azure Function uniquement |
 
 ### 8.5 Domaine custom
-- Configurer le domaine custom dans Azure Static Web Apps
-- Ajouter un enregistrement CNAME chez le registrar pointant vers l'URL Azure Static Web Apps
+
+- **Sous-domaine choisi** : `invest.zapto.fr`
+- **Registrar** : Ionos
+- **Enregistrement DNS à créer** :
+
+| Type  | Hôte     | Valeur cible                    |
+|-------|----------|---------------------------------|
+| CNAME | `invest` | `<nom-app>.azurestaticapps.net` |
+
+- Le certificat TLS/SSL est provisionné automatiquement par Azure (Let's Encrypt) après validation du CNAME.
+- Validation dans Azure Portal : Static Web Apps → Custom domains → Add → coller `invest.zapto.fr` → valider après propagation DNS (< 30 min).
 
 ---
 
@@ -331,7 +355,7 @@ jobs:
 | 2 | Nombre d'actifs à afficher dans le top holdings (10, 15, 20 ?) | Fonctionnalité dashboard |
 | 3 | ~~Palette de couleurs souhaitée pour les graphiques~~ — définie dans `Client/Docs/Claude.md` section 6 | — |
 | 4 | ~~Heure d'exécution quotidienne de l'Apps Script~~ — 06h00 (après clôture des marchés européens) | — |
-| 5 | Sous-domaine ou racine du domaine custom ? (ex: `dashboard.mondomaine.com`) | Déploiement |
+| 5 | ~~Sous-domaine ou racine du domaine custom ?~~ — résolu : `invest.zapto.fr` (sous-domaine, Ionos) | — |
 
 ### 10.2 Étapes suivantes
 
@@ -341,8 +365,8 @@ Les composants sont à développer dans cet ordre :
 2. **Google Apps Script** — ✅ ETL + API REST implémentés (`Scripts/`)
 3. **Azure Functions** — ✅ Endpoints REST implémentés (`Api/`) — proxy vers Apps Script
 4. **Blazor WASM** — ✅ Dashboard implémenté (`Client/`)
-5. **CI/CD** — Configurer GitHub Actions + Azure Static Web Apps
-6. **Domaine custom** — Configurer le CNAME
+5. **CI/CD** — ✅ Pipeline opérationnel
+6. **Domaine custom** — ✅ Décision prise : `invest.zapto.fr` — CNAME à créer chez Ionos, validation dans Azure Portal
 
 ---
 
