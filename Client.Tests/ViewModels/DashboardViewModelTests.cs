@@ -30,6 +30,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((SnapshotDto?)null);
         mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PortfolioMetricsDto?)null);
+        mock.Setup(s => s.GetSnapshotHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<SnapshotDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         return mock;
@@ -41,6 +43,20 @@ public class DashboardViewModelTests
         mock.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         mock.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>())).ReturnsAsync((SnapshotDto?)null);
         mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(metrics);
+        mock.Setup(s => s.GetSnapshotHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<SnapshotDto>)[]);
+        mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        return mock;
+    }
+
+    private static Mock<IPortfolioService> MockWithHistory(params SnapshotDto[] history)
+    {
+        var mock = new Mock<IPortfolioService>();
+        mock.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        mock.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>())).ReturnsAsync((SnapshotDto?)null);
+        mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>())).ReturnsAsync((PortfolioMetricsDto?)null);
+        mock.Setup(s => s.GetSnapshotHistoryAsync(It.IsAny<CancellationToken>())).ReturnsAsync(history);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         return mock;
@@ -498,5 +514,142 @@ public class DashboardViewModelTests
         Assert.Equal(2, result.Count);
         Assert.All(result, a => Assert.Equal("World", a.Information));
         Assert.DoesNotContain(result, a => a.Name == "Stoxx 600");
+    }
+
+    // ── DailyROICapitalEngagedVariation / WeeklyROITotalPurchasesVariation ──────
+
+    [Fact]
+    public async Task DailyROICapitalEngagedVariation_WhenTwoEntries_ReturnsRelativeChange()
+    {
+        // ROI_CE hier = 1_000 / 50_000 * 100 = 2 %
+        // ROI_CE today = 1_100 / 52_000 * 100 ≈ 2,1154 %
+        // variation relative = (2,1154 - 2) / |2| * 100 ≈ 5,77 %
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m, totalReturns: 1_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m, totalReturns: 1_100m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var roiRef  = 1_000m / 50_000m * 100m;
+        var roiLast = 1_100m / 52_000m * 100m;
+        var expected = (roiLast - roiRef) / Math.Abs(roiRef) * 100m;
+        Assert.Equal(expected, vm.DailyROICapitalEngagedVariation);
+    }
+
+    [Fact]
+    public async Task DailyROITotalPurchasesVariation_WhenTwoEntries_ReturnsRelativeChange()
+    {
+        // ROI_TP hier = 1_000 / 40_000 * 100 = 2,5 %
+        // ROI_TP today = 1_500 / 40_000 * 100 = 3,75 %
+        // variation relative = (3,75 - 2,5) / 2,5 * 100 = 50 %
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m, totalPurchases: 40_000m, totalReturns: 1_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m, totalPurchases: 40_000m, totalReturns: 1_500m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Equal(50m, vm.DailyROITotalPurchasesVariation);
+    }
+
+    [Fact]
+    public async Task DailyROICapitalEngagedVariation_WhenReferenceROIIsZero_ReturnsNull()
+    {
+        // ROI_ref = 0 → division par zéro → null
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m, totalReturns: 0m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m, totalReturns: 1_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Null(vm.DailyROICapitalEngagedVariation);
+    }
+
+    [Fact]
+    public async Task WeeklyROICapitalEngagedVariation_WhenEntryExactlySevenDaysBack_ReturnsRelativeChange()
+    {
+        // ref (13 mai) : ROI = 1_000 / 50_000 * 100 = 2 %
+        // today (20 mai) : ROI = 1_040 / 52_000 * 100 = 2 %
+        // variation relative = (2 - 2) / 2 * 100 = 0 %
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5, 13), portfolio: 50_000m, totalReturns: 1_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 17), portfolio: 51_000m, totalReturns: 1_020m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m, totalReturns: 1_040m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Equal(0m, vm.WeeklyROICapitalEngagedVariation);
+    }
+
+    // ── DailyVariationPercent / WeeklyVariationPercent ────────────────────────
+
+    [Fact]
+    public async Task DailyVariationPercent_WhenHistoryEmpty_ReturnsNull()
+    {
+        var mock = MockWithHistory();
+        var vm   = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Null(vm.DailyVariationPercent);
+    }
+
+    [Fact]
+    public async Task DailyVariationPercent_WhenOnlyOneEntry_ReturnsNull()
+    {
+        var mock = MockWithHistory(TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m));
+        var vm   = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Null(vm.DailyVariationPercent);
+    }
+
+    [Fact]
+    public async Task DailyVariationPercent_WhenTwoEntries_ReturnsCorrectPercent()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 51_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Equal(2m, vm.DailyVariationPercent);
+    }
+
+    [Fact]
+    public async Task DailyVariationPercent_WhenPreviousTotalIsZero_ReturnsNull()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 0m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 51_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Null(vm.DailyVariationPercent);
+    }
+
+    [Fact]
+    public async Task WeeklyVariationPercent_WhenEntryExactlySevenDaysBack_ReturnsCorrectPercent()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5, 13), portfolio: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 17), portfolio: 51_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        // ref = 2026-05-13 (≤ 2026-05-20 − 7j = 2026-05-13), last = 52_000
+        Assert.Equal(4m, vm.WeeklyVariationPercent);
+    }
+
+    [Fact]
+    public async Task WeeklyVariationPercent_WhenNoEntrySevenDaysBack_ReturnsNull()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5, 15), portfolio: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        // aucune entrée ≤ 2026-05-20 − 7j = 2026-05-13
+        Assert.Null(vm.WeeklyVariationPercent);
     }
 }

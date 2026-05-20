@@ -10,6 +10,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     private IReadOnlyList<DistributionDto> _geoStocks        = [];
     private IReadOnlyList<DistributionDto> _geoBonds         = [];
     private PortfolioMetricsDto?           _metrics;
+    private IReadOnlyList<SnapshotDto>     _snapshotHistory  = [];
 
     public SnapshotDto? LastSnapshot  { get; private set; }
     public bool         IsLoading     { get; private set; } = true;
@@ -25,6 +26,12 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     public decimal? PortfolioRoiOnCapitalEngaged => _metrics?.RoiOnCapitalEngaged;
     public decimal? PortfolioRoiOnTotalPurchases => _metrics?.RoiOnTotalPurchases;
     public decimal? AverageRisk                  => _metrics?.AverageRisk;
+    public decimal? DailyVariationPercent                => ComputeVariation(_snapshotHistory, 1);
+    public decimal? WeeklyVariationPercent               => ComputeVariation(_snapshotHistory, 7);
+    public decimal? DailyROICapitalEngagedVariation      => ComputeROIVariation(_snapshotHistory, 1,  s => s.PortfolioTotal > 0 ? s.TotalReturns / s.PortfolioTotal  * 100m : null);
+    public decimal? WeeklyROICapitalEngagedVariation     => ComputeROIVariation(_snapshotHistory, 7,  s => s.PortfolioTotal > 0 ? s.TotalReturns / s.PortfolioTotal  * 100m : null);
+    public decimal? DailyROITotalPurchasesVariation      => ComputeROIVariation(_snapshotHistory, 1,  s => s.TotalPurchases  > 0 ? s.TotalReturns / s.TotalPurchases  * 100m : null);
+    public decimal? WeeklyROITotalPurchasesVariation     => ComputeROIVariation(_snapshotHistory, 7,  s => s.TotalPurchases  > 0 ? s.TotalReturns / s.TotalPurchases  * 100m : null);
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -41,14 +48,16 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
             var assetsTask    = portfolioService.GetAssetsAsync(ct);
             var snapshotTask  = portfolioService.GetLastSnapshotAsync(ct);
             var metricsTask   = portfolioService.GetMetricsAsync(ct);
+            var historyTask   = portfolioService.GetSnapshotHistoryAsync(ct);
             var geoStocksTask = SafeGeo(portfolioService.GetGeographyDistributionAsync("Stocks", ct));
             var geoBondsTask  = SafeGeo(portfolioService.GetGeographyDistributionAsync("Bonds", ct));
-            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, geoStocksTask, geoBondsTask);
-            _assets      = await assetsTask;
-            LastSnapshot = await snapshotTask;
-            _metrics     = await metricsTask;
-            _geoStocks   = await geoStocksTask;
-            _geoBonds    = await geoBondsTask;
+            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, historyTask, geoStocksTask, geoBondsTask);
+            _assets          = await assetsTask;
+            LastSnapshot     = await snapshotTask;
+            _metrics         = await metricsTask;
+            _snapshotHistory = await historyTask;
+            _geoStocks       = await geoStocksTask;
+            _geoBonds        = await geoBondsTask;
         }
         catch (Exception ex)
         {
@@ -195,6 +204,31 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
 
     private IEnumerable<AssetDto> ActiveAssets() =>
         _assets.Where(a => a.CurrentTotal is > 0);
+
+    private static decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, int daysBack)
+    {
+        if (history.Count < 2) return null;
+        var last      = history[^1];
+        var reference = daysBack == 1
+            ? history[^2]
+            : history.LastOrDefault(s => s.Date <= last.Date.AddDays(-daysBack));
+        if (reference is null || reference.PortfolioTotal == 0) return null;
+        return (last.PortfolioTotal - reference.PortfolioTotal) / reference.PortfolioTotal * 100m;
+    }
+
+    private static decimal? ComputeROIVariation(IReadOnlyList<SnapshotDto> history, int daysBack, Func<SnapshotDto, decimal?> roiOf)
+    {
+        if (history.Count < 2) return null;
+        var last      = history[^1];
+        var reference = daysBack == 1
+            ? history[^2]
+            : history.LastOrDefault(s => s.Date <= last.Date.AddDays(-daysBack));
+        if (reference is null) return null;
+        var roiLast = roiOf(last);
+        var roiRef  = roiOf(reference);
+        if (!roiLast.HasValue || !roiRef.HasValue || roiRef.Value == 0) return null;
+        return (roiLast.Value - roiRef.Value) / Math.Abs(roiRef.Value) * 100m;
+    }
 
     private static IReadOnlyList<DistributionItem> ComputeDistribution(
         IEnumerable<AssetDto> assets,
