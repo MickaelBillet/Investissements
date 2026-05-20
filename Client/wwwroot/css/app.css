@@ -2,6 +2,34 @@ html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+.loading-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fff;
+    z-index: 9999;
+}
+
+.loading-text {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 38px;
+    font-weight: 600;
+    color: #787774;
+    letter-spacing: 0.08em;
+    animation: typewriter 2s steps(10, end) infinite;
+}
+
+@keyframes typewriter {
+    0%   { width: 0; }
+    50%  { width: 310px; }
+    100% { width: 310px; }
+}
+
 h1:focus {
     outline: none;
 }
