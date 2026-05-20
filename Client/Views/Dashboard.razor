@@ -21,7 +21,13 @@ else
                    AssetCount="@ViewModel.AssetCount"
                    RoiOnCapitalEngaged="@ViewModel.PortfolioRoiOnCapitalEngaged"
                    RoiOnTotalPurchases="@ViewModel.PortfolioRoiOnTotalPurchases"
-                   AverageRisk="@ViewModel.AverageRisk" />
+                   AverageRisk="@ViewModel.AverageRisk"
+                   DailyVariationPercent="@ViewModel.DailyVariationPercent"
+                   WeeklyVariationPercent="@ViewModel.WeeklyVariationPercent"
+                   DailyROICapitalEngagedVariation="@ViewModel.DailyROICapitalEngagedVariation"
+                   WeeklyROICapitalEngagedVariation="@ViewModel.WeeklyROICapitalEngagedVariation"
+                   DailyROITotalPurchasesVariation="@ViewModel.DailyROITotalPurchasesVariation"
+                   WeeklyROITotalPurchasesVariation="@ViewModel.WeeklyROITotalPurchasesVariation" />
 
         @if (_activeHierarchy == ActiveHierarchy.None)
         {

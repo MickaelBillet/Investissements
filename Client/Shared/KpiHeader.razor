@@ -1,18 +1,98 @@
+@using InvestissementsDashboard.Client.Extensions
+
 <MudGrid Spacing="4">
-    <KpiCard Label="Valeur totale"          Value="@(Snapshot?.PortfolioTotal.ToEurAmount() ?? "—")" />
+    <KpiCard Label="Valeur totale" Value="@(Snapshot?.PortfolioTotal.ToEurAmount() ?? "—")">
+        <SubContent>
+            @if (DailyVariationPercent.HasValue || WeeklyVariationPercent.HasValue)
+            {
+                <MudStack Row="true" Spacing="1" Style="margin-top:4px;">
+                    @if (DailyVariationPercent.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@DailyVariationPercent.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            J @DailyVariationPercent.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                    @if (WeeklyVariationPercent.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@WeeklyVariationPercent.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            S @WeeklyVariationPercent.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </SubContent>
+    </KpiCard>
     <KpiCard Label="Dernière mise à jour"   Value="@(Snapshot?.Date.ToString("dd/MM/yyyy") ?? "—")" />
     <KpiCard Label="Actifs en portefeuille" Value="@AssetCount.ToString()" />
-    <KpiCard Label="ROI (Capital Engagé)"   Value="@(RoiOnCapitalEngaged?.ToPercentage() ?? "N/A")"
-             ValueClass="@RoiOnCapitalEngaged.CssRoiClass()" />
+    <KpiCard Label="ROI (Capital Engagé)" Value="@(RoiOnCapitalEngaged?.ToPercentage() ?? "N/A")"
+             ValueClass="@RoiOnCapitalEngaged.CssRoiClass()">
+        <SubContent>
+            @if (DailyROICapitalEngagedVariation.HasValue || WeeklyROICapitalEngagedVariation.HasValue)
+            {
+                <MudStack Row="true" Spacing="1" Style="margin-top:4px;">
+                    @if (DailyROICapitalEngagedVariation.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@DailyROICapitalEngagedVariation.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            J @DailyROICapitalEngagedVariation.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                    @if (WeeklyROICapitalEngagedVariation.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@WeeklyROICapitalEngagedVariation.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            S @WeeklyROICapitalEngagedVariation.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </SubContent>
+    </KpiCard>
     <KpiCard Label="ROI (Total des achats)" Value="@(RoiOnTotalPurchases?.ToPercentage() ?? "N/A")"
-             ValueClass="@RoiOnTotalPurchases.CssRoiClass()" />
+             ValueClass="@RoiOnTotalPurchases.CssRoiClass()">
+        <SubContent>
+            @if (DailyROITotalPurchasesVariation.HasValue || WeeklyROITotalPurchasesVariation.HasValue)
+            {
+                <MudStack Row="true" Spacing="1" Style="margin-top:4px;">
+                    @if (DailyROITotalPurchasesVariation.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@DailyROITotalPurchasesVariation.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            J @DailyROITotalPurchasesVariation.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                    @if (WeeklyROITotalPurchasesVariation.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@WeeklyROITotalPurchasesVariation.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            S @WeeklyROITotalPurchasesVariation.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </SubContent>
+    </KpiCard>
     <KpiCard Label="Risque moyen (0 – 4)"   Value="@(AverageRisk?.ToString("F2") ?? "—")" />
 </MudGrid>
 
 @code {
-    [Parameter, EditorRequired] public SnapshotDto? Snapshot             { get; set; }
-    [Parameter, EditorRequired] public int          AssetCount           { get; set; }
-    [Parameter]                 public decimal?     RoiOnCapitalEngaged  { get; set; }
-    [Parameter]                 public decimal?     RoiOnTotalPurchases  { get; set; }
-    [Parameter]                 public decimal?     AverageRisk          { get; set; }
+    [Parameter, EditorRequired] public SnapshotDto? Snapshot                { get; set; }
+    [Parameter, EditorRequired] public int          AssetCount              { get; set; }
+    [Parameter]                 public decimal?     RoiOnCapitalEngaged     { get; set; }
+    [Parameter]                 public decimal?     RoiOnTotalPurchases     { get; set; }
+    [Parameter]                 public decimal?     AverageRisk             { get; set; }
+    [Parameter]                 public decimal?     DailyVariationPercent              { get; set; }
+    [Parameter]                 public decimal?     WeeklyVariationPercent             { get; set; }
+    [Parameter]                 public decimal?     DailyROICapitalEngagedVariation    { get; set; }
+    [Parameter]                 public decimal?     WeeklyROICapitalEngagedVariation   { get; set; }
+    [Parameter]                 public decimal?     DailyROITotalPurchasesVariation    { get; set; }
+    [Parameter]                 public decimal?     WeeklyROITotalPurchasesVariation   { get; set; }
 }

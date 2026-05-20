@@ -2,16 +2,23 @@
     <MudCard Elevation="0">
         <MudCardContent Style="padding:8px 12px;">
             <MudText Typo="Typo.caption" Style="color:#787774;">@Label</MudText>
-            <MudText Style="font-size:20px;font-weight:700;color:#37352F;line-height:1.2;margin-top:2px;"
-                     Class="@ValueClass">
-                @Value
-            </MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="margin-top:2px;">
+                <MudText Style="font-size:20px;font-weight:700;color:#37352F;line-height:1.2;"
+                         Class="@ValueClass">
+                    @Value
+                </MudText>
+                @if (SubContent is not null)
+                {
+                    @SubContent
+                }
+            </MudStack>
         </MudCardContent>
     </MudCard>
 </MudItem>
 
 @code {
-    [Parameter, EditorRequired] public string Label      { get; set; } = string.Empty;
-    [Parameter, EditorRequired] public string Value      { get; set; } = string.Empty;
-    [Parameter]                 public string ValueClass { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string          Label      { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string          Value      { get; set; } = string.Empty;
+    [Parameter]                 public string          ValueClass { get; set; } = string.Empty;
+    [Parameter]                 public RenderFragment? SubContent { get; set; }
 }

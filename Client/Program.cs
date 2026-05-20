@@ -19,8 +19,9 @@ builder.Services.AddSingleton<ILocalizationService, LocalizationService>();
 CultureInfo.DefaultThreadCurrentCulture   = new CultureInfo("fr-FR");
 CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("fr-FR");
 
-var apiBase = builder.HostEnvironment.IsDevelopment()
-    ? new Uri("http://localhost:7071/")
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
+var apiBase = !string.IsNullOrEmpty(apiBaseUrl)
+    ? new Uri(apiBaseUrl)
     : new Uri(builder.HostEnvironment.BaseAddress);
 
 builder.Services.AddHttpClient<IPortfolioService, PortfolioService>(client =>

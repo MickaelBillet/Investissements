@@ -28,12 +28,16 @@ internal sealed class PortfolioService(HttpClient httpClient) : IPortfolioServic
     public Task<PortfolioMetricsDto?> GetMetricsAsync(CancellationToken ct = default)
         => httpClient.GetFromJsonAsync<PortfolioMetricsDto>("/api/portfolio/metrics", ct);
 
+    public async Task<IReadOnlyList<SnapshotDto>> GetSnapshotHistoryAsync(CancellationToken ct = default)
+    {
+        var result = await httpClient.GetFromJsonAsync<SnapshotDto[]>("/api/snapshot/history", ct);
+        return result ?? [];
+    }
+
     public async Task<IReadOnlyList<DistributionDto>> GetGeographyDistributionAsync(string assetClass, CancellationToken ct = default)
     {
         var result = await httpClient.GetFromJsonAsync<DistributionDto[]>(
             $"/api/portfolio/geography/{Uri.EscapeDataString(assetClass)}", ct);
         return result ?? [];
     }
-
-
 }

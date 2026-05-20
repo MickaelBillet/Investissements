@@ -84,4 +84,25 @@ public class DecimalExtensionsTests
 
         Assert.Equal("", value.CssRoiClass());
     }
+
+    [Fact]
+    public void ToSignedPercentage_WhenPositive_StartWithPlusSign()
+    {
+        Assert.StartsWith("+", (1.23m).ToSignedPercentage());
+    }
+
+    [Fact]
+    public void ToSignedPercentage_WhenNegative_DoesNotDoubleSign()
+    {
+        var result = (-1.23m).ToSignedPercentage();
+
+        Assert.StartsWith("-", result);
+        Assert.DoesNotContain("+-", result);
+    }
+
+    [Fact]
+    public void ToSignedPercentage_WhenZero_StartWithPlusSign()
+    {
+        Assert.StartsWith("+", (0m).ToSignedPercentage());
+    }
 }

@@ -18,4 +18,7 @@ public static class DecimalExtensions
 
     public static string CssRoiClass(this decimal? value) =>
         value switch { > 0 => "roi-positive", < 0 => "roi-negative", _ => "" };
+
+    public static string ToSignedPercentage(this decimal value) =>
+        value >= 0 ? $"+{value.ToPercentage()}" : value.ToPercentage();
 }
