@@ -5,9 +5,9 @@
 
 @if (ViewModel.IsLoading)
 {
-    <MudStack AlignItems="AlignItems.Center" Style="padding:64px 0;">
-        <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
-    </MudStack>
+    <div class="loading-screen">
+        <span class="loading-text">Chargement</span>
+    </div>
 }
 else if (ViewModel.ErrorMessage is not null)
 {
