@@ -136,14 +136,7 @@ ApexCharts for Blazor ne redessine pas le graphique sur simple mise à jour des 
 
 ### 7.4 Extensions décimales
 
-Toujours formater les montants et pourcentages via `DecimalExtensions` :
-
-| Méthode | Exemple de sortie |
-|---|---|
-| `value.ToEurAmount()` | `€ 12 345,67` |
-| `value.ToPercentage()` | `15,50 %` |
-| `value.CssRoiClass()` | `"roi-positive"` / `"roi-negative"` / `""` |
-| `value.ToSignedPercentage()` | `"+1,23 %"` / `"-0,45 %"` (préfixe `+` si ≥ 0) |
+Toujours formater les montants et pourcentages via `DecimalExtensions` — voir `Client/Docs/SPECS.md` §5 pour les signatures et exemples de sortie.
 
 ## 8. Localisation
 
