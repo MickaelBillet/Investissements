@@ -1,3 +1,5 @@
+@inject ILocalizationService L
+
 <MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:16px 20px;height:100%;">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -18,7 +20,7 @@
     @if (Items.Count == 0)
     {
         <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="min-height:200px;">
-            <MudText Typo="Typo.body2" Style="color:#787774;">Aucune donnée</MudText>
+            <MudText Typo="Typo.body2" Style="color:#787774;">@L.Translate("Empty_NoData")</MudText>
         </MudStack>
     }
     else

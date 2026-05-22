@@ -1,8 +1,8 @@
 # SPECS.md — Client (Blazor WASM)
 
 **Statut :** Implémenté  
-**Version :** 1.3  
-**Date :** 2026-05-20
+**Version :** 1.4  
+**Date :** 2026-05-22
 
 ---
 
@@ -112,15 +112,16 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 
 ## 4. Vue historique (`/historique`)
 
-Graphique en courbes (ApexCharts) représentant l'évolution de la performance, indexée à 100 à la date T0 (première entrée disponible). 3 séries :
+Graphique en courbes (ApexCharts) représentant l'évolution de la performance, indexée à 100 à la date T0 (première entrée disponible). 4 séries :
 
-| Série | Source |
-|---|---|
-| Portefeuille | `SnapshotDto.PortfolioTotal` |
-| LifeStrategy 60 | `SnapshotDto.LifeStrategy60` |
-| MSCI World | `SnapshotDto.MsciWorld` |
+| Série | Calcul | Masquée si |
+|---|---|---|
+| Portefeuille (ROI) | `(PortfolioTotal + TotalReturns) / TotalPurchases`, normalisé base 100 | jamais |
+| Portefeuille (ROIC) | `(PortfolioTotal + TotalReturns) / PortfolioTotal`, normalisé base 100 | jamais |
+| LifeStrategy 60 | prix unitaire / prix T0 × 100 | `LifeStrategy60` absent sur un point |
+| MSCI World | prix unitaire / prix T0 × 100 | `MsciWorld` absent sur un point |
 
-Les séries de référence sont masquées si les données sont indisponibles.
+Les données sont fournies par `GET /api/portfolio/metrics/history` (`PerformancePointDto[]`), déjà normalisées base 100 par l'Api. Seuls les snapshots avec `PortfolioTotal > 0` et `TotalPurchases > 0` sont inclus dans le calcul.
 
 ---
 

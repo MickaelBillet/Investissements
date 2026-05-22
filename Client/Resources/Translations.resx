@@ -82,4 +82,56 @@
   <data name="Risk_3" xml:space="preserve"><value>Moyen</value></data>
   <data name="Risk_4" xml:space="preserve"><value>Élevé</value></data>
 
+  <!-- Navigation -->
+  <data name="Nav_AppTitle"      xml:space="preserve"><value>Suivi des Investissements</value></data>
+  <data name="Nav_Portfolio"     xml:space="preserve"><value>Portefeuille</value></data>
+  <data name="Nav_History"       xml:space="preserve"><value>Historique</value></data>
+
+  <!-- Panels (titres donuts) -->
+  <data name="Panel_AssetClass"  xml:space="preserve"><value>Classes d'actifs</value></data>
+  <data name="Panel_SupportType" xml:space="preserve"><value>Types de supports</value></data>
+  <data name="Panel_Risk"        xml:space="preserve"><value>Niveaux de risque</value></data>
+
+  <!-- Dashboard UI -->
+  <data name="Loading"           xml:space="preserve"><value>Chargement</value></data>
+  <data name="Back"              xml:space="preserve"><value>Retour</value></data>
+  <data name="GroupByTheme"      xml:space="preserve"><value>Grouper par thématique</value></data>
+
+  <!-- KPI labels -->
+  <data name="Kpi_TotalValue"    xml:space="preserve"><value>Valeur totale</value></data>
+  <data name="Kpi_LastUpdate"    xml:space="preserve"><value>Dernière mise à jour</value></data>
+  <data name="Kpi_AssetCount"    xml:space="preserve"><value>Actifs en portefeuille</value></data>
+  <data name="Kpi_RoiCapital"    xml:space="preserve"><value>ROI (Capital Engagé)</value></data>
+  <data name="Kpi_RoiPurchases"  xml:space="preserve"><value>ROI (Total des achats)</value></data>
+  <data name="Kpi_AverageRisk"   xml:space="preserve"><value>Risque moyen (0 – 4)</value></data>
+  <data name="Kpi_DailyPrefix"   xml:space="preserve"><value>J</value></data>
+  <data name="Kpi_WeeklyPrefix"  xml:space="preserve"><value>S</value></data>
+  <data name="Kpi_NotAvailable"  xml:space="preserve"><value>N/A</value></data>
+
+  <!-- Colonnes de tableaux -->
+  <data name="Col_Name"          xml:space="preserve"><value>Nom</value></data>
+  <data name="Col_CurrentValue"  xml:space="preserve"><value>Valeur actuelle</value></data>
+  <data name="Col_UnrealizedGain" xml:space="preserve"><value>Plus-value</value></data>
+  <data name="Col_ROI"           xml:space="preserve"><value>ROI</value></data>
+  <data name="Col_Yield"         xml:space="preserve"><value>Rendement</value></data>
+  <data name="Col_Weight"        xml:space="preserve"><value>Poids</value></data>
+  <data name="Table_Total"       xml:space="preserve"><value>Total</value></data>
+
+  <!-- États vides -->
+  <data name="Empty_NoAsset"     xml:space="preserve"><value>Aucun actif</value></data>
+  <data name="Empty_NoData"      xml:space="preserve"><value>Aucune donnée</value></data>
+  <data name="Empty_NoHistoricalData" xml:space="preserve"><value>Aucune donnée historique disponible</value></data>
+
+  <!-- Graphique historique -->
+  <data name="Chart_RelativePerf"        xml:space="preserve"><value>Performance relative (base 100)</value></data>
+  <data name="Chart_Series_ROI"          xml:space="preserve"><value>Portefeuille (ROI)</value></data>
+  <data name="Chart_Series_ROIC"         xml:space="preserve"><value>Portefeuille (ROIC)</value></data>
+  <data name="Chart_Series_LifeStrategy" xml:space="preserve"><value>LifeStrategy 60</value></data>
+  <data name="Chart_Series_MsciWorld"    xml:space="preserve"><value>MSCI World</value></data>
+
+  <!-- Erreurs -->
+  <data name="Error_PageNotFound"   xml:space="preserve"><value>Page non trouvée.</value></data>
+  <data name="Error_LoadingData"    xml:space="preserve"><value>Impossible de charger les données : {0}</value></data>
+  <data name="Error_LoadingHistory" xml:space="preserve"><value>Impossible de charger l'historique : {0}</value></data>
+
 </root>

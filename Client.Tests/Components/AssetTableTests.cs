@@ -12,6 +12,7 @@ public class AssetTableTests : BunitContext
     public AssetTableTests()
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
+        Services.AddLocalizationMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 

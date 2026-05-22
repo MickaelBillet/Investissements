@@ -188,7 +188,7 @@ public class PortfolioMetricsServiceTests
         var result = await svc.GetIndexedHistoryAsync();
 
         Assert.Single(result);
-        Assert.Equal(100m, result[0].Portfolio);
+        Assert.Equal(100m, result[0].ROI);
         Assert.Equal(100m, result[0].LifeStrategy60);
         Assert.Equal(100m, result[0].MsciWorld);
     }
@@ -208,7 +208,7 @@ public class PortfolioMetricsServiceTests
         var result = await svc.GetIndexedHistoryAsync();
 
         Assert.Equal(2, result.Count);
-        Assert.Equal(110m, result[1].Portfolio, precision: 2);
+        Assert.Equal(110m, result[1].ROI, precision: 2);
     }
 
     [Fact]
