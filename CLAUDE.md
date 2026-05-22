@@ -11,6 +11,11 @@ Développer un dashboard web personnel permettant de visualiser un portefeuille 
 
 Les données sont maintenues dans un Google Sheets personnel, mis à jour quotidiennement. Un script automatique consolide chaque jour les données dans une feuille historique. Le dashboard est strictement personnel et privé.
 
+- À 70% de contexte : prévenir et proposer /compact
+- Avant /clear : sauvegarder toute décision nouvelle dans le CLAUDE.md concerné
+- Après /compact : relire CLAUDE.md + sous-projet CLAUDE.md avant de continuer
+- Ne jamais supposer le contenu d'un autre sous-projet sans lire son CLAUDE.md
+
 ---
 
 ## 2. Contraintes
@@ -193,40 +198,6 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 
 > Spécifications fonctionnelles détaillées dans `Docs/SPECS.md`.
 
-### 7.1 Vue instantanée — onglet principal (`/`)
-
-**En-tête KPI (6 cartes) :**
-- Valeur totale du portefeuille en EUR
-- Date de dernière mise à jour
-- Nombre d'actifs en portefeuille
-- ROI (Capital Engagé) = TotalReturns / PortfolioTotal × 100 (calculé côté API)
-- ROI (Total des achats) = TotalReturns / TotalPurchases × 100 (calculé côté API)
-  — TotalReturns = plus-values réalisées (F57), TotalPurchases = total achats (F65)
-- Risque moyen pondéré (0–4) = moyenne pondérée par valeur actuelle (calculé côté API)
-
-**Vue principale — 3 donuts côte à côte :**
-
-| Donut | Niveau 1 | Niveau 2 | Niveau 3 (ETF_Stocks + toggle) |
-|---|---|---|---|
-| Classes d'actifs | Types d'actifs dans la classe | Actifs du type | Thématiques ETF → Actifs |
-| Types de supports | Supports/brokers du type | Actifs du support | — |
-| Niveaux de risque | Actifs du niveau | — | — |
-
-Cliquer sur un secteur active le **mode Master-Detail** : les 2 autres donuts disparaissent. Layout : donut à gauche (5/12) + tableau à droite (7/12). Aux niveaux intermédiaires, le tableau affiche la distribution (`DistributionTable`). Au niveau feuille, il affiche les actifs (`AssetTable` : nom, valeur actuelle (€), plus-value (€), ROI (%), rendement (%)). Un bouton back remonte niveau par niveau.
-
-Quand ETF_Stocks est sélectionné (hiérarchie Classes d'actifs), un toggle **"Grouper par thématique"** insère un niveau intermédiaire groupant par champ `information` avant d'atteindre les actifs individuels.
-
-### 7.2 Vue historique — onglet `/historique`
-
-Courbe de performance indexée à 100 à la date T0 (première entrée disponible), comparant 3 séries : portefeuille, LifeStrategy 60, MSCI World.
-
-### 7.3 KPIs globaux (en-tête)
-- Valeur totale du portefeuille en EUR
-- Nombre d'actifs en portefeuille
-- Date de dernière mise à jour des données
-- ROI (Capital Engagé) (coloré vert/rouge, N/A si données manquantes)
-- ROI (Total des achats) (coloré vert/rouge, N/A si données manquantes)
-- Risque moyen pondéré (0–4), affiché `—` si indisponible
 
 ---
 
@@ -462,3 +433,11 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 - Pas de framework de test automatisé — les tests sont des fonctions `test*` dans `Test.gs`
 - Ajouter une fonction de test pour chaque nouveau service ou action
 - Exécuter manuellement dans l'éditeur Apps Script avant tout déploiement
+
+---
+
+## 13. Git — Règle absolue
+
+**Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
+
+Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter que si l'utilisateur dit explicitement "commit" ou "commit et PR". Ne jamais commiter de sa propre initiative pour "sauvegarder" ou "tester le CI". Le merge des PRs est toujours de la responsabilité de l'utilisateur.
