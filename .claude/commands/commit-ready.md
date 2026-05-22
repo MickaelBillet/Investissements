@@ -27,8 +27,5 @@ Générer le message Conventional Commits :
 - Corps : liste des fichiers modifiés avec une ligne de résumé par fichier
 
 ## Étape 5 — Commandes à exécuter (proposer, ne pas exécuter)
-- Exécuter les commandes de commit et de création du PR sur la nouvelle branche
+- Exécuter les commandes de commit et PR sur la nouvelle branche
 - L'utilisateur doit valider la PR manuellement dans github
-
-## Règle absolue
-Attendre que l'utilisateur demande explicitement chaque action.
