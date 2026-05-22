@@ -14,15 +14,6 @@ public class PanelState(PanelType type)
 
     public string? Selected(int level) => level < _path.Count ? _path[level] : null;
 
-    public string BreadcrumbLabel => _path.Count == 0
-        ? Type switch
-        {
-            PanelType.AssetClass  => "Classes d'actifs",
-            PanelType.SupportType => "Types de supports",
-            _                     => "Niveaux de risque"
-        }
-        : string.Join(" › ", _path);
-
     public void DrillDown(string name) => _path.Add(name);
 
     public void GoBack()

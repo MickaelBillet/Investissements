@@ -30,7 +30,9 @@ Client/
 ├── Extensions/   → DecimalExtensions.cs (ToEurAmount, ToPercentage, CssRoiClass)
 ├── Layout/       → MainLayout.razor, NavMenu.razor
 ├── Model/        → DistributionItem.cs, IndexedPoint.cs, PanelState.cs
-├── Services/     → IPortfolioService.cs, PortfolioService.cs
+├── Resources/    → Translations.cs (classe marqueur), Translations.resx (toutes les chaînes UI)
+├── Services/     → IPortfolioService.cs, PortfolioService.cs,
+│                   ILocalizationService.cs, LocalizationService.cs
 ├── Shared/       → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor
 ├── ViewModels/   → DashboardViewModel.cs, HistoryViewModel.cs
@@ -42,7 +44,7 @@ Client/
 Client.Tests/
 ├── Components/   → KpiHeaderTests, AssetTableTests, DistributionTableTests, DrillDownDonutTests
 ├── Extensions/   → DecimalExtensionsTests
-├── Helpers/      → TestData (factory d'AssetDto et SnapshotDto de test)
+├── Helpers/      → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + AddLocalizationMock)
 ├── Models/       → PanelStateTests
 └── ViewModels/   → DashboardViewModelTests, HistoryViewModelTests
 ```
@@ -78,7 +80,9 @@ public PanelState SupportTypePanel { get; } = new(PanelType.SupportType);  // 3 
 public PanelState RiskPanel        { get; } = new(PanelType.Risk);         // 2 niveaux
 ```
 
-Méthodes : `DrillDown(name)`, `GoBack()`. Propriétés : `Level`, `CanGoBack`, `IsAtLeafLevel`, `Selected(level)`, `BreadcrumbLabel`.
+Méthodes : `DrillDown(name)`, `GoBack()`. Propriétés : `Level`, `CanGoBack`, `IsAtLeafLevel`, `Selected(level)`.
+
+Le titre d'un panel (ex : "Classes d'actifs") est calculé par `DashboardViewModel.GetPanelTitle(panel)` — jamais par `PanelState` directement.
 
 **Ne pas utiliser `panel.IsAtLeafLevel` directement dans les Views** — appeler `ViewModel.IsLeafLevel(panel)` qui prend en compte le toggle ETF et le type de panel.
 
@@ -141,11 +145,33 @@ Toujours formater les montants et pourcentages via `DecimalExtensions` :
 | `value.CssRoiClass()` | `"roi-positive"` / `"roi-negative"` / `""` |
 | `value.ToSignedPercentage()` | `"+1,23 %"` / `"-0,45 %"` (préfixe `+` si ≥ 0) |
 
-## 8. Tests
+## 8. Localisation
+
+Toutes les chaînes UI sont externalisées dans `Client/Resources/Translations.resx`.  
+Le service `ILocalizationService` (implémenté par `LocalizationService`) est le seul point d'accès — ne jamais appeler `IStringLocalizer<Translations>` directement.
+
+```csharp
+// Dans un ViewModel (injection constructeur)
+public DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
+
+// Dans un composant Razor (injection directe)
+@inject ILocalizationService L
+// puis : @L.Translate("Ma_Cle")
+```
+
+`ILocalizationService` est enregistré **singleton** dans `Program.cs`. Il est déjà importé globalement via `_Imports.razor` — aucun `@using` supplémentaire requis dans les composants.
+
+Fallback : si une clé n'existe pas dans le `.resx`, `Translate()` retourne la clé brute (jamais d'exception).
+
+---
+
+## 9. Tests
 
 Framework : xUnit + bUnit. Nommage : `[MethodName]_[Scenario]_[ExpectedResult]`.
 
-- `TestData` dans `Client.Tests/Helpers/` fournit les factories `Asset(...)` et `Snapshot(...)` pour les tests
-- Les tests de ViewModel instancient directement la classe avec un `Mock<IPortfolioService>`
-- Les tests de composants héritent de `BunitContext` et enregistrent MudBlazor via `Services.AddMudServices(...)`
+- `TestData` dans `Client.Tests/Helpers/` fournit les factories `Asset(...)`, `Snapshot(...)` et `PerformancePoint(...)`
+- `TestData.AddLocalizationMock(this IServiceCollection services)` — extension à appeler dans le constructeur de tout test de composant qui rend un composant injectant `ILocalizationService`. Le mock utilise `ResourceManager` sur les vraies ressources compilées → les assertions peuvent vérifier les chaînes françaises.
+- `DashboardViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>` (setup `Translate(key) → key`)
+- `HistoryViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
+- Les tests de composants héritent de `BunitContext` et appellent `Services.AddMudServices(...)` + `Services.AddLocalizationMock()`
 - Lancer les tests : `dotnet test Client.Tests`

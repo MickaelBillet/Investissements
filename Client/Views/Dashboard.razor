@@ -1,12 +1,13 @@
 @page "/"
 @inject DashboardViewModel ViewModel
+@inject ILocalizationService L
 
 <PageTitle>Portefeuille — Suivi des Investissements</PageTitle>
 
 @if (ViewModel.IsLoading)
 {
     <div class="loading-screen">
-        <span class="loading-text">Chargement</span>
+        <span class="loading-text">@L.Translate("Loading")</span>
     </div>
 }
 else if (ViewModel.ErrorMessage is not null)
@@ -33,19 +34,19 @@ else
         {
             <MudGrid Spacing="4">
                 <MudItem xs="12" md="4">
-                    <DrillDownDonut Title="Classes d'actifs"
+                    <DrillDownDonut Title="@ViewModel.GetPanelTitle(ViewModel.AssetClassPanel)"
                                     Items="@ViewModel.GetDistribution(ViewModel.AssetClassPanel)"
                                     Colors="@_assetClassColors"
                                     OnSliceClicked="@(name => DrillDown(ActiveHierarchy.AssetClass, ViewModel.AssetClassPanel, name))" />
                 </MudItem>
                 <MudItem xs="12" md="4">
-                    <DrillDownDonut Title="Types de supports"
+                    <DrillDownDonut Title="@ViewModel.GetPanelTitle(ViewModel.SupportTypePanel)"
                                     Items="@ViewModel.GetDistribution(ViewModel.SupportTypePanel)"
                                     Colors="@_supportTypeColors"
                                     OnSliceClicked="@(name => DrillDown(ActiveHierarchy.SupportType, ViewModel.SupportTypePanel, name))" />
                 </MudItem>
                 <MudItem xs="12" md="4">
-                    <DrillDownDonut Title="Niveaux de risque"
+                    <DrillDownDonut Title="@ViewModel.GetPanelTitle(ViewModel.RiskPanel)"
                                     Items="@ViewModel.GetDistribution(ViewModel.RiskPanel)"
                                     Colors="@_riskColors"
                                     OnSliceClicked="@(name => DrillDown(ActiveHierarchy.Risk, ViewModel.RiskPanel, name))" />
@@ -71,7 +72,7 @@ else
                             {
                                 <MudSwitch T="bool"
                                            @bind-Value="@ViewModel.EtfStocksGroupByInformation"
-                                           Label="Grouper par thématique"
+                                           Label="@L.Translate("GroupByTheme")"
                                            Color="MudBlazor.Color.Primary" />
                             }
                         </TopRightContent>
@@ -110,7 +111,7 @@ else
                                        StartIcon="@Icons.Material.Outlined.ArrowBack"
                                        Style="align-self: flex-start;"
                                        OnClick="@(() => _selectedZone = null)">
-                                Retour
+                                @L.Translate("Back")
                             </MudButton>
                             <AssetTable Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)" />
                         </MudStack>
@@ -122,7 +123,7 @@ else
                                        StartIcon="@Icons.Material.Outlined.ArrowBack"
                                        Style="align-self: flex-start;"
                                        OnClick="@(() => _selectedSector = null)">
-                                Retour
+                                @L.Translate("Back")
                             </MudButton>
                             <AssetTable Assets="@ViewModel.GetAssetsForSector(geoClass, _selectedSector)" />
                         </MudStack>

@@ -11,6 +11,7 @@ public class KpiHeaderTests : BunitContext
     public KpiHeaderTests()
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
+        Services.AddLocalizationMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 

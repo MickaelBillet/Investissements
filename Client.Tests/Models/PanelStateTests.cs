@@ -78,24 +78,4 @@ public class PanelStateTests
         Assert.Null(panel.Selected(2));
     }
 
-    [Theory]
-    [InlineData(PanelType.AssetClass,  "Classes d'actifs")]
-    [InlineData(PanelType.SupportType, "Types de supports")]
-    [InlineData(PanelType.Risk,        "Niveaux de risque")]
-    public void BreadcrumbLabel_WhenAtRoot_ReturnsDefaultLabel(PanelType type, string expected)
-    {
-        var panel = new PanelState(type);
-
-        Assert.Equal(expected, panel.BreadcrumbLabel);
-    }
-
-    [Fact]
-    public void BreadcrumbLabel_AfterTwoDrillDowns_ReturnsJoinedPath()
-    {
-        var panel = new PanelState(PanelType.AssetClass);
-        panel.DrillDown("Stocks");
-        panel.DrillDown("ETF_Stocks");
-
-        Assert.Equal("Stocks › ETF_Stocks", panel.BreadcrumbLabel);
-    }
 }

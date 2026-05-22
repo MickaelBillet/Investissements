@@ -1,6 +1,7 @@
 using Bunit;
 using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Shared;
+using InvestissementsDashboard.Client.Tests.Helpers;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
@@ -12,6 +13,7 @@ public class DrillDownDonutTests : BunitContext
     public DrillDownDonutTests()
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
+        Services.AddLocalizationMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 

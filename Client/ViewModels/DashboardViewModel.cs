@@ -61,7 +61,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Impossible de charger les données : {ex.Message}";
+            ErrorMessage = string.Format(localizationService.Translate("Error_LoadingData"), ex.Message);
         }
         finally
         {
@@ -71,7 +71,8 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
 
     public string GetPanelTitle(PanelState panel)
     {
-        if (panel.Level == 0) return panel.BreadcrumbLabel;
+        if (panel.Level == 0)
+            return localizationService.Translate($"Panel_{panel.Type}");
 
         var segments = Enumerable.Range(0, panel.Level)
             .Select(i => panel.Selected(i)!)
