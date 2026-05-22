@@ -122,3 +122,11 @@ Ajouter une fonction de test pour chaque nouveau service ou action avant de dép
 Toutes les valeurs de dimension sont des constantes dans `Config.gs` (`ASSET_CLASS`, `ASSET_TYPE`, `SUPPORT_TYPE`, `SUPPORT`, `RISK`). Ne jamais coder de chaînes en dur — utiliser toujours ces constantes.
 
 Les constantes `COL_SOURCE_*` définissent les index de colonnes de la feuille source (Bilan). Les constantes `COL_*` définissent les index de colonnes de l'onglet Asset (DEST).
+
+---
+
+## 10. Git — Règle absolue
+
+**Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
+
+Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter que si l'utilisateur dit explicitement "commit" ou "commit et PR". Ne jamais commiter de sa propre initiative pour "sauvegarder" ou "tester le CI". Le merge des PRs est toujours de la responsabilité de l'utilisateur.

@@ -28,8 +28,21 @@
       "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Services\\\\IGoogleSheetsService.cs\")",
       "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Services\\\\GoogleSheetsService.cs\")",
       "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Models\\\\SheetValuesResponse.cs\")",
-      "Bash(git cherry-pick *)",
-      "Bash(git restore *)"
+      "Bash(git branch *)",
+      "Bash(git ls-tree *)",
+      "Bash(git commit -m 'fix\\(ci\\): set app_location to pre-built wwwroot for skip_app_build *)",
+      "Bash(git commit -m 'chore\\(ci\\): remove PR preview — deploy on main push only *)",
+      "Bash(git commit -m 'fix\\(ci\\): add skip_api_build to deploy pre-built Azure Functions *)",
+      "Bash(git commit -m 'fix\\(ci\\): let Oryx build API from source — remove pre-build and skip_api_build *)",
+      "Bash(git commit -m 'fix: downgrade Api and Shared to net8.0 for Azure SWA managed functions *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\" -Recurse -Name)",
+      "Bash(Remove-Item *)",
+      "PowerShell(dotnet build *)",
+      "PowerShell(dotnet test *)",
+      "PowerShell(gh pr create --base main --head fix/favicon-svg-only --title \"fix\\(client\\): remove favicon.png fallback - use SVG favicon only\" --body $body)",
+      "Bash(Get-Content \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\CLAUDE.md\" -Raw)",
+      "Bash(Select-String -Pattern \"## 7\\\\.\" -AllMatches)",
+      "Bash(git *)"
     ]
   }
 }
