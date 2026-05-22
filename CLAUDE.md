@@ -11,6 +11,10 @@ Développer un dashboard web personnel permettant de visualiser un portefeuille 
 
 Les données sont maintenues dans un Google Sheets personnel, mis à jour quotidiennement. Un script automatique consolide chaque jour les données dans une feuille historique. Le dashboard est strictement personnel et privé.
 
+- À 70% de contexte : prévenir et proposer /compact
+- Avant /clear : sauvegarder toute décision nouvelle dans le CLAUDE.md concerné
+- Après /compact : relire CLAUDE.md + sous-projet CLAUDE.md avant de continuer
+
 ---
 
 ## 2. Contraintes
@@ -462,3 +466,11 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 - Pas de framework de test automatisé — les tests sont des fonctions `test*` dans `Test.gs`
 - Ajouter une fonction de test pour chaque nouveau service ou action
 - Exécuter manuellement dans l'éditeur Apps Script avant tout déploiement
+
+---
+
+## 13. Git — Règle absolue
+
+**Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
+
+Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter que si l'utilisateur dit explicitement "commit" ou "commit et PR". Ne jamais commiter de sa propre initiative pour "sauvegarder" ou "tester le CI". Le merge des PRs est toujours de la responsabilité de l'utilisateur.

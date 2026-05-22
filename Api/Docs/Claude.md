@@ -116,3 +116,11 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`
 - Tests unitaires xUnit pour chaque service (mock `IAppsScriptService`)
 - `InternalsVisibleTo("DynamicProxyGenAssembly2")` dans `AssemblyInfo.cs` pour Moq sur interfaces internes
 > Prendre en compte les conseils dans le fichier `clean-code-tips.md`
+
+---
+
+## 9. Git — Règle absolue
+
+**Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
+
+Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter que si l'utilisateur dit explicitement "commit" ou "commit et PR". Ne jamais commiter de sa propre initiative pour "sauvegarder" ou "tester le CI". Le merge des PRs est toujours de la responsabilité de l'utilisateur.
