@@ -168,3 +168,11 @@ Framework : xUnit + bUnit. Nommage : `[MethodName]_[Scenario]_[ExpectedResult]`.
 - `HistoryViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
 - Les tests de composants héritent de `BunitContext` et appellent `Services.AddMudServices(...)` + `Services.AddLocalizationMock()`
 - Lancer les tests : `dotnet test Client.Tests`
+
+---
+
+## 10. Git — Règle absolue
+
+**Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
+
+Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter que si l'utilisateur dit explicitement "commit" ou "commit et PR". Ne jamais commiter de sa propre initiative pour "sauvegarder" ou "tester le CI". Le merge des PRs est toujours de la responsabilité de l'utilisateur.

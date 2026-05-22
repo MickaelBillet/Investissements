@@ -16,6 +16,7 @@ Les données sont maintenues dans un Google Sheets personnel, mis à jour quotid
 - Après /compact : relire CLAUDE.md + sous-projet CLAUDE.md avant de continuer
 - Ne jamais supposer le contenu d'un autre sous-projet sans lire son CLAUDE.md
 
+
 ---
 
 ## 2. Contraintes
