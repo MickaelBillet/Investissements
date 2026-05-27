@@ -10,7 +10,7 @@ namespace InvestissementsDashboard.Api.Tests.Mcp;
 
 public class McpHandlerTests
 {
-    private static McpHandler CreateHandler(
+    private static McpService CreateHandler(
         Mock<IAssetsService>?           assets    = null,
         Mock<ISnapshotService>?         snapshot  = null,
         Mock<IPortfolioMetricsService>? metrics   = null,
@@ -20,7 +20,7 @@ public class McpHandlerTests
             (snapshot  ?? new Mock<ISnapshotService>()).Object,
             (metrics   ?? new Mock<IPortfolioMetricsService>()).Object,
             (geography ?? new Mock<IGeographyService>()).Object,
-            NullLogger<McpHandler>.Instance);
+            NullLogger<McpService>.Instance);
 
     private static JsonRpcRequest Request(string method, object? @params = null) => new()
     {

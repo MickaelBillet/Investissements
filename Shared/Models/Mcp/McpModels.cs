@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace InvestissementsDashboard.Api.Mcp;
+namespace InvestissementsDashboard.Shared.Mcp;
 
 public sealed record JsonRpcRequest
 {
@@ -59,7 +59,7 @@ public sealed record McpContent(
     [property: JsonPropertyName("type")] string Type,
     [property: JsonPropertyName("text")] string Text);
 
-internal static class McpJsonOptions
+public static class McpJsonOptions
 {
     public static readonly JsonSerializerOptions Default = new()
     {

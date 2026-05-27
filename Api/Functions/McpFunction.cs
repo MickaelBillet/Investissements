@@ -1,5 +1,6 @@
 using System.Text.Json;
-using InvestissementsDashboard.Api.Mcp;
+using InvestissementsDashboard.Api.Services.Mcp;
+using InvestissementsDashboard.Shared.Mcp;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -9,10 +10,10 @@ namespace InvestissementsDashboard.Api.Functions;
 
 public sealed class McpFunction
 {
-    private readonly IMcpHandler        _handler;
+    private readonly IMcpService _handler;
     private readonly ILogger<McpFunction> _logger;
 
-    public McpFunction(IMcpHandler handler, ILogger<McpFunction> logger)
+    public McpFunction(IMcpService handler, ILogger<McpFunction> logger)
     {
         _handler = handler;
         _logger  = logger;
@@ -20,7 +21,7 @@ public sealed class McpFunction
 
     [Function(nameof(McpEndpoint))]
     public async Task<IActionResult> McpEndpoint(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "mcp")] HttpRequest req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "mcp")] HttpRequest req,
         CancellationToken ct)
     {
         JsonRpcRequest? rpcRequest;

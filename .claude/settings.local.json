@@ -1,48 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git checkout *)",
-      "Bash(gh pr *)",
-      "PowerShell(gh pr *)",
-      "PowerShell(git remote *)",
-      "PowerShell(git checkout *)",
-      "PowerShell(git push *)",
-      "PowerShell(git *)",
-      "Bash(func *)",
-      "Bash(dotnet test *)",
-      "Bash(git add *)",
-      "Bash(git commit -m ' *)",
-      "Bash(git push *)",
-      "Bash(winget install *)",
-      "Bash(git ls-remote *)",
-      "Bash(gh auth *)",
-      "PowerShell(gh auth *)",
-      "PowerShell(Get-Command *)",
-      "PowerShell(Get-ChildItem *)",
-      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status 2>&1)",
-      "Bash(git fetch *)",
       "Bash(git pull *)",
-      "Bash(git stash *)",
       "Bash(dotnet build *)",
-      "Bash(git reset *)",
-      "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Services\\\\IGoogleSheetsService.cs\")",
-      "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Services\\\\GoogleSheetsService.cs\")",
-      "Bash(Remove-Item \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\Api\\\\Models\\\\SheetValuesResponse.cs\")",
-      "Bash(git branch *)",
-      "Bash(git ls-tree *)",
-      "Bash(git commit -m 'fix\\(ci\\): set app_location to pre-built wwwroot for skip_app_build *)",
-      "Bash(git commit -m 'chore\\(ci\\): remove PR preview — deploy on main push only *)",
-      "Bash(git commit -m 'fix\\(ci\\): add skip_api_build to deploy pre-built Azure Functions *)",
-      "Bash(git commit -m 'fix\\(ci\\): let Oryx build API from source — remove pre-build and skip_api_build *)",
-      "Bash(git commit -m 'fix: downgrade Api and Shared to net8.0 for Azure SWA managed functions *)",
-      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\" -Recurse -Name)",
-      "Bash(Remove-Item *)",
-      "PowerShell(dotnet build *)",
-      "PowerShell(dotnet test *)",
-      "PowerShell(gh pr create --base main --head fix/favicon-svg-only --title \"fix\\(client\\): remove favicon.png fallback - use SVG favicon only\" --body $body)",
-      "Bash(Get-Content \"C:\\\\Users\\\\mbillet.NOVACATH\\\\source\\\\Investissements\\\\CLAUDE.md\" -Raw)",
-      "Bash(Select-String -Pattern \"## 7\\\\.\" -AllMatches)",
-      "Bash(git *)"
+      "Bash(dotnet test *)",
+      "Bash(func *)",
+      "Bash(where func *)",
+      "Bash(winget list *)",
+      "PowerShell(Get-Command *)",
+      "Bash(curl *)",
+      "mcp__investissements__get_assets_distribution",
+      "Bash(Get-Content *)",
+      "PowerShell(Get-ChildItem *)",
+      "mcp__investissements__get_assets"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "investissements"
+  ]
 }

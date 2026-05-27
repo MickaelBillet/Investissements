@@ -1,3 +1,5 @@
+using InvestissementsDashboard.Shared.Mcp;
+
 namespace InvestissementsDashboard.Api.Mcp;
 
 internal static class McpToolRegistry

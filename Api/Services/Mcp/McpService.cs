@@ -1,28 +1,24 @@
 using System.Text.Json;
-using InvestissementsDashboard.Api.Services;
+using InvestissementsDashboard.Api.Mcp;
+using InvestissementsDashboard.Shared.Mcp;
 using Microsoft.Extensions.Logging;
 
-namespace InvestissementsDashboard.Api.Mcp;
+namespace InvestissementsDashboard.Api.Services.Mcp;
 
-public interface IMcpHandler
-{
-    Task<JsonRpcResponse> HandleAsync(JsonRpcRequest request, CancellationToken ct);
-}
-
-internal sealed class McpHandler : IMcpHandler
+internal sealed class McpService : IMcpService
 {
     private readonly IAssetsService           _assets;
     private readonly ISnapshotService         _snapshot;
     private readonly IPortfolioMetricsService _metrics;
     private readonly IGeographyService        _geography;
-    private readonly ILogger<McpHandler>      _logger;
+    private readonly ILogger<McpService>      _logger;
 
-    public McpHandler(
+    public McpService(
         IAssetsService assets,
         ISnapshotService snapshot,
         IPortfolioMetricsService metrics,
         IGeographyService geography,
-        ILogger<McpHandler> logger)
+        ILogger<McpService> logger)
     {
         _assets    = assets;
         _snapshot  = snapshot;
