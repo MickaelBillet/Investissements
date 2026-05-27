@@ -1,0 +1,34 @@
+@using InvestissementsDashboard.Client.Extensions
+@inject ILocalizationService L
+
+<MudTable Items="@Items" Dense="true" Hover="true" Elevation="0"
+          Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:16px;">
+    <HeaderContent>
+        <MudTh Style="color:#787774;font-size:12px;">@L.Translate("Col_Name")</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_CurrentValue")</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_Weight")</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L.Translate("Col_Name")" Style="font-weight:500;">@context.Label</MudTd>
+        <MudTd DataLabel="@L.Translate("Col_CurrentValue")" Style="text-align:right;">
+            @context.CurrentTotal.ToEurAmount()
+        </MudTd>
+        <MudTd DataLabel="@L.Translate("Col_Weight")" Style="text-align:right;">
+            @context.Weight.ToPercentage(1)
+        </MudTd>
+    </RowTemplate>
+    <FooterContent>
+        <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
+        <MudTd Style="text-align:right;font-weight:600;">
+            @Items.Sum(i => i.CurrentTotal).ToEurAmount()
+        </MudTd>
+        <MudTd />
+    </FooterContent>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Style="color:#787774;padding:16px;">@L.Translate("Empty_NoData")</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<DistributionItem> Items { get; set; } = [];
+}

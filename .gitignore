@@ -1,0 +1,16 @@
+# Build outputs
+bin/
+obj/
+
+# Local settings (contient les clés API — ne jamais commiter)
+local.settings.json
+
+# VS/Rider
+.vs/
+*.user
+.idea/
+*.lscache
+
+# OS
+.DS_Store
+Thumbs.db

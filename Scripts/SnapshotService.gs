@@ -1,0 +1,146 @@
+// =====================================================================
+// SnapshotService.gs — Handles portfolio snapshot history endpoints
+// =====================================================================
+
+// --- Snapshot sheet column indexes (0-based) ---
+const COL_SNAP_DATE            = 0;  // A
+const COL_SNAP_PORTFOLIO       = 1;  // B
+const COL_SNAP_LIFESTRATEGY    = 2;  // C
+const COL_SNAP_MSCI_WORLD      = 3;  // D
+const COL_SNAP_TOTAL_PURCHASES = 4;  // E
+const COL_SNAP_TOTAL_SALES     = 5;  // F
+
+function handleSnapshot(action, params) {
+
+  const sheet = SpreadsheetApp.openById(DEST_ID).getSheetByName(SHEET_SNAPSHOT);
+  const data  = sheet.getDataRange().getValues();
+
+  // Skip header row and filter out empty rows
+  const rows = data.slice(1).filter(row => row[COL_SNAP_DATE] !== "");
+
+  switch (action) {
+
+    // --- Return the most recent snapshot ---
+    case "getLast":
+      return getSnapshotLast(rows);
+
+    // --- Return snapshot history with optional limit ---
+    case "getHistory":
+      const limit = params.limit ? parseInt(params.limit) : rows.length;
+      return getSnapshotHistory(rows, limit);
+
+    default:
+      return { error: "Unknown action: " + action };
+  }
+}
+
+// --- Return the most recent snapshot ---
+function getSnapshotLast(rows) {
+
+  if (rows.length === 0) return { error: "No snapshot available" };
+
+  // Last row is the most recent snapshot
+  const last = rows[rows.length - 1];
+
+  return buildSnapshotRow(last);
+}
+
+// --- Return the last N snapshots ordered by date ascending ---
+function getSnapshotHistory(rows, limit) {
+
+  if (rows.length === 0) return { error: "No snapshot available" };
+
+  // Take the last N rows (most recent) and preserve chronological order
+  const sliced = rows.slice(-limit);
+
+  return sliced.map(row => buildSnapshotRow(row));
+}
+
+// --- Build a snapshot object from a raw sheet row ---
+function buildSnapshotRow(row) {
+
+  const date = Utilities.formatDate(
+    new Date(row[COL_SNAP_DATE]),
+    Session.getScriptTimeZone(),
+    "yyyy-MM-dd"
+  );
+
+  return {
+    date,
+    portfolioTotal : row[COL_SNAP_PORTFOLIO]        || 0,
+    lifeStrategy60 : row[COL_SNAP_LIFESTRATEGY]     || null,
+    msciWorld      : row[COL_SNAP_MSCI_WORLD]       || null,
+    totalPurchases : row[COL_SNAP_TOTAL_PURCHASES]  || null,
+    totalReturns   : row[COL_SNAP_TOTAL_SALES]      || null
+  };
+}
+
+// =====================================================================
+// Snapshot daily job — to be triggered once a day
+// =====================================================================
+
+function snapshotQuotidien() {
+
+  const source = SpreadsheetApp.openById(SOURCE_ID);
+  const dest = SpreadsheetApp.openById(DEST_ID);
+  
+  const resultSheet = source.getSheetByName(SOURCE_RESULTS);
+  const sheetSnap    = dest.getSheetByName(SHEET_SNAPSHOT);
+
+  const today = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone(),
+    "yyyy-MM-dd"
+  );
+
+  // --- Step 1: sync current values from source sheet ---
+  syncCurrentTotal();
+
+  // --- Step 2: compute aggregates from Assets sheet ---
+  const rows           = getAssetsData();
+  const portfolioTotal = Math.round((getPortfolioTotal(rows)) * 100) / 100;
+  const totalPurchases = Math.round(resultSheet.getRange(TOTAL_PURCHASES).getValue() * 100) / 100;
+  const totalReturns   = Math.round(resultSheet.getRange(TOTAL_RETURNS).getValue() * 100) / 100;
+
+  // --- Step 3: fetch reference stock values ---
+  const refStockValues = fetchStockValues();
+
+  // --- Step 4: overwrite existing row for today, or append ---
+  const lastRow = sheetSnap.getLastRow();
+  let targetRow = null;
+  if (lastRow > 1) {
+    const lastDate = Utilities.formatDate(
+      new Date(sheetSnap.getRange(lastRow, 1).getValue()),
+      Session.getScriptTimeZone(),
+      "yyyy-MM-dd"
+    );
+    if (lastDate === today) targetRow = lastRow;
+  }
+
+  const rowData = [today, portfolioTotal, refStockValues[0], refStockValues[1], totalPurchases, totalReturns];
+  if (targetRow) {
+    sheetSnap.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+    Logger.log("♻️ Snapshot " + today + " overwritten — portfolio total: " + portfolioTotal + " €");
+  } else {
+    sheetSnap.appendRow(rowData);
+    Logger.log("✅ Snapshot " + today + " — portfolio total: " + portfolioTotal + " €");
+  }
+
+  Logger.log("✅ Snapshot " + today + " — portfolio total: " + portfolioTotal + " €");
+}
+
+// --- Create the daily trigger (run once manually) ---
+function creerDeclencheurSnapshot() {
+
+  // Remove existing triggers to avoid duplicates
+  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
+
+  // Run every day at 6:00 — after European market close
+  ScriptApp.newTrigger("snapshotQuotidien")
+    .timeBased()
+    .everyDays(1)
+    .atHour(6)
+    .create();
+
+  Logger.log("✅ Daily snapshot trigger created");
+}

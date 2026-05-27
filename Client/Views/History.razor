@@ -1,0 +1,31 @@
+@page "/historique"
+@inject HistoryViewModel ViewModel
+
+<PageTitle>Historique — Suivi des Investissements</PageTitle>
+
+@if (ViewModel.IsLoading)
+{
+    <MudStack AlignItems="AlignItems.Center" Style="padding:64px 0;">
+        <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
+    </MudStack>
+}
+else if (ViewModel.ErrorMessage is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+else
+{
+    <div style="height: calc(100vh - 180px);">
+        <HistoryChart ROI_Series="@ViewModel.ROI_Series"
+                      ROIC_Series="@ViewModel.ROIC_Series"
+                      LifeStrategySeries="@ViewModel.LifeStrategySeries"
+                      MsciWorldSeries="@ViewModel.MsciWorldSeries" />
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.InitializeAsync();
+    }
+}

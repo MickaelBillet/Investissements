@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(func *)",
+      "Bash(where func *)",
+      "Bash(winget list *)",
+      "PowerShell(Get-Command *)",
+      "Bash(curl *)",
+      "mcp__investissements__get_assets_distribution",
+      "Bash(Get-Content *)",
+      "PowerShell(Get-ChildItem *)",
+      "mcp__investissements__get_assets"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "investissements"
+  ]
+}

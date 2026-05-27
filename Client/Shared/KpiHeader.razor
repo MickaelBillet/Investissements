@@ -1,0 +1,99 @@
+@using InvestissementsDashboard.Client.Extensions
+@inject ILocalizationService L
+
+<MudGrid Spacing="4">
+    <KpiCard Label="@L.Translate("Kpi_TotalValue")" Value="@(Snapshot?.PortfolioTotal.ToEurAmount() ?? "—")">
+        <SubContent>
+            @if (DailyVariationPercent.HasValue || WeeklyVariationPercent.HasValue)
+            {
+                <MudStack Row="true" Spacing="1" Style="margin-top:4px;">
+                    @if (DailyVariationPercent.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@DailyVariationPercent.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            @L.Translate("Kpi_DailyPrefix") @DailyVariationPercent.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                    @if (WeeklyVariationPercent.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@WeeklyVariationPercent.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            @L.Translate("Kpi_WeeklyPrefix") @WeeklyVariationPercent.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </SubContent>
+    </KpiCard>
+    <KpiCard Label="@L.Translate("Kpi_LastUpdate")"   Value="@(Snapshot?.Date.ToString("dd/MM/yyyy") ?? "—")" />
+    <KpiCard Label="@L.Translate("Kpi_AssetCount")" Value="@AssetCount.ToString()" />
+    <KpiCard Label="@L.Translate("Kpi_RoiCapital")" Value="@(RoiOnCapitalEngaged?.ToPercentage() ?? L.Translate("Kpi_NotAvailable"))"
+             ValueClass="@RoiOnCapitalEngaged.CssRoiClass()">
+        <SubContent>
+            @if (DailyROICapitalEngagedVariation.HasValue || WeeklyROICapitalEngagedVariation.HasValue)
+            {
+                <MudStack Row="true" Spacing="1" Style="margin-top:4px;">
+                    @if (DailyROICapitalEngagedVariation.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@DailyROICapitalEngagedVariation.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            @L.Translate("Kpi_DailyPrefix") @DailyROICapitalEngagedVariation.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                    @if (WeeklyROICapitalEngagedVariation.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@WeeklyROICapitalEngagedVariation.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            @L.Translate("Kpi_WeeklyPrefix") @WeeklyROICapitalEngagedVariation.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </SubContent>
+    </KpiCard>
+    <KpiCard Label="@L.Translate("Kpi_RoiPurchases")" Value="@(RoiOnTotalPurchases?.ToPercentage() ?? L.Translate("Kpi_NotAvailable"))"
+             ValueClass="@RoiOnTotalPurchases.CssRoiClass()">
+        <SubContent>
+            @if (DailyROITotalPurchasesVariation.HasValue || WeeklyROITotalPurchasesVariation.HasValue)
+            {
+                <MudStack Row="true" Spacing="1" Style="margin-top:4px;">
+                    @if (DailyROITotalPurchasesVariation.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@DailyROITotalPurchasesVariation.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            @L.Translate("Kpi_DailyPrefix") @DailyROITotalPurchasesVariation.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                    @if (WeeklyROITotalPurchasesVariation.HasValue)
+                    {
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Class="@WeeklyROITotalPurchasesVariation.CssRoiClass()"
+                                 Style="height:22px;font-size:12px;padding:0 7px;">
+                            @L.Translate("Kpi_WeeklyPrefix") @WeeklyROITotalPurchasesVariation.Value.ToSignedPercentage()
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </SubContent>
+    </KpiCard>
+    <KpiCard Label="@L.Translate("Kpi_AverageRisk")"   Value="@(AverageRisk?.ToString("F2") ?? "—")" />
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired] public SnapshotDto? Snapshot                { get; set; }
+    [Parameter, EditorRequired] public int          AssetCount              { get; set; }
+    [Parameter]                 public decimal?     RoiOnCapitalEngaged     { get; set; }
+    [Parameter]                 public decimal?     RoiOnTotalPurchases     { get; set; }
+    [Parameter]                 public decimal?     AverageRisk             { get; set; }
+    [Parameter]                 public decimal?     DailyVariationPercent              { get; set; }
+    [Parameter]                 public decimal?     WeeklyVariationPercent             { get; set; }
+    [Parameter]                 public decimal?     DailyROICapitalEngagedVariation    { get; set; }
+    [Parameter]                 public decimal?     WeeklyROICapitalEngagedVariation   { get; set; }
+    [Parameter]                 public decimal?     DailyROITotalPurchasesVariation    { get; set; }
+    [Parameter]                 public decimal?     WeeklyROITotalPurchasesVariation   { get; set; }
+}

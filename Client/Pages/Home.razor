@@ -1,0 +1,4 @@
+@* Route moved to Views/Dashboard.razor *@
+@page "/home-legacy"
+@inject NavigationManager Nav
+@code { protected override void OnInitialized() => Nav.NavigateTo("/", replace: true); }

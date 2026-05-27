@@ -1,0 +1,37 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Test
+        run: dotnet test Api.Tests/InvestissementsDashboard.Api.Tests.csproj --no-restore
+
+      - name: Publish Client
+        run: dotnet publish Client/InvestissementsDashboard.Client.csproj -c Release -o Client/publish
+
+      - name: Deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WHITE_CLIFF_055F3F803 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          skip_app_build: true
+          app_location: 'Client/publish/wwwroot'
+          output_location: ''
+          api_location: 'Api'

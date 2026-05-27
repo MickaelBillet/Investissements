@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter</value></resheader>
+
+  <!-- Asset classes -->
+  <data name="Stocks"        xml:space="preserve"><value>Actions</value></data>
+  <data name="Bonds"         xml:space="preserve"><value>Obligations</value></data>
+  <data name="Cash"          xml:space="preserve"><value>Liquidités</value></data>
+  <data name="PrivateDebt"   xml:space="preserve"><value>Dette privée</value></data>
+  <data name="RealEstate"    xml:space="preserve"><value>Immobilier</value></data>
+  <data name="Commodities"   xml:space="preserve"><value>Matières premières</value></data>
+  <data name="Crypto"        xml:space="preserve"><value>Crypto-monnaies</value></data>
+  <data name="Miscellaneous" xml:space="preserve"><value>Divers</value></data>
+
+  <!-- Asset types -->
+  <data name="Stock"                xml:space="preserve"><value>Action</value></data>
+  <data name="ETF_Stocks"           xml:space="preserve"><value>ETF Actions</value></data>
+  <data name="ETF_Bunds"            xml:space="preserve"><value>ETF Obligations</value></data>
+  <data name="Cash_Deposite"        xml:space="preserve"><value>Dépôt</value></data>
+  <data name="MarketBonds"          xml:space="preserve"><value>Obligations cotées</value></data>
+  <data name="Savings"              xml:space="preserve"><value>Épargne</value></data>
+  <data name="Direct_loans_P2P"     xml:space="preserve"><value>Prêts P2P</value></data>
+  <data name="SCI_SCPI"             xml:space="preserve"><value>SCI/SCPI</value></data>
+  <data name="ETC_ETC_Commodities"  xml:space="preserve"><value>ETC Matières premières</value></data>
+  <data name="UnlistedBonds"        xml:space="preserve"><value>Obligations non cotées</value></data>
+  <data name="OPCVM"                xml:space="preserve"><value>OPCVM</value></data>
+  <data name="EuroFunds"            xml:space="preserve"><value>Fonds euros</value></data>
+  <data name="MoneyMarketETF"       xml:space="preserve"><value>ETF monétaire</value></data>
+
+  <!-- Support types -->
+  <data name="AccountBank"    xml:space="preserve"><value>Compte bancaire</value></data>
+  <data name="Booklet"        xml:space="preserve"><value>Livret</value></data>
+  <data name="Platform"       xml:space="preserve"><value>Plateforme</value></data>
+  <data name="LifeInsurance"  xml:space="preserve"><value>Assurance vie</value></data>
+
+  <!-- Sectors (free text from Google Sheets — fallback to raw value if not found) -->
+  <data name="Technology"               xml:space="preserve"><value>Technologie</value></data>
+  <data name="Healthcare"               xml:space="preserve"><value>Santé</value></data>
+  <data name="Financial"                xml:space="preserve"><value>Finance</value></data>
+  <data name="Energy"                   xml:space="preserve"><value>Énergie</value></data>
+  <data name="Industrial"               xml:space="preserve"><value>Industrie</value></data>
+  <data name="Materials"                xml:space="preserve"><value>Matériaux</value></data>
+  <data name="Consumer_Staples"         xml:space="preserve"><value>Conso. courante</value></data>
+  <data name="Consumer_Discretionary"   xml:space="preserve"><value>Conso. cyclique</value></data>
+  <data name="Communication"            xml:space="preserve"><value>Communication</value></data>
+  <data name="Utilities"                xml:space="preserve"><value>Services aux collectivités</value></data>
+  <data name="Real_Estate"              xml:space="preserve"><value>Immobilier</value></data>
+  <data name="Diversified"              xml:space="preserve"><value>Diversifié</value></data>
+  <data name="Infrastructure"           xml:space="preserve"><value>Infrastructure</value></data>
+  <data name="Automotive"               xml:space="preserve"><value>Automobile</value></data>
+  <data name="Government"               xml:space="preserve"><value>Gouvernement</value></data>
+  <data name="Defense"                  xml:space="preserve"><value>Defense</value></data>
+  <data name="Entertainment"            xml:space="preserve"><value>Divertissement</value></data>
+  <data name="Airlines"                 xml:space="preserve"><value>Transport aérien</value></data>
+
+
+  <!-- Risk levels -->
+  <data name="Risk_0" xml:space="preserve"><value>Sans risque</value></data>
+  <data name="Risk_1" xml:space="preserve"><value>Très faible</value></data>
+  <data name="Risk_2" xml:space="preserve"><value>Faible</value></data>
+  <data name="Risk_3" xml:space="preserve"><value>Moyen</value></data>
+  <data name="Risk_4" xml:space="preserve"><value>Élevé</value></data>
+
+  <!-- Navigation -->
+  <data name="Nav_AppTitle"      xml:space="preserve"><value>Suivi des Investissements</value></data>
+  <data name="Nav_Portfolio"     xml:space="preserve"><value>Portefeuille</value></data>
+  <data name="Nav_History"       xml:space="preserve"><value>Historique</value></data>
+
+  <!-- Panels (titres donuts) -->
+  <data name="Panel_AssetClass"  xml:space="preserve"><value>Classes d'actifs</value></data>
+  <data name="Panel_SupportType" xml:space="preserve"><value>Types de supports</value></data>
+  <data name="Panel_Risk"        xml:space="preserve"><value>Niveaux de risque</value></data>
+
+  <!-- Dashboard UI -->
+  <data name="Loading"           xml:space="preserve"><value>Chargement</value></data>
+  <data name="Back"              xml:space="preserve"><value>Retour</value></data>
+  <data name="GroupByTheme"      xml:space="preserve"><value>Grouper par thématique</value></data>
+
+  <!-- KPI labels -->
+  <data name="Kpi_TotalValue"    xml:space="preserve"><value>Valeur totale</value></data>
+  <data name="Kpi_LastUpdate"    xml:space="preserve"><value>Dernière mise à jour</value></data>
+  <data name="Kpi_AssetCount"    xml:space="preserve"><value>Actifs en portefeuille</value></data>
+  <data name="Kpi_RoiCapital"    xml:space="preserve"><value>ROI (Capital Engagé)</value></data>
+  <data name="Kpi_RoiPurchases"  xml:space="preserve"><value>ROI (Total des achats)</value></data>
+  <data name="Kpi_AverageRisk"   xml:space="preserve"><value>Risque moyen (0 – 4)</value></data>
+  <data name="Kpi_DailyPrefix"   xml:space="preserve"><value>J</value></data>
+  <data name="Kpi_WeeklyPrefix"  xml:space="preserve"><value>S</value></data>
+  <data name="Kpi_NotAvailable"  xml:space="preserve"><value>N/A</value></data>
+
+  <!-- Colonnes de tableaux -->
+  <data name="Col_Name"          xml:space="preserve"><value>Nom</value></data>
+  <data name="Col_CurrentValue"  xml:space="preserve"><value>Valeur actuelle</value></data>
+  <data name="Col_UnrealizedGain" xml:space="preserve"><value>Plus-value</value></data>
+  <data name="Col_ROI"           xml:space="preserve"><value>ROI</value></data>
+  <data name="Col_Yield"         xml:space="preserve"><value>Rendement</value></data>
+  <data name="Col_Weight"        xml:space="preserve"><value>Poids</value></data>
+  <data name="Table_Total"       xml:space="preserve"><value>Total</value></data>
+
+  <!-- États vides -->
+  <data name="Empty_NoAsset"     xml:space="preserve"><value>Aucun actif</value></data>
+  <data name="Empty_NoData"      xml:space="preserve"><value>Aucune donnée</value></data>
+  <data name="Empty_NoHistoricalData" xml:space="preserve"><value>Aucune donnée historique disponible</value></data>
+
+  <!-- Graphique historique -->
+  <data name="Chart_RelativePerf"        xml:space="preserve"><value>Performance relative (base 100)</value></data>
+  <data name="Chart_Series_ROI"          xml:space="preserve"><value>Portefeuille (ROI)</value></data>
+  <data name="Chart_Series_ROIC"         xml:space="preserve"><value>Portefeuille (ROIC)</value></data>
+  <data name="Chart_Series_LifeStrategy" xml:space="preserve"><value>LifeStrategy 60</value></data>
+  <data name="Chart_Series_MsciWorld"    xml:space="preserve"><value>MSCI World</value></data>
+
+  <!-- Erreurs -->
+  <data name="Error_PageNotFound"   xml:space="preserve"><value>Page non trouvée.</value></data>
+  <data name="Error_LoadingData"    xml:space="preserve"><value>Impossible de charger les données : {0}</value></data>
+  <data name="Error_LoadingHistory" xml:space="preserve"><value>Impossible de charger l'historique : {0}</value></data>
+
+</root>

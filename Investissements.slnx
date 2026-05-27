@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/Api.Tests/">
+    <Project Path="Api.Tests/InvestissementsDashboard.Api.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Api/">
+    <Project Path="Api/InvestissementsDashboard.Api.csproj" />
+  </Folder>
+  <Folder Name="/Client.Tests/">
+    <Project Path="Client.Tests/InvestissementsDashboard.Client.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Client/">
+    <Project Path="Client/InvestissementsDashboard.Client.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/InvestissementsDashboard.Shared.csproj" />
+  </Folder>
+</Solution>
