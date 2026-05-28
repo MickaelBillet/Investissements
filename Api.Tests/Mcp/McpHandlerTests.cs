@@ -1,6 +1,7 @@
 using System.Text.Json;
-using InvestissementsDashboard.Api.Mcp;
 using InvestissementsDashboard.Api.Services;
+using InvestissementsDashboard.Api.Services.Mcp;
+using InvestissementsDashboard.Shared.Mcp;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
