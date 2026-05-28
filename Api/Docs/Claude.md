@@ -10,10 +10,12 @@ Couche backend serverless entre le Google Apps Script et le Blazor WASM. Détien
 
 | Élément | Choix |
 |---|---|
-| Runtime | .NET 8, Azure Functions v4 isolated worker (net8.0 requis — contrainte Azure SWA managed functions) |
+| Runtime | .NET 9, Azure Functions v4 isolated worker |
 | Modèle HTTP | `Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore` |
 | Tests | xUnit + Moq |
 | Déploiement | Lié à Azure Static Web Apps (Managed Functions) |
+
+> **Note CI :** Oryx (builder Azure SWA) supporte net8.0. Pour net9.0, prévoir un build explicite dans le pipeline si le déploiement échoue.
 
 ---
 
@@ -26,29 +28,43 @@ Api/
 ├── host.json                   # Config Azure Functions
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
+│   ├── AssetsFunction.cs
+│   ├── GeographyFunction.cs
+│   ├── McpFunction.cs             # Endpoint MCP POST /api/mcp
+│   ├── PortfolioMetricsFunction.cs
+│   └── SnapshotFunction.cs
 ├── Interfaces/                 # Interfaces des services
 │   ├── IAppsScriptService.cs
 │   ├── IAssetsService.cs
 │   ├── IGeographyService.cs
 │   ├── IPortfolioMetricsService.cs
-│   └── ISnapshotService.cs
+│   ├── ISnapshotService.cs
+│   └── Mcp/
+│       └── IMcpService.cs         # Interface du handler JSON-RPC
 ├── JsonConverter/              # Converters System.Text.Json
 │   ├── FlexibleIntConverter.cs
 │   └── FlexibleStringConverter.cs
+├── Mcp/
+│   └── McpToolRegistry.cs         # Registre statique des 8 outils MCP
 ├── Services/
-│   ├── AppsScriptService.cs       # Implémentation — appelle le Web App
-│   ├── AssetsService.cs           # Délègue à IAppsScriptService
-│   ├── GeographyService.cs        # Parsing géographique pondéré
-│   ├── PortfolioMetricsService.cs # Compose AssetsService + SnapshotService
-│   └── SnapshotService.cs         # Délègue à IAppsScriptService
+│   ├── AppsScriptService.cs
+│   ├── AssetsService.cs
+│   ├── GeographyService.cs
+│   ├── PortfolioMetricsService.cs
+│   ├── SnapshotService.cs
+│   └── Mcp/
+│       └── McpService.cs          # Handler JSON-RPC — route vers les services
 └── Properties/
     └── AssemblyInfo.cs
 ```
+
+Les modèles JSON-RPC (`JsonRpcRequest`, `JsonRpcResponse`, etc.) sont dans `Shared/Models/Mcp/McpModels.cs`.
 
 ---
 
 ## 4. Architecture — flux de données
 
+**Flux dashboard (Blazor WASM) :**
 ```
 Blazor WASM
     │ HTTP GET /api/...
@@ -60,6 +76,20 @@ Google Apps Script Web App
     │ lit Google Sheets DEST
     ▼
 JSON response → désérialisé en DTO
+```
+
+**Flux MCP (Claude Code) :**
+```
+Claude Code (MCP client)
+    │ POST /api/mcp  { "method": "tools/call", "params": { "name": "get_assets", ... } }
+    ▼
+McpFunction → McpService (JSON-RPC router)
+    │ délègue au service métier existant
+    ▼
+IAssetsService / ISnapshotService / etc.
+    │ appelle Apps Script (même flux que le dashboard)
+    ▼
+JSON response → sérialisé en McpContent
 ```
 
 Les Azure Functions ne lisent **pas** directement Google Sheets — elles appellent uniquement l'Apps Script Web App.
@@ -91,10 +121,26 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/assets/etfstocks/information/{information}` | Apps Script `AssetType.getByAssetTypeAndInformation` |
 | GET | `/api/portfolio/metrics` | Compose `AssetsService` + `SnapshotService` |
 | GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis `Asset.getAll` |
+| POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
 
 Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`.
+
+### Endpoint MCP
+
+`POST /api/mcp` reçoit des requêtes JSON-RPC 2.0. Méthodes supportées :
+
+| Méthode JSON-RPC | Rôle |
+|---|---|
+| `initialize` | Poignée de main — retourne version protocole (`2024-11-05`) et capacités |
+| `tools/list` | Retourne les 8 outils disponibles (définis dans `McpToolRegistry`) |
+| `tools/call` | Exécute un outil — délègue aux services métier |
+| `notifications/initialized` | Accusé de réception silencieux |
+
+**Outils exposés :** `get_assets`, `get_assets_distribution`, `get_etf_stocks`, `get_portfolio_metrics`, `get_portfolio_history`, `get_snapshot`, `get_snapshot_history`, `get_geography_distribution`.
+
+**Transport :** Streamable HTTP (POST uniquement). Compatible avec Claude Code (`type: "http"` dans `.mcp.json`). Claude Desktop ne supporte pas ce transport.
 
 ---
 

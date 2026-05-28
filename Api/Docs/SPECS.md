@@ -1,14 +1,14 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 1.1  
-**Date :** 2026-05-20
+**Version :** 1.2  
+**Date :** 2026-05-28
 
 ---
 
 ## 1. Vue d'ensemble
 
-L'Api expose 8 endpoints REST en lecture seule. Chaque endpoint délègue à l'Apps Script Web App via `IAppsScriptService` (sauf `PortfolioMetricsFunction` qui compose plusieurs services). Les endpoints sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps.
+L'Api expose 8 endpoints REST en lecture seule et 1 endpoint MCP. Les endpoints REST délèguent à l'Apps Script Web App via `IAppsScriptService` (sauf `PortfolioMetricsFunction` qui compose plusieurs services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
 
 **Base URL (local)** : `http://localhost:7071`  
 **Base URL (prod)** : interne au Static Web Apps
@@ -205,6 +205,66 @@ Retourne la répartition géographique pondérée pour une classe d'actifs.
 
 ---
 
+### 2.9 `POST /api/mcp`
+
+Endpoint MCP (Model Context Protocol) — JSON-RPC 2.0. Permet à Claude Code d'interroger le portefeuille en temps réel.
+
+**Corps de la requête** : `JsonRpcRequest`
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_assets_distribution",
+    "arguments": { "dimension": "assetClass" }
+  }
+}
+```
+
+**Réponse** : `JsonRpcResponse`
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [{ "type": "text", "text": "[{\"name\":\"Stocks\",...}]" }]
+  }
+}
+```
+
+**Outils disponibles :**
+
+| Outil | Paramètres | Délègue à |
+|---|---|---|
+| `get_assets` | — | `IAssetsService.GetAllAsync` |
+| `get_assets_distribution` | `dimension` (enum) | `IAssetsService.GetDistributionByDimensionAsync` |
+| `get_etf_stocks` | — | `IAssetsService.GetEtfStocksByInformationAsync` |
+| `get_portfolio_metrics` | — | `IPortfolioMetricsService.GetMetricsAsync` |
+| `get_portfolio_history` | — | `IPortfolioMetricsService.GetIndexedHistoryAsync` |
+| `get_snapshot` | — | `ISnapshotService.GetLastAsync` |
+| `get_snapshot_history` | — | `ISnapshotService.GetHistoryAsync` |
+| `get_geography_distribution` | `assetClass` (`Stocks`\|`Bonds`) | `IGeographyService.GetDistributionAsync` |
+
+**Codes d'erreur JSON-RPC :**
+
+| Code | Constante | Cas |
+|---|---|---|
+| `-32700` | `ParseError` | Body JSON invalide |
+| `-32600` | `InvalidRequest` | Body null ou vide |
+| `-32601` | `MethodNotFound` | Méthode ou outil inconnu |
+| `-32602` | `InvalidParams` | Paramètre manquant ou invalide |
+| `-32603` | `InternalError` | Erreur Apps Script ou exception inattendue |
+
+**Configuration client (`.mcp.json`) :**
+```json
+{ "mcpServers": { "investissements": { "type": "http", "url": "http://localhost:7071/api/mcp" } } }
+```
+
+---
+
 ## 3. Codes de réponse
 
 | Code | Cas |
@@ -228,3 +288,16 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnTotalPurchases?, roiOnCapitalEngaged?, averageRisk? |
 
 > Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.
+
+**Modèles MCP** (`Shared/Models/Mcp/McpModels.cs`) :
+
+| Type | Rôle |
+|---|---|
+| `JsonRpcRequest` | Requête JSON-RPC entrante |
+| `JsonRpcResponse` | Réponse JSON-RPC sortante |
+| `JsonRpcError` | Erreur JSON-RPC (code + message) |
+| `McpInitializeResult` | Réponse à `initialize` |
+| `McpToolsListResult` | Réponse à `tools/list` |
+| `McpToolsCallResult` | Réponse à `tools/call` |
+| `McpContent` | Contenu texte d'un résultat d'outil |
+| `McpJsonOptions` | Options de sérialisation camelCase + WhenWritingNull |
