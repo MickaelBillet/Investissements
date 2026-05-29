@@ -1,5 +1,10 @@
 @inject ILocalizationService L
 
+@if (!string.IsNullOrEmpty(Title))
+{
+    <MudText Typo="Typo.h3" Class="mb-2">@Title</MudText>
+}
+
 <MudTable Items="@Assets" Dense="true" Hover="true" Elevation="0"
           Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:16px;">
     <HeaderContent>
@@ -40,4 +45,5 @@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AssetDto> Assets { get; set; } = [];
+    [Parameter]                 public string?                  Title  { get; set; }
 }

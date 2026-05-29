@@ -113,7 +113,8 @@ else
                                        OnClick="@(() => _selectedZone = null)">
                                 @L.Translate("Back")
                             </MudButton>
-                            <AssetTable Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)" />
+                            <AssetTable Title="@($"{ViewModel.GetPanelTitle(panel)} — {_selectedZone}")"
+                                    Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)" />
                         </MudStack>
                     }
                     else if (geoClass is not null && _selectedSector is not null)
@@ -125,12 +126,14 @@ else
                                        OnClick="@(() => _selectedSector = null)">
                                 @L.Translate("Back")
                             </MudButton>
-                            <AssetTable Assets="@ViewModel.GetAssetsForSector(geoClass, _selectedSector)" />
+                            <AssetTable Title="@($"{ViewModel.GetPanelTitle(panel)} — {_selectedSector}")"
+                                        Assets="@ViewModel.GetAssetsForSector(geoClass, _selectedSector)" />
                         </MudStack>
                     }
                     else if (ViewModel.IsLeafLevel(panel))
                     {
-                        <AssetTable Assets="@ViewModel.GetAssetsForPanel(panel)" />
+                        <AssetTable Title="@ViewModel.GetPanelTitle(panel)"
+                                    Assets="@ViewModel.GetAssetsForPanel(panel)" />
                     }
                     else
                     {
