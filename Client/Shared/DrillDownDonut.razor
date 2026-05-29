@@ -83,7 +83,13 @@
                 Donut = new PlotOptionsDonut { Size = "55%" }
             }
         },
-        Legend  = new Legend { Position = LegendPosition.Bottom },
+        Legend = new Legend
+        {
+            Position   = LegendPosition.Bottom,
+            FontSize   = "11px",
+            Height     = 80,
+            ItemMargin = new LegendItemMargin { Horizontal = 4, Vertical = 2 }
+        },
         Tooltip = new Tooltip
         {
             Y = new TooltipY
