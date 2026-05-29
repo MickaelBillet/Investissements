@@ -14,7 +14,6 @@ html, body {
 
 .loading-text {
     display: inline-block;
-    overflow: hidden;
     white-space: nowrap;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-size: 38px;
@@ -25,9 +24,9 @@ html, body {
 }
 
 @keyframes typewriter {
-    0%   { width: 0; }
-    50%  { width: 310px; }
-    100% { width: 310px; }
+    0%   { clip-path: inset(0 100% 0 0); }
+    50%  { clip-path: inset(0 0% 0 0); }
+    100% { clip-path: inset(0 0% 0 0); }
 }
 
 h1:focus {
