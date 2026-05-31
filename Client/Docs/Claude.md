@@ -103,25 +103,29 @@ bool                            IsLeafLevel(PanelState panel)       // true si n
 portfolioService.GetAssetsAsync(ct)            // → _assets
 portfolioService.GetLastSnapshotAsync(ct)      // → LastSnapshot
 portfolioService.GetMetricsAsync(ct)           // → _metrics (ROI + AverageRisk)
-portfolioService.GetSnapshotHistoryAsync(ct)   // → _snapshotHistory (variations J/S)
+portfolioService.GetSnapshotHistoryAsync(ct)   // → _snapshotHistory (variations J/S/M/YTD/1A)
 portfolioService.GetGeographyDistributionAsync // → _geoStocks / _geoBonds
 ```
 
 **Propriétés de variation (calculées côté client depuis `_snapshotHistory`) :**
 
-| Propriété | Formule |
-|---|---|
-| `DailyVariationPercent` | `(last - prev) / prev × 100` — variation relative valeur portefeuille J |
-| `WeeklyVariationPercent` | idem sur 7 jours |
-| `DailyROICapitalEngagedVariation` | `(ROI_today - ROI_ref) / \|ROI_ref\| × 100` — variation relative ROI CE J |
-| `WeeklyROICapitalEngagedVariation` | idem sur 7 jours |
-| `DailyROITotalPurchasesVariation` | variation relative ROI TP J |
-| `WeeklyROITotalPurchasesVariation` | idem sur 7 jours |
+Trois familles de métriques (valeur portefeuille, ROI Capital Engagé, ROI Total Achats) × cinq périodes (J / S / M / YTD / 1A) = 15 propriétés.
 
-Retournent `null` si historique insuffisant ou si `ROI_ref == 0`.
+| Famille | Préfixe propriété | Formule |
+|---|---|---|
+| Valeur portefeuille | `…VariationPercent` | `(last - ref) / ref × 100` — variation relative de `PortfolioTotal` |
+| ROI Capital Engagé | `…ROICapitalEngagedVariation` | `(ROI_today - ROI_ref) / \|ROI_ref\| × 100` |
+| ROI Total Achats | `…ROITotalPurchasesVariation` | idem sur le ROI Total Achats |
+
+Préfixes de période : `Daily` (J−1), `Weekly` (≤ J−7), `Monthly` (≤ J−30), `Ytd` (1er snapshot de l'année courante), `Yearly` (≤ J−365).
+Ex. : `MonthlyVariationPercent`, `YtdROICapitalEngagedVariation`, `YearlyROITotalPurchasesVariation`.
+
+La référence à comparer est fournie par un sélecteur : `RefDaysBack(history, n)` pour J/S/M/1A, `RefYearStart(history)` pour YTD. Les helpers `ComputeVariation` / `ComputeROIVariation` prennent ce sélecteur en paramètre.
+
+Retournent `null` si historique insuffisant, si aucune référence n'est trouvée pour la période, ou si `ROI_ref == 0`. Pour YTD avec un seul snapshot dans l'année, la référence est ce snapshot → `0 %`.
 
 **`KpiCard` — slot `SubContent` :**
-`KpiCard` accepte un `RenderFragment? SubContent` affiché à droite de la valeur (même ligne, `MudStack Row`). Utilisé pour les chips de variation J/S dans `KpiHeader.razor`.
+`KpiCard` accepte un `RenderFragment? SubContent` affiché à droite de la valeur (même ligne, `MudStack Row`). Utilisé pour les chips de variation J/S/M/YTD/1A dans `KpiHeader.razor`, rendues par le helper local `VariationChips(params (string Prefix, decimal? Value)[])` (une chip par période non nulle).
 
 ### 7.3 DrillDownDonut — directive @key obligatoire
 
