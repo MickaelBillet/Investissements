@@ -32,17 +32,21 @@ Le dashboard expose deux pages :
 
 Les cartes ROI sont colorées en vert (`roi-positive`) si positif, rouge (`roi-negative`) si négatif, neutre si `null`.
 
-Les cartes **Valeur totale**, **ROI (Capital Engagé)** et **ROI (Total des achats)** affichent à droite de leur valeur deux chips de variation :
+Les cartes **Valeur totale**, **ROI (Capital Engagé)** et **ROI (Total des achats)** affichent à droite de leur valeur jusqu'à cinq chips de variation :
 
 | Chip | Calcul | Source |
 |---|---|---|
 | J (quotidien) | `(last − prev) / \|ref\| × 100` | dernier vs avant-dernier snapshot |
 | S (hebdomadaire) | idem | dernier vs snapshot ≤ J−7 |
+| M (mensuel) | idem | dernier vs snapshot ≤ J−30 |
+| YTD (depuis le 1er janvier) | idem | dernier vs **1er snapshot de l'année courante** |
+| 1A (annuel) | idem | dernier vs snapshot ≤ J−365 |
 
 - Valeur totale : variation relative de `PortfolioTotal`
 - ROI : variation relative du taux ROI — `\|ROI_ref\|` au dénominateur pour gérer les ROI négatifs
-- Chip vert/rouge via `roi-positive` / `roi-negative`, `null` si historique insuffisant ou `ROI_ref = 0`
-- Calculés côté Client dans `DashboardViewModel` depuis `_snapshotHistory` (`GET /api/snapshot/history`)
+- Chip vert/rouge via `roi-positive` / `roi-negative`
+- Chaque chip n'est affichée que si une référence existe pour sa période ; `null` (chip masquée) si historique insuffisant, aucun snapshot de référence trouvé, ou `ROI_ref = 0`. Pour YTD avec un seul snapshot dans l'année, la référence est ce snapshot → variation `0 %`
+- Calculés côté Client dans `DashboardViewModel` depuis `_snapshotHistory` (`GET /api/snapshot/history`), via les sélecteurs de référence `RefDaysBack` (J/S/M/1A) et `RefYearStart` (YTD)
 
 ---
 

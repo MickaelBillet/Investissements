@@ -652,4 +652,89 @@ public class DashboardViewModelTests
         // aucune entrée ≤ 2026-05-20 − 7j = 2026-05-13
         Assert.Null(vm.WeeklyVariationPercent);
     }
+
+    // ── MonthlyVariationPercent / YearlyVariationPercent ──────────────────────
+
+    [Fact]
+    public async Task MonthlyVariationPercent_WhenEntryThirtyDaysBack_ReturnsCorrectPercent()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 4, 20), portfolio: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5,  5), portfolio: 51_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 55_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        // ref = 2026-04-20 (≤ 2026-05-20 − 30j = 2026-04-20), last = 55_000 → +10 %
+        Assert.Equal(10m, vm.MonthlyVariationPercent);
+    }
+
+    [Fact]
+    public async Task MonthlyVariationPercent_WhenNoEntryThirtyDaysBack_ReturnsNull()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 5,  5), portfolio: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 55_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Null(vm.MonthlyVariationPercent);
+    }
+
+    [Fact]
+    public async Task YearlyVariationPercent_WhenEntryOneYearBack_ReturnsCorrectPercent()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2025, 5, 20), portfolio: 40_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        // ref = 2025-05-20 (≤ 2026-05-20 − 365j), last = 52_000 → +30 %
+        Assert.Equal(30m, vm.YearlyVariationPercent);
+    }
+
+    // ── YtdVariationPercent (référence = 1er snapshot de l'année courante) ─────
+
+    [Fact]
+    public async Task YtdVariationPercent_UsesFirstSnapshotOfCurrentYear()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2025, 12, 31), portfolio: 30_000m),
+            TestData.Snapshot(date: new DateOnly(2026,  1,  2), portfolio: 40_000m),
+            TestData.Snapshot(date: new DateOnly(2026,  3, 15), portfolio: 45_000m),
+            TestData.Snapshot(date: new DateOnly(2026,  5, 20), portfolio: 48_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        // ref = 2026-01-02 (1er snapshot de 2026), last = 48_000 → +20 %
+        Assert.Equal(20m, vm.YtdVariationPercent);
+    }
+
+    [Fact]
+    public async Task YtdVariationPercent_WhenSingleSnapshotInYear_ReturnsZero()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2025, 12, 31), portfolio: 30_000m),
+            TestData.Snapshot(date: new DateOnly(2026,  5, 20), portfolio: 48_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        // un seul snapshot en 2026 → référence == dernier → 0 %
+        Assert.Equal(0m, vm.YtdVariationPercent);
+    }
+
+    [Fact]
+    public async Task YtdROICapitalEngagedVariation_UsesFirstSnapshotOfCurrentYear()
+    {
+        var mock = MockWithHistory(
+            TestData.Snapshot(date: new DateOnly(2026, 1,  2), portfolio: 50_000m, totalReturns: 1_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 50_000m, totalReturns: 1_500m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        // ROI_ref = 1_000 / 50_000 * 100 = 2 % ; ROI_last = 1_500 / 50_000 * 100 = 3 %
+        // variation relative = (3 - 2) / 2 * 100 = 50 %
+        Assert.Equal(50m, vm.YtdROICapitalEngagedVariation);
+    }
 }

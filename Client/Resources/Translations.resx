@@ -106,6 +106,9 @@
   <data name="Kpi_AverageRisk"   xml:space="preserve"><value>Risque moyen (0 – 4)</value></data>
   <data name="Kpi_DailyPrefix"   xml:space="preserve"><value>J</value></data>
   <data name="Kpi_WeeklyPrefix"  xml:space="preserve"><value>S</value></data>
+  <data name="Kpi_MonthlyPrefix" xml:space="preserve"><value>M</value></data>
+  <data name="Kpi_YtdPrefix"     xml:space="preserve"><value>YTD</value></data>
+  <data name="Kpi_YearlyPrefix"  xml:space="preserve"><value>1A</value></data>
   <data name="Kpi_NotAvailable"  xml:space="preserve"><value>N/A</value></data>
 
   <!-- Colonnes de tableaux -->

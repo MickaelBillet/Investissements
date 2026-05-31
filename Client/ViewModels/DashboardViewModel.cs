@@ -26,12 +26,23 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     public decimal? PortfolioRoiOnCapitalEngaged => _metrics?.RoiOnCapitalEngaged;
     public decimal? PortfolioRoiOnTotalPurchases => _metrics?.RoiOnTotalPurchases;
     public decimal? AverageRisk                  => _metrics?.AverageRisk;
-    public decimal? DailyVariationPercent                => ComputeVariation(_snapshotHistory, 1);
-    public decimal? WeeklyVariationPercent               => ComputeVariation(_snapshotHistory, 7);
-    public decimal? DailyROICapitalEngagedVariation      => ComputeROIVariation(_snapshotHistory, 1,  s => s.PortfolioTotal > 0 ? s.TotalReturns / s.PortfolioTotal  * 100m : null);
-    public decimal? WeeklyROICapitalEngagedVariation     => ComputeROIVariation(_snapshotHistory, 7,  s => s.PortfolioTotal > 0 ? s.TotalReturns / s.PortfolioTotal  * 100m : null);
-    public decimal? DailyROITotalPurchasesVariation      => ComputeROIVariation(_snapshotHistory, 1,  s => s.TotalPurchases  > 0 ? s.TotalReturns / s.TotalPurchases  * 100m : null);
-    public decimal? WeeklyROITotalPurchasesVariation     => ComputeROIVariation(_snapshotHistory, 7,  s => s.TotalPurchases  > 0 ? s.TotalReturns / s.TotalPurchases  * 100m : null);
+    public decimal? DailyVariationPercent                => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 1));
+    public decimal? WeeklyVariationPercent               => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 7));
+    public decimal? MonthlyVariationPercent              => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 30));
+    public decimal? YtdVariationPercent                  => ComputeVariation(_snapshotHistory, RefYearStart);
+    public decimal? YearlyVariationPercent               => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 365));
+
+    public decimal? DailyROICapitalEngagedVariation      => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 1),   RoiOnCapitalEngagedOf);
+    public decimal? WeeklyROICapitalEngagedVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 7),   RoiOnCapitalEngagedOf);
+    public decimal? MonthlyROICapitalEngagedVariation    => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 30),  RoiOnCapitalEngagedOf);
+    public decimal? YtdROICapitalEngagedVariation        => ComputeROIVariation(_snapshotHistory, RefYearStart,             RoiOnCapitalEngagedOf);
+    public decimal? YearlyROICapitalEngagedVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 365), RoiOnCapitalEngagedOf);
+
+    public decimal? DailyROITotalPurchasesVariation      => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 1),   RoiOnTotalPurchasesOf);
+    public decimal? WeeklyROITotalPurchasesVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 7),   RoiOnTotalPurchasesOf);
+    public decimal? MonthlyROITotalPurchasesVariation    => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 30),  RoiOnTotalPurchasesOf);
+    public decimal? YtdROITotalPurchasesVariation        => ComputeROIVariation(_snapshotHistory, RefYearStart,             RoiOnTotalPurchasesOf);
+    public decimal? YearlyROITotalPurchasesVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 365), RoiOnTotalPurchasesOf);
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -206,24 +217,37 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     private IEnumerable<AssetDto> ActiveAssets() =>
         _assets.Where(a => a.CurrentTotal is > 0);
 
-    private static decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, int daysBack)
+    // --- Variation reference selectors (which past snapshot to compare "today" against) ---
+
+    private static SnapshotDto? RefDaysBack(IReadOnlyList<SnapshotDto> history, int daysBack) =>
+        daysBack == 1
+            ? history[^2]
+            : history.LastOrDefault(s => s.Date <= history[^1].Date.AddDays(-daysBack));
+
+    // YTD reference: first snapshot of the current year (the latest snapshot's year).
+    private static SnapshotDto? RefYearStart(IReadOnlyList<SnapshotDto> history) =>
+        history.FirstOrDefault(s => s.Date.Year == history[^1].Date.Year);
+
+    private static decimal? RoiOnCapitalEngagedOf(SnapshotDto s) =>
+        s.PortfolioTotal > 0 ? s.TotalReturns / s.PortfolioTotal * 100m : null;
+
+    private static decimal? RoiOnTotalPurchasesOf(SnapshotDto s) =>
+        s.TotalPurchases > 0 ? s.TotalReturns / s.TotalPurchases * 100m : null;
+
+    private static decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf)
     {
         if (history.Count < 2) return null;
         var last      = history[^1];
-        var reference = daysBack == 1
-            ? history[^2]
-            : history.LastOrDefault(s => s.Date <= last.Date.AddDays(-daysBack));
+        var reference = referenceOf(history);
         if (reference is null || reference.PortfolioTotal == 0) return null;
         return (last.PortfolioTotal - reference.PortfolioTotal) / reference.PortfolioTotal * 100m;
     }
 
-    private static decimal? ComputeROIVariation(IReadOnlyList<SnapshotDto> history, int daysBack, Func<SnapshotDto, decimal?> roiOf)
+    private static decimal? ComputeROIVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf, Func<SnapshotDto, decimal?> roiOf)
     {
         if (history.Count < 2) return null;
         var last      = history[^1];
-        var reference = daysBack == 1
-            ? history[^2]
-            : history.LastOrDefault(s => s.Date <= last.Date.AddDays(-daysBack));
+        var reference = referenceOf(history);
         if (reference is null) return null;
         var roiLast = roiOf(last);
         var roiRef  = roiOf(reference);
