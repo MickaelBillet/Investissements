@@ -61,8 +61,8 @@
 
         if (allValues.Count == 0) return;
 
-        _options.Yaxis[0].Min = allValues.Min() - 30;
-        _options.Yaxis[0].Max = allValues.Max() + 30;
+        _options.Yaxis[0].Min = allValues.Min() - 20;
+        _options.Yaxis[0].Max = allValues.Max() + 20;
     }
 
     private readonly ApexChartOptions<IndexedPoint> _options = new()
