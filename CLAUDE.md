@@ -108,19 +108,25 @@ Azure Static Web Apps + nom de domaine custom
 
 ## 5. Sécurité
 
-### 5.1 Protection du token Apps Script
+### 5.1 Règles Générales
+
+Voir SECURITY.MD
+
+### 5.2 Règles particulières
+
+#### 5.2.1 Protection du token Apps Script
 - L'URL et le token (`APPS_SCRIPT_API_KEY`) de l'Apps Script Web App sont stockés dans les **Application Settings** de l'Azure Function
 - Ils sont chiffrés au repos par Azure, accessibles uniquement par la Function
 - Ils n'apparaissent jamais dans le code source ni dans le bundle Blazor WASM
 - En cas de rotation, la mise à jour se fait uniquement dans les App Settings sans redéploiement
 
-### 5.2 Protection des endpoints Azure Functions
+#### 5.2.2 Protection des endpoints Azure Functions
 - Les Azure Functions sont liées à Azure Static Web Apps via le mécanisme de **Managed Functions**
 - Elles ne sont pas exposées publiquement sur Internet
 - Seul le Blazor WASM hébergé sur le même Static Web Apps peut les appeler
 - Aucune clé de fonction (Function Key) nécessaire
 
-### 5.3 Protection des données Google Sheets
+#### 5.2.3 Protection des données Google Sheets
 - Le Google Sheets est accessible uniquement via l'Apps Script (authentifié via le compte Google propriétaire)
 - Les Azure Functions n'ont pas de clé API Google Sheets — elles passent par l'Apps Script
 - Seul l'Apps Script peut lire et écrire sur les feuilles
