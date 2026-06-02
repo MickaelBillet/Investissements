@@ -17,7 +17,10 @@ public sealed class GeographyFunction(IGeographyService geographyService, ILogge
         CancellationToken ct)
     {
         if (!ValidAssetClasses.Contains(assetClass))
-            return new BadRequestObjectResult($"Invalid assetClass '{assetClass}'. Valid values: Stocks, Bonds.");
+        {
+            logger.LogWarning("Invalid assetClass parameter received.");
+            return new BadRequestObjectResult("Invalid parameter.");
+        }
 
         try
         {

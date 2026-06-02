@@ -67,6 +67,9 @@ public sealed class AssetsFunction
         string information,
         CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(information) || information.Length > 100)
+            return new BadRequestObjectResult("Invalid parameter.");
+
         try
         {
             var assets = await _assetsService.GetByAssetTypeAndInformationAsync("ETF_Stocks", information, ct);
@@ -97,7 +100,8 @@ public sealed class AssetsFunction
         }
         catch (ArgumentException ex)
         {
-            return new BadRequestObjectResult(ex.Message);
+            _logger.LogWarning(ex, "Invalid request parameter.");
+            return new BadRequestObjectResult("Invalid parameter.");
         }
         catch (HttpRequestException ex)
         {
