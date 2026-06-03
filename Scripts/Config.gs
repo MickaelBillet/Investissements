@@ -3,8 +3,9 @@
 // =====================================================================
 
 
-const SOURCE_ID = "188bNY_oSVrHZKZ1Vadj7SxnCosDDw2g-oG8UjDARMAI";
-const DEST_ID = "1Dvhz3AME0WoGkmiJQ5eBQ4FYno4l_kuyiShk75TZZNE";
+const SOURCE_ID    = "188bNY_oSVrHZKZ1Vadj7SxnCosDDw2g-oG8UjDARMAI";
+const DEST_ID      = "1Dvhz3AME0WoGkmiJQ5eBQ4FYno4l_kuyiShk75TZZNE";
+const REPORT_EMAIL = "mickael.billet@gmail.com";
 
 const TOTAL_PURCHASES = "F66";
 const TOTAL_RETURNS = "F58";

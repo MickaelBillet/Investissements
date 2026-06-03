@@ -140,3 +140,7 @@ function testGeographyGetByZone() {
   const e = { parameter: { apiKey: "token-zapto", service: "Geography", action: "getByZone", zone: "Europe" } };
   Logger.log(doGet(e).getContent());
 }
+
+function testRapportHebdomadaire() {
+  rapportHebdomadaire(); // Sends real email — check Gmail inbox
+}
