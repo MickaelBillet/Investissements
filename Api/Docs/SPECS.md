@@ -258,10 +258,54 @@ Endpoint MCP (Model Context Protocol) — JSON-RPC 2.0. Permet à Claude Code d'
 | `-32602` | `InvalidParams` | Paramètre manquant ou invalide |
 | `-32603` | `InternalError` | Erreur Apps Script ou exception inattendue |
 
-**Configuration client (`.mcp.json`) :**
+**Authentification :**
+
+Le header `x-mcp-api-key` est requis si la variable d'environnement `MCP_API_KEY` est configurée côté serveur.
+
+| Cas | Comportement |
+|---|---|
+| `MCP_API_KEY` non configurée (dev local) | Toutes les requêtes sont acceptées |
+| Header absent ou incorrect | HTTP 401 Unauthorized |
+| Header correct | Traitement normal |
+
+**Configuration client :**
+
+| Client | Fichier de config | Stockage de la clé |
+|---|---|---|
+| Claude Code | `.mcp.json` (git) | Variable d'env `${MCP_API_KEY}` — jamais en clair |
+| Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` (hors git) | En clair — fichier local uniquement |
+| Claude Web | Interface claude.ai Settings → Integrations | Stocké par Anthropic côté profil |
+
+**Claude Code** (`.mcp.json` à la racine du projet) :
 ```json
-{ "mcpServers": { "investissements": { "type": "http", "url": "http://localhost:7071/api/mcp" } } }
+{
+  "mcpServers": {
+    "investissements": {
+      "type": "http",
+      "url": "https://invest.zapto.fr/api/mcp",
+      "headers": { "x-mcp-api-key": "${MCP_API_KEY}" }
+    }
+  }
+}
 ```
+
+**Claude Desktop** (`%APPDATA%\Claude\claude_desktop_config.json`) :
+```json
+{
+  "mcpServers": {
+    "investissements": {
+      "type": "http",
+      "url": "https://invest.zapto.fr/api/mcp",
+      "headers": { "x-mcp-api-key": "<ta-clé>" }
+    }
+  }
+}
+```
+
+**Claude Web** : Settings → Integrations → Add MCP Server → URL + header `x-mcp-api-key`.
+
+En production : définir `MCP_API_KEY` dans Azure Function App Settings.  
+En local : définir `MCP_API_KEY` dans `local.settings.json` (gitignorée) ou dans l'environnement shell.
 
 ---
 

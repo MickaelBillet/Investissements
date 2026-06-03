@@ -140,7 +140,7 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`
 
 **Outils exposés :** `get_assets`, `get_assets_distribution`, `get_etf_stocks`, `get_portfolio_metrics`, `get_portfolio_history`, `get_snapshot`, `get_snapshot_history`, `get_geography_distribution`.
 
-**Transport :** Streamable HTTP (POST uniquement). Compatible avec Claude Code (`type: "http"` dans `.mcp.json`). Claude Desktop ne supporte pas ce transport.
+**Transport :** Streamable HTTP (POST uniquement). Compatible avec Claude Code, Claude Desktop et Claude Web.
 
 ---
 
