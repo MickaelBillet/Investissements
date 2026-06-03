@@ -2,7 +2,10 @@
   "mcpServers": {
     "investissements": {
       "type": "http",
-      "url": "http://localhost:7071/api/mcp"
+      "url": "https://invest.zapto.fr/api/mcp",
+      "headers": {
+        "x-mcp-api-key": "${MCP_API_KEY}"
+      }
     }
   }
 }

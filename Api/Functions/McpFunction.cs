@@ -4,6 +4,7 @@ using InvestissementsDashboard.Shared.Mcp;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace InvestissementsDashboard.Api.Functions;
@@ -11,19 +12,29 @@ namespace InvestissementsDashboard.Api.Functions;
 public sealed class McpFunction
 {
     private readonly IMcpService _handler;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<McpFunction> _logger;
 
-    public McpFunction(IMcpService handler, ILogger<McpFunction> logger)
+    public McpFunction(IMcpService handler, IConfiguration configuration, ILogger<McpFunction> logger)
     {
-        _handler = handler;
-        _logger  = logger;
+        _handler       = handler;
+        _configuration = configuration;
+        _logger        = logger;
     }
 
     [Function(nameof(McpEndpoint))]
     public async Task<IActionResult> McpEndpoint(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "mcp")] HttpRequest req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "mcp")] HttpRequest req,
         CancellationToken ct)
     {
+        var expectedKey = _configuration["MCP_API_KEY"];
+        if (!string.IsNullOrEmpty(expectedKey))
+        {
+            var providedKey = req.Headers["x-mcp-api-key"].FirstOrDefault();
+            if (providedKey != expectedKey)
+                return new UnauthorizedResult();
+        }
+
         JsonRpcRequest? rpcRequest;
         try
         {
