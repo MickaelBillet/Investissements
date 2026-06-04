@@ -28,10 +28,10 @@ public sealed class McpFunction
         CancellationToken ct)
     {
         var expectedKey = _configuration["MCP_API_KEY"];
-        _logger.LogWarning("MCP_API_KEY is {Status}", string.IsNullOrEmpty(expectedKey) ? "NOT SET" : "SET");
         if (!string.IsNullOrEmpty(expectedKey))
         {
-            var providedKey = req.Headers["x-mcp-api-key"].FirstOrDefault();
+            var providedKey = req.Headers["x-mcp-api-key"].FirstOrDefault()
+                           ?? req.Query["key"].FirstOrDefault();
             if (providedKey != expectedKey)
                 return new UnauthorizedResult();
         }

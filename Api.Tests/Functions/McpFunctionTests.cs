@@ -20,7 +20,7 @@ public class McpFunctionTests
         return new(mockService.Object, mockConfig.Object, NullLogger<McpFunction>.Instance);
     }
 
-    private static HttpRequest MockRequest(string? apiKey = null, string body = "{}")
+    private static HttpRequest MockRequest(string? apiKey = null, string body = "{}", string? queryKey = null)
     {
         var mockRequest = new Mock<HttpRequest>();
         var headers = new HeaderDictionary();
@@ -28,6 +28,11 @@ public class McpFunctionTests
             headers["x-mcp-api-key"] = apiKey;
         mockRequest.Setup(r => r.Headers).Returns(headers);
         mockRequest.Setup(r => r.Body).Returns(new MemoryStream(Encoding.UTF8.GetBytes(body)));
+        var query = new QueryCollection(
+            queryKey is not null
+                ? new Dictionary<string, Microsoft.Extensions.Primitives.StringValues> { ["key"] = queryKey }
+                : new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>());
+        mockRequest.Setup(r => r.Query).Returns(query);
         return mockRequest.Object;
     }
 
@@ -65,6 +70,31 @@ public class McpFunctionTests
 
         Assert.IsType<ContentResult>(result);
         mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task McpEndpoint_CorrectQueryKey_WhenConfigured_DelegatesToService()
+    {
+        var mock = new Mock<IMcpService>();
+        mock.Setup(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new JsonRpcResponse());
+
+        var body = """{"jsonrpc":"2.0","method":"tools/list"}""";
+        var result = await CreateFunction(mock, "secret").McpEndpoint(MockRequest(body: body, queryKey: "secret"), CancellationToken.None);
+
+        Assert.IsType<ContentResult>(result);
+        mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task McpEndpoint_WrongQueryKey_WhenConfigured_ReturnsUnauthorized()
+    {
+        var mock = new Mock<IMcpService>();
+
+        var result = await CreateFunction(mock, "secret").McpEndpoint(MockRequest(queryKey: "wrong-key"), CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result);
+        mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
