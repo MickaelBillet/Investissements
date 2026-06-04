@@ -1,8 +1,8 @@
 # SPECS.md — Scripts Google Apps Script
 
 **Statut :** Implémenté  
-**Version :** 1.1  
-**Date :** 2026-05-18  
+**Version :** 1.2  
+**Date :** 2026-06-04  
 
 ---
 
@@ -362,3 +362,42 @@ Accès à l'**historique quotidien** de la valeur totale du portefeuille.
 | `Snapshot` | `getHistory` | `limit` ○ | Snapshot[] |
 
 ✱ Requis — ○ Optionnel
+
+---
+
+## 5. Rapports automatisés
+
+### 5.1 Rapport hebdomadaire (`WeeklyReportService.gs`)
+
+Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` via `MailApp`.
+
+**Déclencheur :** exécuter `creerDeclencheurHebdomadaire()` une fois pour l'enregistrer.
+
+**Contenu du rapport :**
+
+| Section | Données |
+|---|---|
+| Valeur totale | `portfolioTotal` du dernier snapshot + variations S/M/YTD/1A |
+| Actifs en portefeuille | Nombre d'actifs actifs |
+| Risque moyen | Moyenne pondérée par `currentTotal` sur l'échelle 0–4 |
+| ROI Capital Engagé | Valeur courante + variations S/M/YTD/1A |
+| ROI Total Achats | Valeur courante + variations S/M/YTD/1A |
+| Répartition par classe d'actifs | Distribution `AssetClass` |
+| Répartition par type de support | Distribution `SupportType` |
+| Répartition par niveau de risque | Distribution par risque |
+
+**Calcul des variations (`MetricsService.gs`) :**
+
+| Période | Snapshot de référence |
+|---|---|
+| S (hebdo) | Dernier snapshot ≤ J−7 |
+| M (mensuel) | Dernier snapshot ≤ J−30 |
+| YTD | Premier snapshot ≥ 1er janvier de l'année en cours |
+| 1A | Dernier snapshot ≤ J−365 |
+
+**Formule ROI** (calculée dans `computeRoi`) :
+```
+netReturn            = portfolioTotal + totalReturns − totalPurchases
+roiOnTotalPurchases  = netReturn / totalPurchases × 100
+roiOnCapitalEngaged  = netReturn / portfolioTotal × 100
+```

@@ -27,6 +27,8 @@ Deux responsabilités :
 | `SupportService.gs` | Service `Support` |
 | `AssetService.gs` | Service `Asset` |
 | `SectorService.gs` | Service `Sector` |
+| `MetricsService.gs` | Calcul du ROI et des variations S/M/YTD/1A depuis l'historique snapshot |
+| `WeeklyReportService.gs` | Rapport email HTML hebdomadaire — envoyé chaque lundi à 08h00 |
 | `Test.gs` | Fonctions de test manuelles |
 
 ---
@@ -38,6 +40,7 @@ Deux responsabilités :
 - **Déployer en Web App** : Deploy → New deployment → Web App (execute as me, access: anyone)
 - **Initialiser le token API** : exécuter `setApiToken()` une fois après chaque nouveau déploiement
 - **Créer le déclencheur quotidien** : exécuter `creerDeclencheurSnapshot()` une fois — enregistre `snapshotQuotidien` à 06h00 chaque jour
+- **Créer le déclencheur hebdomadaire** : exécuter `creerDeclencheurHebdomadaire()` une fois — enregistre `rapportHebdomadaire` chaque lundi à 08h00
 
 ---
 
