@@ -1,8 +1,8 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 1.2  
-**Date :** 2026-05-28
+**Version :** 1.3  
+**Date :** 2026-06-04
 
 ---
 
@@ -260,13 +260,13 @@ Endpoint MCP (Model Context Protocol) — JSON-RPC 2.0. Permet à Claude Code d'
 
 **Authentification :**
 
-Le header `x-mcp-api-key` est requis si la variable d'environnement `MCP_API_KEY` est configurée côté serveur.
+La clé est transmise via le header `x-mcp-api-key` **ou** le paramètre de requête `key` (fallback pour les clients qui ne supportent pas les headers personnalisés, comme Claude Web).
 
 | Cas | Comportement |
 |---|---|
 | `MCP_API_KEY` non configurée (dev local) | Toutes les requêtes sont acceptées |
-| Header absent ou incorrect | HTTP 401 Unauthorized |
-| Header correct | Traitement normal |
+| Header `x-mcp-api-key` ou query param `key` absent / incorrect | HTTP 401 Unauthorized |
+| Clé correcte (header ou query param) | Traitement normal |
 
 **Configuration client :**
 
@@ -302,7 +302,7 @@ Le header `x-mcp-api-key` est requis si la variable d'environnement `MCP_API_KEY
 }
 ```
 
-**Claude Web** : Settings → Integrations → Add MCP Server → URL + header `x-mcp-api-key`.
+**Claude Web** : Settings → Integrations → Add MCP Server → URL `https://invest.zapto.fr/api/mcp?key=<ta-clé>` (query param car Claude Web ne supporte pas les headers personnalisés).
 
 En production : définir `MCP_API_KEY` dans Azure Function App Settings.  
 En local : définir `MCP_API_KEY` dans `local.settings.json` (gitignorée) ou dans l'environnement shell.
