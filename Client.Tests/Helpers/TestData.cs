@@ -48,9 +48,8 @@ internal static class TestData
 
     public static PerformancePointDto PerformancePoint(
         DateOnly? date          = null,
-        decimal   roi           = 100m,
         decimal   roic          = 100m,
         decimal?  lifeStrategy  = 100m,
         decimal?  msciWorld     = 100m) =>
-        new(date ?? new DateOnly(2025, 1, 1), roi, roic, lifeStrategy, msciWorld);
+        new(date ?? new DateOnly(2025, 1, 1), roic, lifeStrategy, msciWorld);
 }

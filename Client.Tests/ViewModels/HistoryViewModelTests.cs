@@ -26,16 +26,16 @@ public class HistoryViewModelTests
     // ── InitializeAsync ───────────────────────────────────────────────────────
 
     [Fact]
-    public async Task InitializeAsync_WhenHistoryIsComplete_PopulatesThreeSeries()
+    public async Task InitializeAsync_WhenHistoryIsComplete_PopulatesAllSeries()
     {
         var mock = MockWithHistory(
             TestData.PerformancePoint(new DateOnly(2025, 1, 1)),
-            TestData.PerformancePoint(new DateOnly(2025, 1, 2), 105m, 103m, 98m));
+            TestData.PerformancePoint(new DateOnly(2025, 1, 2), roic: 103m, lifeStrategy: 98m));
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
 
-        Assert.Equal(2, vm.ROI_Series.Count);
+        Assert.Equal(2, vm.ROIC_Series.Count);
         Assert.Equal(2, vm.LifeStrategySeries.Count);
         Assert.Equal(2, vm.MsciWorldSeries.Count);
         Assert.Null(vm.ErrorMessage);
@@ -50,7 +50,7 @@ public class HistoryViewModelTests
 
         await vm.InitializeAsync();
 
-        Assert.Empty(vm.ROI_Series);
+        Assert.Empty(vm.ROIC_Series);
         Assert.Null(vm.ErrorMessage);
     }
 
@@ -83,21 +83,21 @@ public class HistoryViewModelTests
     // ── Mapping des séries ────────────────────────────────────────────────────
 
     [Fact]
-    public async Task InitializeAsync_MapsPortfolioValues()
+    public async Task InitializeAsync_MapsRoicValues()
     {
         var d0 = new DateOnly(2025, 1, 1);
         var d1 = new DateOnly(2025, 1, 2);
         var mock = MockWithHistory(
-            TestData.PerformancePoint(d0, roi: 100m),
-            TestData.PerformancePoint(d1, roi: 110m));
+            TestData.PerformancePoint(d0, roic: 100m),
+            TestData.PerformancePoint(d1, roic: 110m));
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
 
-        Assert.Equal(d0,   vm.ROI_Series[0].Date);
-        Assert.Equal(100m, vm.ROI_Series[0].Value);
-        Assert.Equal(d1,   vm.ROI_Series[1].Date);
-        Assert.Equal(110m, vm.ROI_Series[1].Value);
+        Assert.Equal(d0,   vm.ROIC_Series[0].Date);
+        Assert.Equal(100m, vm.ROIC_Series[0].Value);
+        Assert.Equal(d1,   vm.ROIC_Series[1].Date);
+        Assert.Equal(110m, vm.ROIC_Series[1].Value);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class HistoryViewModelTests
 
         await vm.InitializeAsync();
 
-        Assert.Single(vm.ROI_Series);
+        Assert.Single(vm.ROIC_Series);
         Assert.Empty(vm.LifeStrategySeries);
     }
 
@@ -122,7 +122,7 @@ public class HistoryViewModelTests
 
         await vm.InitializeAsync();
 
-        Assert.Single(vm.ROI_Series);
+        Assert.Single(vm.ROIC_Series);
         Assert.Empty(vm.MsciWorldSeries);
     }
 }

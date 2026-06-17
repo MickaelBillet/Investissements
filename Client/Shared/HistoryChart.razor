@@ -5,7 +5,7 @@
         @L.Translate("Chart_RelativePerf")
     </MudText>
 
-    @if ((ROI_Series.Count == 0) && (ROIC_Series.Count == 0))
+    @if (ROIC_Series.Count == 0)
     {
         <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="min-height:300px;">
             <MudText Typo="Typo.body2" Style="color:#787774;">@L.Translate("Empty_NoHistoricalData")</MudText>
@@ -15,12 +15,6 @@
     {
         <div style="flex:1;min-height:0;">
         <ApexChart TItem="IndexedPoint" Options="_options">
-            <ApexPointSeries TItem="IndexedPoint"
-                             Items="@ROI_Series"
-                             Name="@L.Translate("Chart_Series_ROI")"
-                             SeriesType="SeriesType.Line"
-                             XValue="@(e => e.Date.ToString("dd/MM/yy"))"
-                             YValue="@(e => (decimal)e.Value)" />
             <ApexPointSeries TItem="IndexedPoint"
                              Items="@ROIC_Series"
                              Name="@L.Translate("Chart_Series_ROIC")"
@@ -45,15 +39,13 @@
 </MudPaper>
 
 @code {
-    [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> ROI_Series    { get; set; } = [];
     [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> ROIC_Series { get; set; } = [];
     [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> LifeStrategySeries { get; set; } = [];
     [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> MsciWorldSeries    { get; set; } = [];
 
     protected override void OnParametersSet()
     {
-        var allValues = ROI_Series
-            .Concat(ROIC_Series)
+        var allValues = ROIC_Series
             .Concat(LifeStrategySeries)
             .Concat(MsciWorldSeries)
             .Select(p => p.Value)

@@ -27,12 +27,11 @@ Le dashboard expose deux pages :
 | Dernière mise à jour | `SnapshotDto.Date` | `—` |
 | Actifs en portefeuille | `AssetDto[]` count | `0` |
 | ROI / Capital Engagé | `PortfolioMetricsDto.RoiOnCapitalEngaged` | `N/A` |
-| ROI / Total des Achats | `PortfolioMetricsDto.RoiOnTotalPurchases` | `N/A` |
 | Risque moyen (0 – 4) | `PortfolioMetricsDto.AverageRisk` | `—` |
 
-Les cartes ROI sont colorées en vert (`roi-positive`) si positif, rouge (`roi-negative`) si négatif, neutre si `null`.
+La carte ROI est colorée en vert (`roi-positive`) si positif, rouge (`roi-negative`) si négatif, neutre si `null`.
 
-Les cartes **Valeur totale**, **ROI (Capital Engagé)** et **ROI (Total des achats)** affichent à droite de leur valeur jusqu'à cinq chips de variation :
+Les cartes **Valeur totale** et **ROI (Capital Engagé)** affichent à droite de leur valeur jusqu'à cinq chips de variation :
 
 | Chip | Calcul | Source |
 |---|---|---|

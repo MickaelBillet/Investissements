@@ -102,23 +102,22 @@ bool                            IsLeafLevel(PanelState panel)       // true si n
 ```csharp
 portfolioService.GetAssetsAsync(ct)            // → _assets
 portfolioService.GetLastSnapshotAsync(ct)      // → LastSnapshot
-portfolioService.GetMetricsAsync(ct)           // → _metrics (ROI + AverageRisk)
+portfolioService.GetMetricsAsync(ct)           // → _metrics (ROIC + AverageRisk)
 portfolioService.GetSnapshotHistoryAsync(ct)   // → _snapshotHistory (variations J/S/M/YTD/1A)
 portfolioService.GetGeographyDistributionAsync // → _geoStocks / _geoBonds
 ```
 
 **Propriétés de variation (calculées côté client depuis `_snapshotHistory`) :**
 
-Trois familles de métriques (valeur portefeuille, ROI Capital Engagé, ROI Total Achats) × cinq périodes (J / S / M / YTD / 1A) = 15 propriétés.
+Deux familles de métriques (valeur portefeuille, ROIC Capital Engagé) × cinq périodes (J / S / M / YTD / 1A) = 10 propriétés.
 
 | Famille | Préfixe propriété | Formule |
 |---|---|---|
 | Valeur portefeuille | `…VariationPercent` | `(last - ref) / ref × 100` — variation relative de `PortfolioTotal` |
-| ROI Capital Engagé | `…ROICapitalEngagedVariation` | `(ROI_today - ROI_ref) / \|ROI_ref\| × 100` |
-| ROI Total Achats | `…ROITotalPurchasesVariation` | idem sur le ROI Total Achats |
+| ROIC Capital Engagé | `…ROICapitalEngagedVariation` | `(ROIC_today - ROIC_ref) / \|ROIC_ref\| × 100` |
 
 Préfixes de période : `Daily` (J−1), `Weekly` (≤ J−7), `Monthly` (≤ J−30), `Ytd` (1er snapshot de l'année courante), `Yearly` (≤ J−365).
-Ex. : `MonthlyVariationPercent`, `YtdROICapitalEngagedVariation`, `YearlyROITotalPurchasesVariation`.
+Ex. : `MonthlyVariationPercent`, `YtdROICapitalEngagedVariation`, `YearlyROICapitalEngagedVariation`.
 
 La référence à comparer est fournie par un sélecteur : `RefDaysBack(history, n)` pour J/S/M/1A, `RefYearStart(history)` pour YTD. Les helpers `ComputeVariation` / `ComputeROIVariation` prennent ce sélecteur en paramètre.
 

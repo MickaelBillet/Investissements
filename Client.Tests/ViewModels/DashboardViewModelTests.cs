@@ -249,28 +249,18 @@ public class DashboardViewModelTests
     // ── PortfolioRoi + AverageRisk (proxy vers API metrics) ──────────────────
 
     [Fact]
-    public async Task PortfolioRoi_WhenMetricsIsNull_BothRoisAreNull()
+    public async Task PortfolioRoiOnCapitalEngaged_WhenMetricsIsNull_IsNull()
     {
         var vm = CreateVm(MockWithAssets());
         await vm.InitializeAsync();
 
-        Assert.Null(vm.PortfolioRoiOnTotalPurchases);
         Assert.Null(vm.PortfolioRoiOnCapitalEngaged);
-    }
-
-    [Fact]
-    public async Task PortfolioRoiOnTotalPurchases_ExposesValueFromMetrics()
-    {
-        var vm = CreateVm(MockWithMetrics(new PortfolioMetricsDto(10m, 9.09m, 2.5m)));
-        await vm.InitializeAsync();
-
-        Assert.Equal(10m, vm.PortfolioRoiOnTotalPurchases);
     }
 
     [Fact]
     public async Task PortfolioRoiOnCapitalEngaged_ExposesValueFromMetrics()
     {
-        var vm = CreateVm(MockWithMetrics(new PortfolioMetricsDto(10m, 9.09m, 2.5m)));
+        var vm = CreateVm(MockWithMetrics(new PortfolioMetricsDto(9.09m, 2.5m)));
         await vm.InitializeAsync();
 
         Assert.Equal(9.09m, vm.PortfolioRoiOnCapitalEngaged);
@@ -288,7 +278,7 @@ public class DashboardViewModelTests
     [Fact]
     public async Task AverageRisk_ExposesValueFromMetrics()
     {
-        var vm = CreateVm(MockWithMetrics(new PortfolioMetricsDto(null, null, 2.3m)));
+        var vm = CreateVm(MockWithMetrics(new PortfolioMetricsDto(null, 2.3m)));
         await vm.InitializeAsync();
 
         Assert.Equal(2.3m, vm.AverageRisk);
@@ -534,21 +524,6 @@ public class DashboardViewModelTests
         var roiLast = 1_100m / 52_000m * 100m;
         var expected = (roiLast - roiRef) / Math.Abs(roiRef) * 100m;
         Assert.Equal(expected, vm.DailyROICapitalEngagedVariation);
-    }
-
-    [Fact]
-    public async Task DailyROITotalPurchasesVariation_WhenTwoEntries_ReturnsRelativeChange()
-    {
-        // ROI_TP hier = 1_000 / 40_000 * 100 = 2,5 %
-        // ROI_TP today = 1_500 / 40_000 * 100 = 3,75 %
-        // variation relative = (3,75 - 2,5) / 2,5 * 100 = 50 %
-        var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m, totalPurchases: 40_000m, totalReturns: 1_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m, totalPurchases: 40_000m, totalReturns: 1_500m));
-        var vm = CreateVm(mock);
-        await vm.InitializeAsync();
-
-        Assert.Equal(50m, vm.DailyROITotalPurchasesVariation);
     }
 
     [Fact]
