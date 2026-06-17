@@ -24,7 +24,6 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     public bool EtfStocksGroupByInformation { get; set; }
 
     public decimal? PortfolioRoiOnCapitalEngaged => _metrics?.RoiOnCapitalEngaged;
-    public decimal? PortfolioRoiOnTotalPurchases => _metrics?.RoiOnTotalPurchases;
     public decimal? AverageRisk                  => _metrics?.AverageRisk;
     public decimal? DailyVariationPercent                => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 1));
     public decimal? WeeklyVariationPercent               => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 7));
@@ -37,12 +36,6 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     public decimal? MonthlyROICapitalEngagedVariation    => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 30),  RoiOnCapitalEngagedOf);
     public decimal? YtdROICapitalEngagedVariation        => ComputeROIVariation(_snapshotHistory, RefYearStart,             RoiOnCapitalEngagedOf);
     public decimal? YearlyROICapitalEngagedVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 365), RoiOnCapitalEngagedOf);
-
-    public decimal? DailyROITotalPurchasesVariation      => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 1),   RoiOnTotalPurchasesOf);
-    public decimal? WeeklyROITotalPurchasesVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 7),   RoiOnTotalPurchasesOf);
-    public decimal? MonthlyROITotalPurchasesVariation    => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 30),  RoiOnTotalPurchasesOf);
-    public decimal? YtdROITotalPurchasesVariation        => ComputeROIVariation(_snapshotHistory, RefYearStart,             RoiOnTotalPurchasesOf);
-    public decimal? YearlyROITotalPurchasesVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 365), RoiOnTotalPurchasesOf);
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -230,9 +223,6 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
 
     private static decimal? RoiOnCapitalEngagedOf(SnapshotDto s) =>
         s.PortfolioTotal > 0 ? s.TotalReturns / s.PortfolioTotal * 100m : null;
-
-    private static decimal? RoiOnTotalPurchasesOf(SnapshotDto s) =>
-        s.TotalPurchases > 0 ? s.TotalReturns / s.TotalPurchases * 100m : null;
 
     private static decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf)
     {

@@ -15,7 +15,6 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
         var snapshot = await snapshotTask;
 
         return new PortfolioMetricsDto(
-            RoiOnTotalPurchases : ComputeRoiOnTotalPurchases(snapshot),
             RoiOnCapitalEngaged : ComputeRoiOnCapitalEngaged(snapshot),
             AverageRisk         : ComputeAverageRisk(assets));
     }
@@ -26,7 +25,6 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
 
         var complete = history
             .Where(s => s.PortfolioTotal > 0
-                     && s.TotalPurchases  > 0
                      && s.LifeStrategy60.HasValue
                      && s.MsciWorld.HasValue)
             .OrderBy(s => s.Date)
@@ -34,33 +32,20 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
 
         if (complete.Count == 0) return [];
 
-        var t0          = complete[0];
-        var t0RoiFactor = RoiFactor(t0);
+        var t0           = complete[0];
         var t0RoicFactor = RoicFactor(t0);
 
         return [.. complete.Select(s => new PerformancePointDto(
             s.Date,
-            ROI     : RoiFactor(s) / t0RoiFactor * 100m,
-            ROIC    : RoicFactor(s) / t0RoicFactor * 100m,
+            ROIC          : RoicFactor(s) / t0RoicFactor * 100m,
             LifeStrategy60: s.LifeStrategy60!.Value / t0.LifeStrategy60!.Value * 100m,
             MsciWorld     : s.MsciWorld!.Value      / t0.MsciWorld!.Value      * 100m))];
     }
 
-    // ROI factor = (TotalCurrent + TotalReturns) / TotalPurchases
-    private static decimal RoiFactor(SnapshotDto s) =>
-        (s.PortfolioTotal + s.TotalReturns) / s.TotalPurchases;
-
-    private static decimal RoicFactor(SnapshotDto s) => 
+    private static decimal RoicFactor(SnapshotDto s) =>
         (s.PortfolioTotal + s.TotalReturns) / s.PortfolioTotal;
 
-    // ROI (Total des achats) = TotalReturns / TotalPurchases × 100
-    private static decimal? ComputeRoiOnTotalPurchases(SnapshotDto? snapshot)
-    {
-        if (snapshot is null || snapshot.TotalPurchases <= 0m) return null;
-        return snapshot.TotalReturns / snapshot.TotalPurchases * 100m;
-    }
-
-    // ROI (Capital Engagé) = TotalReturns / PortfolioTotal × 100
+    // ROIC (Capital Engagé) = TotalReturns / PortfolioTotal × 100
     private static decimal? ComputeRoiOnCapitalEngaged(SnapshotDto? snapshot)
     {
         if (snapshot is null || snapshot.PortfolioTotal <= 0m) return null;

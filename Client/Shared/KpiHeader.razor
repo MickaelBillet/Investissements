@@ -25,17 +25,6 @@
                 ("Kpi_YearlyPrefix",  YearlyROICapitalEngagedVariation))
         </SubContent>
     </KpiCard>
-    <KpiCard Label="@L.Translate("Kpi_RoiPurchases")" Value="@(RoiOnTotalPurchases?.ToPercentage() ?? L.Translate("Kpi_NotAvailable"))"
-             ValueClass="@RoiOnTotalPurchases.CssRoiClass()">
-        <SubContent>
-            @VariationChips(
-                ("Kpi_DailyPrefix",   DailyROITotalPurchasesVariation),
-                ("Kpi_WeeklyPrefix",  WeeklyROITotalPurchasesVariation),
-                ("Kpi_MonthlyPrefix", MonthlyROITotalPurchasesVariation),
-                ("Kpi_YtdPrefix",     YtdROITotalPurchasesVariation),
-                ("Kpi_YearlyPrefix",  YearlyROITotalPurchasesVariation))
-        </SubContent>
-    </KpiCard>
     <KpiCard Label="@L.Translate("Kpi_AverageRisk")"   Value="@(AverageRisk?.ToString("F2") ?? "—")" />
 </MudGrid>
 
@@ -43,7 +32,6 @@
     [Parameter, EditorRequired] public SnapshotDto? Snapshot                { get; set; }
     [Parameter, EditorRequired] public int          AssetCount              { get; set; }
     [Parameter]                 public decimal?     RoiOnCapitalEngaged     { get; set; }
-    [Parameter]                 public decimal?     RoiOnTotalPurchases     { get; set; }
     [Parameter]                 public decimal?     AverageRisk             { get; set; }
     [Parameter]                 public decimal?     DailyVariationPercent              { get; set; }
     [Parameter]                 public decimal?     WeeklyVariationPercent             { get; set; }
@@ -55,11 +43,6 @@
     [Parameter]                 public decimal?     MonthlyROICapitalEngagedVariation  { get; set; }
     [Parameter]                 public decimal?     YtdROICapitalEngagedVariation      { get; set; }
     [Parameter]                 public decimal?     YearlyROICapitalEngagedVariation   { get; set; }
-    [Parameter]                 public decimal?     DailyROITotalPurchasesVariation    { get; set; }
-    [Parameter]                 public decimal?     WeeklyROITotalPurchasesVariation   { get; set; }
-    [Parameter]                 public decimal?     MonthlyROITotalPurchasesVariation  { get; set; }
-    [Parameter]                 public decimal?     YtdROITotalPurchasesVariation      { get; set; }
-    [Parameter]                 public decimal?     YearlyROITotalPurchasesVariation   { get; set; }
 
     // Renders one small signed-percentage chip per period that has a value.
     private RenderFragment VariationChips(params (string Prefix, decimal? Value)[] variations) => @<text>

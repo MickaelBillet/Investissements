@@ -130,13 +130,13 @@ public class McpHandlerTests
     {
         var metrics = new Mock<IPortfolioMetricsService>();
         metrics.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>()))
-               .ReturnsAsync(new PortfolioMetricsDto(12.5m, 8.3m, 3.2m));
+               .ReturnsAsync(new PortfolioMetricsDto(8.3m, 3.2m));
 
         var handler  = CreateHandler(metrics: metrics);
         var response = await handler.HandleAsync(Request("tools/call", new { name = "get_portfolio_metrics", arguments = new { } }), default);
 
         var result = AssertSuccessResult<McpToolsCallResult>(response);
-        Assert.Contains("12.5", result.Content[0].Text);
+        Assert.Contains("8.3", result.Content[0].Text);
     }
 
     [Fact]

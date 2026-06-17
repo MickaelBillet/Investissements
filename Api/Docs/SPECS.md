@@ -124,7 +124,6 @@ Retourne les métriques agrégées du portefeuille calculées côté API.
 
 ```json
 {
-  "roiOnTotalPurchases": 15.23,
   "roiOnCapitalEngaged": 11.08,
   "averageRisk": 2.8
 }
@@ -132,16 +131,14 @@ Retourne les métriques agrégées du portefeuille calculées côté API.
 
 **Formules de calcul :**
 ```
-RoiOnTotalPurchases = TotalReturns / TotalPurchases × 100
 RoiOnCapitalEngaged = TotalReturns / PortfolioTotal × 100
 AverageRisk         = Σ(risk_i × currentTotal_i) / Σ(currentTotal_i)  [actifs avec currentTotal > 0]
 ```
 
-> `TotalReturns` = plus-values réalisées depuis l'origine (cellule F57 du Bilan).  
-> `TotalPurchases` = total des achats depuis l'origine (cellule F65 du Bilan).
+> `TotalReturns` = plus-values réalisées depuis l'origine (cellule F57 du Bilan).
 
 **Notes :**
-- `roiOnTotalPurchases` et `roiOnCapitalEngaged` sont `null` si `TotalPurchases` ou `PortfolioTotal` sont nuls ou indisponibles
+- `roiOnCapitalEngaged` est `null` si `PortfolioTotal` est nul ou indisponible
 - `averageRisk` est `null` si la valeur totale des actifs actifs est zéro
 
 ---

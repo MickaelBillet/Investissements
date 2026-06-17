@@ -43,43 +43,17 @@ public class PortfolioMetricsServiceTests
         new(1, "Test", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", risk,
             null, null, null, currentTotal, null, null, null, 0m);
 
-    // ── RoiOnTotalPurchases = TotalReturns / TotalPurchases × 100 ─────────────
+    // ── RoiOnCapitalEngaged = TotalReturns / PortfolioTotal × 100 ─────────────
 
     [Fact]
-    public async Task GetMetricsAsync_WhenSnapshotIsNull_BothRoisAreNull()
+    public async Task GetMetricsAsync_WhenSnapshotIsNull_RoiOnCapitalEngagedIsNull()
     {
         var svc = CreateService(MockAssets(), MockSnapshot(null));
 
         var result = await svc.GetMetricsAsync();
 
-        Assert.Null(result.RoiOnTotalPurchases);
         Assert.Null(result.RoiOnCapitalEngaged);
     }
-
-    [Fact]
-    public async Task GetMetricsAsync_WhenTotalPurchasesIsZero_RoiOnTotalPurchasesIsNull()
-    {
-        var snapshot = new SnapshotDto(AnyDate, 10_000m, null, null, 0m, 667m);
-        var svc      = CreateService(MockAssets(), MockSnapshot(snapshot));
-
-        var result = await svc.GetMetricsAsync();
-
-        Assert.Null(result.RoiOnTotalPurchases);
-    }
-
-    [Fact]
-    public async Task GetMetricsAsync_RoiOnTotalPurchases_IsTotalReturnsOverTotalPurchases()
-    {
-        // TotalReturns=667, TotalPurchases=71674 → 667/71674 × 100 ≈ 0.93 %
-        var snapshot = new SnapshotDto(AnyDate, 54_890m, null, null, 71_674m, 667m);
-        var svc      = CreateService(MockAssets(), MockSnapshot(snapshot));
-
-        var result = await svc.GetMetricsAsync();
-
-        Assert.Equal(667m / 71_674m * 100m, result.RoiOnTotalPurchases);
-    }
-
-    // ── RoiOnCapitalEngaged = TotalReturns / PortfolioTotal × 100 ─────────────
 
     [Fact]
     public async Task GetMetricsAsync_RoiOnCapitalEngaged_IsTotalReturnsOverPortfolioTotal()
@@ -169,17 +143,6 @@ public class PortfolioMetricsServiceTests
     }
 
     [Fact]
-    public async Task GetIndexedHistoryAsync_WhenTotalPurchasesIsZero_SnapshotIsExcluded()
-    {
-        var svc = CreateService(MockAssets(),
-            MockHistory(new SnapshotDto(AnyDate, 10_000m, 100m, 100m, 0m, 0m)));
-
-        var result = await svc.GetIndexedHistoryAsync();
-
-        Assert.Empty(result);
-    }
-
-    [Fact]
     public async Task GetIndexedHistoryAsync_FirstEntry_IsAlways100ForAllThreeSeries()
     {
         var svc = CreateService(MockAssets(),
@@ -188,27 +151,9 @@ public class PortfolioMetricsServiceTests
         var result = await svc.GetIndexedHistoryAsync();
 
         Assert.Single(result);
-        Assert.Equal(100m, result[0].ROI);
+        Assert.Equal(100m, result[0].ROIC);
         Assert.Equal(100m, result[0].LifeStrategy60);
         Assert.Equal(100m, result[0].MsciWorld);
-    }
-
-    [Fact]
-    public async Task GetIndexedHistoryAsync_PortfolioSeries_AccountsForTotalReturnsInRoiFormula()
-    {
-        // T0: portfolio=10_000, totalPurchases=10_000, totalReturns=0    → roiFactor=1.0
-        // T1: portfolio= 8_000, totalPurchases=10_000, totalReturns=3_000 → roiFactor=1.1 → index=110
-        var d0 = new DateOnly(2025, 1, 1);
-        var d1 = new DateOnly(2025, 1, 2);
-        var svc = CreateService(MockAssets(),
-            MockHistory(
-                Snap(d0,  10_000m, 100m, 100m, 10_000m, 0m),
-                Snap(d1,   8_000m, 110m, 110m, 10_000m, 3_000m)));
-
-        var result = await svc.GetIndexedHistoryAsync();
-
-        Assert.Equal(2, result.Count);
-        Assert.Equal(110m, result[1].ROI, precision: 2);
     }
 
     [Fact]
