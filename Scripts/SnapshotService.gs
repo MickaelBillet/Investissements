@@ -68,7 +68,7 @@ function buildSnapshotRow(row) {
   return {
     date,
     portfolioTotal : row[COL_SNAP_PORTFOLIO]        || 0,
-    lifeStrategy60 : row[COL_SNAP_LIFESTRATEGY]     || null,
+    lifeStrategy   : row[COL_SNAP_LIFESTRATEGY]     || null,
     msciWorld      : row[COL_SNAP_MSCI_WORLD]       || null,
     totalPurchases : row[COL_SNAP_TOTAL_PURCHASES]  || null,
     totalReturns   : row[COL_SNAP_TOTAL_SALES]      || null

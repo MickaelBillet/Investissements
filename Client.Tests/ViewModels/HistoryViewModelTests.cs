@@ -101,7 +101,7 @@ public class HistoryViewModelTests
     }
 
     [Fact]
-    public async Task InitializeAsync_WhenLifeStrategy60IsNull_ExcludedFromSeries()
+    public async Task InitializeAsync_WhenLifeStrategyIsNull_ExcludedFromSeries()
     {
         var mock = MockWithHistory(
             TestData.PerformancePoint(lifeStrategy: null));

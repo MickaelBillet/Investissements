@@ -121,7 +121,7 @@ Graphique en courbes (ApexCharts) représentant l'évolution de la performance, 
 |---|---|---|
 | Portefeuille (ROI) | `(PortfolioTotal + TotalReturns) / TotalPurchases`, normalisé base 100 | jamais |
 | Portefeuille (ROIC) | `(PortfolioTotal + TotalReturns) / PortfolioTotal`, normalisé base 100 | jamais |
-| LifeStrategy 60 | prix unitaire / prix T0 × 100 | `LifeStrategy60` absent sur un point |
+| LifeStrategy 40 | prix unitaire / prix T0 × 100 | `LifeStrategy` absent sur un point |
 | MSCI World | prix unitaire / prix T0 × 100 | `MsciWorld` absent sur un point |
 
 Les données sont fournies par `GET /api/portfolio/metrics/history` (`PerformancePointDto[]`), déjà normalisées base 100 par l'Api. Seuls les snapshots avec `PortfolioTotal > 0` et `TotalPurchases > 0` sont inclus dans le calcul.

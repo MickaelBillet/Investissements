@@ -22,7 +22,7 @@ public class HistoryViewModel(IPortfolioService portfolioService, ILocalizationS
         {
             var data = await portfolioService.GetIndexedHistoryAsync(ct);
             ROIC_Series = [.. data.Select(p => new IndexedPoint(p.Date, p.ROIC))];
-            LifeStrategySeries = [.. data.Where(p => p.LifeStrategy60.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy60!.Value))];
+            LifeStrategySeries = [.. data.Where(p => p.LifeStrategy.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy!.Value))];
             MsciWorldSeries    = [.. data.Where(p => p.MsciWorld.HasValue).Select(p => new IndexedPoint(p.Date, p.MsciWorld!.Value))];
         }
         catch (Exception ex)

@@ -129,7 +129,7 @@
   <data name="Chart_RelativePerf"        xml:space="preserve"><value>Performance relative (base 100)</value></data>
   <data name="Chart_Series_ROI"          xml:space="preserve"><value>Portefeuille (ROI)</value></data>
   <data name="Chart_Series_ROIC"         xml:space="preserve"><value>Portefeuille (ROIC)</value></data>
-  <data name="Chart_Series_LifeStrategy" xml:space="preserve"><value>LifeStrategy 60</value></data>
+  <data name="Chart_Series_LifeStrategy" xml:space="preserve"><value>LifeStrategy 40</value></data>
   <data name="Chart_Series_MsciWorld"    xml:space="preserve"><value>MSCI World</value></data>
 
   <!-- Erreurs -->

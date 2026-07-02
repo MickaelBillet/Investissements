@@ -133,7 +133,7 @@ public class PortfolioMetricsServiceTests
     [Fact]
     public async Task GetIndexedHistoryAsync_WhenNoCompleteSnapshots_ReturnsEmpty()
     {
-        // LifeStrategy60 est null → snapshot incomplet, ignoré
+        // LifeStrategy est null → snapshot incomplet, ignoré
         var svc = CreateService(MockAssets(),
             MockHistory(new SnapshotDto(AnyDate, 10_000m, null, 100m, 10_000m, 0m)));
 
@@ -152,7 +152,7 @@ public class PortfolioMetricsServiceTests
 
         Assert.Single(result);
         Assert.Equal(100m, result[0].ROIC);
-        Assert.Equal(100m, result[0].LifeStrategy60);
+        Assert.Equal(100m, result[0].LifeStrategy);
         Assert.Equal(100m, result[0].MsciWorld);
     }
 
@@ -168,7 +168,7 @@ public class PortfolioMetricsServiceTests
 
         var result = await svc.GetIndexedHistoryAsync();
 
-        Assert.Equal(110m, result[1].LifeStrategy60);
+        Assert.Equal(110m, result[1].LifeStrategy);
         Assert.Equal(90m,  result[1].MsciWorld);
     }
 }

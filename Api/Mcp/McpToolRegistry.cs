@@ -26,7 +26,7 @@ internal static class McpToolRegistry
             NoParams()),
 
         new("get_portfolio_history",
-            "Returns indexed performance history comparing portfolio vs benchmarks (LifeStrategy 60, MSCI World).",
+            "Returns indexed performance history comparing portfolio vs benchmarks (LifeStrategy 40, MSCI World).",
             NoParams()),
 
         new("get_snapshot",

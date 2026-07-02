@@ -25,7 +25,7 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
 
         var complete = history
             .Where(s => s.PortfolioTotal > 0
-                     && s.LifeStrategy60.HasValue
+                     && s.LifeStrategy.HasValue
                      && s.MsciWorld.HasValue)
             .OrderBy(s => s.Date)
             .ToList();
@@ -38,7 +38,7 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
         return [.. complete.Select(s => new PerformancePointDto(
             s.Date,
             ROIC          : RoicFactor(s) / t0RoicFactor * 100m,
-            LifeStrategy60: s.LifeStrategy60!.Value / t0.LifeStrategy60!.Value * 100m,
+            LifeStrategy  : s.LifeStrategy!.Value / t0.LifeStrategy!.Value * 100m,
             MsciWorld     : s.MsciWorld!.Value      / t0.MsciWorld!.Value      * 100m))];
     }
 

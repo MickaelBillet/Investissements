@@ -74,7 +74,7 @@ Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheu
 4. getPortfolioTotal()   → sum(currentTotal)
 5. resultSheet F63       → totalPurchases (lu directement depuis le Bilan)
 6. resultSheet F55       → totalReturns   (lu directement depuis le Bilan)
-7. fetchStockValues()    → prix LifeStrategy60 (AMS:V60A) et MSCI World (EPA:MWRD)
+7. fetchStockValues()    → prix LifeStrategy (AMS:V40A) et MSCI World (EPA:MWRD)
 8. appendRow             → [date, portfolioTotal, ref1, ref2, totalPurchases, totalReturns]
 ```
 
@@ -86,7 +86,7 @@ Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheu
 
 Utilise une cellule temporaire `ZZ1` pour forcer le calcul `GOOGLEFINANCE` — Apps Script ne supporte pas nativement cette fonction. La cellule est effacée après lecture.
 
-Retourne `[prixLifeStrategy60, prixMSCIWorld]`. En cas d'erreur, retourne `-1` pour le ticker concerné.
+Retourne `[prixLifeStrategy, prixMSCIWorld]`. En cas d'erreur, retourne `-1` pour le ticker concerné.
 
 ---
 

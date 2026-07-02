@@ -144,3 +144,17 @@ function testGeographyGetByZone() {
 function testRapportHebdomadaire() {
   rapportHebdomadaire(); // Sends real email — check Gmail inbox
 }
+
+function testBuildSnapshotRow() {
+  // Full row — all fields populated
+  const rowComplete = ["2026-05-04", 78450.00, 42.15, 87.30, 65000.00, 83200.00];
+  Logger.log("complete   : " + JSON.stringify(buildSnapshotRow(rowComplete)));
+
+  // Missing lifeStrategy/msciWorld — must fall back to null, not 0
+  const rowMissingRefs = ["2026-05-05", 79000.00, "", "", 65000.00, 83200.00];
+  Logger.log("missingRefs: " + JSON.stringify(buildSnapshotRow(rowMissingRefs)));
+
+  // Missing portfolioTotal — must fall back to 0
+  const rowNoPortfolio = ["2026-05-06", "", 42.20, 87.35, 65000.00, 83200.00];
+  Logger.log("noPortfolio: " + JSON.stringify(buildSnapshotRow(rowNoPortfolio)));
+}
