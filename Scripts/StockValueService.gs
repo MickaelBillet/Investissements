@@ -1,7 +1,7 @@
 function fetchStockValues() {  
   const sheet = SpreadsheetApp.openById(DEST_ID);
 
-  const tickers = ["AMS:V60A", "EPA:MWRD"]; 
+  const tickers = ["AMS:V40A", "EPA:MWRD"]; 
   let prices = []; // Objet pour stocker les prix par ticker
     
   tickers.forEach(ticker => {
