@@ -102,7 +102,6 @@
   <data name="Kpi_LastUpdate"    xml:space="preserve"><value>Dernière mise à jour</value></data>
   <data name="Kpi_AssetCount"    xml:space="preserve"><value>Actifs en portefeuille</value></data>
   <data name="Kpi_RoiCapital"    xml:space="preserve"><value>ROI (Capital Engagé)</value></data>
-  <data name="Kpi_RoiPurchases"  xml:space="preserve"><value>ROI (Total des achats)</value></data>
   <data name="Kpi_AverageRisk"   xml:space="preserve"><value>Risque moyen (0 – 4)</value></data>
   <data name="Kpi_DailyPrefix"   xml:space="preserve"><value>J</value></data>
   <data name="Kpi_WeeklyPrefix"  xml:space="preserve"><value>S</value></data>

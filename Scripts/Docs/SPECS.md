@@ -141,11 +141,6 @@ Retourné par les actions qui descendent au niveau de l'actif individuel.
 | `totalReturns` | number \| null | Total des plus-values réalisées depuis l'origine (EUR) |
 | `totalSales` | number \| null | Total des ventes depuis l'origine (EUR), incluant actifs vendus |
 
-**Calcul du ROI portefeuille (dashboard) :**
-```
-ROI% = (totalReturns - totalPurchases) / totalPurchases
-```
-
 **Comparaison avec les références (dashboard) :**
 ```
 netCapital_index = netCapital_today / netCapital_j0
@@ -383,7 +378,6 @@ Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` 
 | Actifs en portefeuille | Nombre d'actifs actifs |
 | Risque moyen | Moyenne pondérée par `currentTotal` sur l'échelle 0–4 |
 | ROI Capital Engagé | Valeur courante + variations S/M/YTD/1A |
-| ROI Total Achats | Valeur courante + variations S/M/YTD/1A |
 | Répartition par classe d'actifs | Distribution `AssetClass` |
 | Répartition par type de support | Distribution `SupportType` |
 | Répartition par niveau de risque | Distribution par risque |
@@ -399,6 +393,5 @@ Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` 
 
 **Formule ROI** (calculée dans `computeRoi`) :
 ```
-roiOnTotalPurchases  = totalReturns / totalPurchases × 100
 roiOnCapitalEngaged  = totalReturns / netCapital × 100
 ```
