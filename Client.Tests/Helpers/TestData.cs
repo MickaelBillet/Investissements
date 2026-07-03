@@ -39,12 +39,13 @@ internal static class TestData
 
     public static SnapshotDto Snapshot(
         DateOnly? date           = null,
-        decimal   portfolio      = 10_000m,
+        decimal   netCapital     = 10_000m,
         decimal?  lifeStrategy   = 100m,
         decimal?  msciWorld      = 100m,
         decimal   totalPurchases = 10_000m,
-        decimal   totalReturns   = 0m) =>
-        new(date ?? new DateOnly(2025, 1, 1), portfolio, lifeStrategy, msciWorld, totalPurchases, totalReturns);
+        decimal   totalReturns   = 0m,
+        decimal?  totalSales     = null) =>
+        new(date ?? new DateOnly(2025, 1, 1), netCapital, lifeStrategy, msciWorld, totalPurchases, totalReturns, totalSales);
 
     public static PerformancePointDto PerformancePoint(
         DateOnly? date          = null,

@@ -24,7 +24,7 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
         var history = await snapshotService.GetHistoryAsync(ct);
 
         var complete = history
-            .Where(s => s.PortfolioTotal > 0
+            .Where(s => s.NetCapital > 0
                      && s.LifeStrategy.HasValue
                      && s.MsciWorld.HasValue)
             .OrderBy(s => s.Date)
@@ -43,13 +43,13 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
     }
 
     private static decimal RoicFactor(SnapshotDto s) =>
-        (s.PortfolioTotal + s.TotalReturns) / s.PortfolioTotal;
+        (s.NetCapital + s.TotalReturns) / s.NetCapital;
 
-    // ROIC (Capital Engagé) = TotalReturns / PortfolioTotal × 100
+    // ROIC (Capital Engagé) = TotalReturns / NetCapital × 100
     private static decimal? ComputeRoiOnCapitalEngaged(SnapshotDto? snapshot)
     {
-        if (snapshot is null || snapshot.PortfolioTotal <= 0m) return null;
-        return snapshot.TotalReturns / snapshot.PortfolioTotal * 100m;
+        if (snapshot is null || snapshot.NetCapital <= 0m) return null;
+        return snapshot.TotalReturns / snapshot.NetCapital * 100m;
     }
 
     private static decimal? ComputeAverageRisk(IReadOnlyList<AssetDto> assets)

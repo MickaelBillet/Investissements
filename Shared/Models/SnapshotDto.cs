@@ -2,9 +2,10 @@ namespace InvestissementsDashboard.Shared.Models;
 
 public record SnapshotDto(
     DateOnly Date,
-    decimal PortfolioTotal,
+    decimal  NetCapital,
     decimal? LifeStrategy,
     decimal? MsciWorld,
-    decimal TotalPurchases,
-    decimal TotalReturns
+    decimal  TotalPurchases,
+    decimal  TotalReturns,
+    decimal? TotalSales
 );

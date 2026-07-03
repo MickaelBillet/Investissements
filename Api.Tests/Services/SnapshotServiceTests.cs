@@ -14,7 +14,7 @@ public class SnapshotServiceTests
     [Fact]
     public async Task GetLastAsync_WhenAppsScriptReturnsSnapshot_ReturnsIt()
     {
-        var expected = new SnapshotDto(new DateOnly(2026, 5, 2), 72000m, 41m, 81m, 60000m, 76000m);
+        var expected = new SnapshotDto(new DateOnly(2026, 5, 2), 72000m, 41m, 81m, 60000m, 76000m, 1000m);
         var mock = new Mock<IAppsScriptService>();
         mock.Setup(s => s.CallAsync<SnapshotDto>("Snapshot", "getLast", It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
@@ -23,7 +23,7 @@ public class SnapshotServiceTests
 
         Assert.NotNull(result);
         Assert.Equal(new DateOnly(2026, 5, 2), result.Date);
-        Assert.Equal(72000m, result.PortfolioTotal);
+        Assert.Equal(72000m, result.NetCapital);
     }
 
     [Fact]
@@ -43,8 +43,8 @@ public class SnapshotServiceTests
     {
         var expected = new[]
         {
-            new SnapshotDto(new DateOnly(2026, 5, 1), 70000m, 40.1m, 80.2m, 60000m, 75000m),
-            new SnapshotDto(new DateOnly(2026, 5, 2), 72000m, 41m,   81m,   60000m, 76000m)
+            new SnapshotDto(new DateOnly(2026, 5, 1), 70000m, 40.1m, 80.2m, 60000m, 75000m, 900m),
+            new SnapshotDto(new DateOnly(2026, 5, 2), 72000m, 41m,   81m,   60000m, 76000m, 1000m)
         };
         var mock = new Mock<IAppsScriptService>();
         mock.Setup(s => s.CallAsync<IReadOnlyList<SnapshotDto>>("Snapshot", "getHistory", It.IsAny<CancellationToken>()))

@@ -158,7 +158,7 @@ public class McpHandlerTests
     {
         var snapshot = new Mock<ISnapshotService>();
         snapshot.Setup(s => s.GetLastAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new SnapshotDto(new DateOnly(2025, 5, 1), 50000m, null, null, 40000m, 10000m));
+                .ReturnsAsync(new SnapshotDto(new DateOnly(2025, 5, 1), 50000m, null, null, 40000m, 10000m, null));
 
         var handler  = CreateHandler(snapshot: snapshot);
         var response = await handler.HandleAsync(Request("tools/call", new { name = "get_snapshot", arguments = new { } }), default);
