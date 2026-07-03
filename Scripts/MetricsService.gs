@@ -2,7 +2,7 @@
 function computeRoi(snapshot) {
   if (!snapshot || snapshot.totalPurchases === null || snapshot.totalReturns === null) return null;
   const tp = snapshot.totalPurchases;
-  const pt = snapshot.portfolioTotal;
+  const pt = snapshot.netCapital;
   if (!tp || !pt) return null;
   const netReturn = pt + snapshot.totalReturns - tp;
   return {
@@ -31,13 +31,13 @@ function computeVariations(history) {
   const result = {};
   for (const [key, { date, firstOfPeriod }] of Object.entries(periods)) {
     const ref = findRefSnapshot(history, date, firstOfPeriod);
-    if (!ref || !last.portfolioTotal || !ref.portfolioTotal) {
+    if (!ref || !last.netCapital || !ref.netCapital) {
       result[key] = null;
       continue;
     }
     const refRoi = computeRoi(ref);
     result[key] = {
-      portfolio: (last.portfolioTotal - ref.portfolioTotal) / ref.portfolioTotal * 100,
+      portfolio: (last.netCapital - ref.netCapital) / ref.netCapital * 100,
       roiOnTotalPurchases: (lastRoi && refRoi && refRoi.roiOnTotalPurchases !== 0)
         ? (lastRoi.roiOnTotalPurchases - refRoi.roiOnTotalPurchases) / Math.abs(refRoi.roiOnTotalPurchases) * 100
         : null,

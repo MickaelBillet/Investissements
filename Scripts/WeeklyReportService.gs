@@ -29,7 +29,7 @@ function rapportHebdomadaire() {
 
   const reportData = {
     date         : lastSnapshot.date,
-    portfolioTotal: lastSnapshot.portfolioTotal,
+    netCapital   : lastSnapshot.netCapital,
     assetCount,
     averageRisk,
     roi          : computeRoi(lastSnapshot),
@@ -46,7 +46,7 @@ function rapportHebdomadaire() {
 
 // --- HTML email builder ---
 function buildReportHtml(data) {
-  const { date, portfolioTotal, assetCount, averageRisk, roi, variations, assetClassDist, supportTypeDist, riskDist } = data;
+  const { date, netCapital, assetCount, averageRisk, roi, variations, assetClassDist, supportTypeDist, riskDist } = data;
 
   const C = {
     primary  : "#37352F",
@@ -134,9 +134,9 @@ function buildReportHtml(data) {
   <!-- KPIs -->
   <div style="background:${C.white}; padding:20px 24px; border:1px solid ${C.border}; border-top:none;">
 
-    <!-- Valeur totale -->
-    <div style="font-size:13px; color:${C.secondary}; margin-bottom:4px;">Valeur totale</div>
-    <div style="font-size:28px; font-weight:700; margin-bottom:8px;">${fmtEur(portfolioTotal)}</div>
+    <!-- Capital net engagé -->
+    <div style="font-size:13px; color:${C.secondary}; margin-bottom:4px;">Capital net engagé</div>
+    <div style="font-size:28px; font-weight:700; margin-bottom:8px;">${fmtEur(netCapital)}</div>
     <div style="font-size:13px; margin-bottom:16px;">
       S : ${fmtVariation(pv("weekly", "portfolio"))}&nbsp;&nbsp;
       M : ${fmtVariation(pv("monthly", "portfolio"))}&nbsp;&nbsp;

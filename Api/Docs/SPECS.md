@@ -152,11 +152,12 @@ Retourne le dernier snapshot du portefeuille.
 ```json
 {
   "date": "2026-05-08",
-  "portfolioTotal": 52984.31,
+  "netCapital": 52984.31,
   "lifeStrategy": 35.93,
   "msciWorld": 150.25,
   "totalPurchases": 66659.86,
-  "totalReturns": 58200.00
+  "totalReturns": 58200.00,
+  "totalSales": 1351.28
 }
 ```
 
@@ -325,7 +326,7 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 |---|---|---|
 | `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, sector, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio |
 | `DistributionDto` | `Shared/Models/DistributionDto.cs` | id?, name, currentTotal, weightInPortfolio |
-| `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, portfolioTotal, lifeStrategy?, msciWorld?, totalPurchases?, totalReturns? |
+| `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, netCapital, lifeStrategy?, msciWorld?, totalPurchases, totalReturns, totalSales? |
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnTotalPurchases?, roiOnCapitalEngaged?, averageRisk? |
 
 > Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.

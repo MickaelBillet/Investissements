@@ -68,17 +68,18 @@ GET ?apiKey=...&service=AssetClass&action=getAll
 Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheurSnapshot()`.
 
 ```
-1. Guard : si un snapshot existe déjà pour aujourd'hui → abort
-2. syncCurrentTotal()    → met à jour les colonnes I–L de l'onglet Asset (DEST)
-3. getAssetsData()       → lit toutes les lignes valides de l'onglet Asset
-4. getPortfolioTotal()   → sum(currentTotal)
-5. resultSheet F63       → totalPurchases (lu directement depuis le Bilan)
-6. resultSheet F55       → totalReturns   (lu directement depuis le Bilan)
+1. syncCurrentTotal()    → met à jour les colonnes I–L de l'onglet Asset (DEST)
+2. getAssetsData()       → lit toutes les lignes valides de l'onglet Asset
+3. resultSheet C42 (NET_PURCHASES)   → netCapital     (capital net réellement engagé, lu depuis le Bilan)
+4. resultSheet F66 (TOTAL_PURCHASES) → totalPurchases (lu directement depuis le Bilan)
+5. resultSheet F58 (TOTAL_RETURNS)   → totalReturns   (lu directement depuis le Bilan)
+6. resultSheet F68 (TOTAL_SALES)     → totalSales     (lu directement depuis le Bilan)
 7. fetchStockValues()    → prix LifeStrategy (AMS:V40A) et MSCI World (EPA:MWRD)
-8. appendRow             → [date, portfolioTotal, ref1, ref2, totalPurchases, totalReturns]
+8. Si une ligne existe déjà pour la date du jour → overwrite ; sinon → appendRow
+   [date, netCapital, ref1, ref2, totalPurchases, totalReturns, totalSales]
 ```
 
-`totalPurchases` et `totalReturns` sont lus directement depuis des cellules du Bilan (SOURCE) car ils couvrent l'historique complet incluant les actifs vendus, non listés dans l'onglet Asset.
+`netCapital`, `totalPurchases`, `totalReturns` et `totalSales` sont lus directement depuis des cellules du Bilan (SOURCE) car ils couvrent l'historique complet incluant les actifs vendus, non listés dans l'onglet Asset.
 
 ---
 
