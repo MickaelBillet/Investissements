@@ -17,7 +17,7 @@ function rapportHebdomadaire() {
   const riskDist        = handleAsset("getDistributionByRisk", {});
 
   const rows           = getAssetsData();
-  const assetCount     = rows.length;
+  const assetCount     = rows.filter(row => typeof row[COL_CURRENT_TOTAL] === "number" && row[COL_CURRENT_TOTAL] > 0).length;
   const portfolioTotal = getPortfolioTotal(rows);
 
   const averageRisk = portfolioTotal > 0
