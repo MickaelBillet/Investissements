@@ -122,22 +122,24 @@ Retourné par les actions qui descendent au niveau de l'actif individuel.
 ```json
 {
   "date": "2026-05-04",
-  "portfolioTotal": 78450.00,
+  "netCapital": 59149.20,
   "lifeStrategy": 42.15,
   "msciWorld": 87.30,
   "totalPurchases": 65000.00,
-  "totalReturns": 83200.00
+  "totalReturns": 83200.00,
+  "totalSales": 1351.28
 }
 ```
 
 | Champ | Type | Description |
 |---|---|---|
 | `date` | string | Date au format `yyyy-MM-dd` |
-| `portfolioTotal` | number | `sum(currentTotal)` des actifs en portefeuille (EUR) |
+| `netCapital` | number | Capital net réellement engagé — cellule `NET_PURCHASES` (C42 du Bilan), EUR |
 | `lifeStrategy` | number \| null | Prix unitaire ETF LifeStrategy 40 (EUR) — `AMS:V40A` |
 | `msciWorld` | number \| null | Prix unitaire ETF MSCI World (EUR) — `EPA:MWRD` |
 | `totalPurchases` | number \| null | Total des achats depuis l'origine (EUR), incluant actifs vendus |
-| `totalReturns` | number \| null | Total des retours depuis l'origine (EUR), incluant actifs vendus |
+| `totalReturns` | number \| null | Total des plus-values réalisées depuis l'origine (EUR) |
+| `totalSales` | number \| null | Total des ventes depuis l'origine (EUR), incluant actifs vendus |
 
 **Calcul du ROI portefeuille (dashboard) :**
 ```
@@ -146,8 +148,8 @@ ROI% = (totalReturns - totalPurchases) / totalPurchases
 
 **Comparaison avec les références (dashboard) :**
 ```
-portfolio_index = portfolioTotal_today / portfolioTotal_j0
-ref_index       = refPrice_today / refPrice_j0
+netCapital_index = netCapital_today / netCapital_j0
+ref_index        = refPrice_today / refPrice_j0
 ```
 
 ---
@@ -377,7 +379,7 @@ Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` 
 
 | Section | Données |
 |---|---|
-| Valeur totale | `portfolioTotal` du dernier snapshot + variations S/M/YTD/1A |
+| Capital net engagé | `netCapital` du dernier snapshot + variations S/M/YTD/1A |
 | Actifs en portefeuille | Nombre d'actifs actifs |
 | Risque moyen | Moyenne pondérée par `currentTotal` sur l'échelle 0–4 |
 | ROI Capital Engagé | Valeur courante + variations S/M/YTD/1A |
@@ -397,7 +399,7 @@ Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` 
 
 **Formule ROI** (calculée dans `computeRoi`) :
 ```
-netReturn            = portfolioTotal + totalReturns − totalPurchases
+netReturn            = netCapital + totalReturns − totalPurchases
 roiOnTotalPurchases  = netReturn / totalPurchases × 100
-roiOnCapitalEngaged  = netReturn / portfolioTotal × 100
+roiOnCapitalEngaged  = netReturn / netCapital × 100
 ```

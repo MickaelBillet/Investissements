@@ -129,7 +129,7 @@ function snapshotQuotidien() {
     Logger.log("✅ Snapshot " + today + " — net purchases: " + netPurchases + " €");
   }
 
-  Logger.log("✅ Snapshot " + today + " — net purchases: " + netPurchases + " €");
+  Logger.log("✅ Snapshot " + today + " — ROIC: " + (totalReturns/netPurchases * 100).toFixed(2) + " %");
 }
 
 // --- Create the daily trigger (run once manually) ---
