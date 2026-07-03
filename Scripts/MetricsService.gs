@@ -1,13 +1,10 @@
 // --- Compute ROI from a snapshot ---
 function computeRoi(snapshot) {
-  if (!snapshot || snapshot.totalPurchases === null || snapshot.totalReturns === null) return null;
-  const tp = snapshot.totalPurchases;
-  const pt = snapshot.netCapital;
-  if (!tp || !pt) return null;
-  const netReturn = pt + snapshot.totalReturns - tp;
+  if (!snapshot || snapshot.totalReturns === null) return null;
+  const nc = snapshot.netCapital;
+  if (!nc) return null;
   return {
-    roiOnTotalPurchases: netReturn / tp * 100,
-    roiOnCapitalEngaged: netReturn / pt * 100
+    roiOnCapitalEngaged: snapshot.totalReturns / nc * 100
   };
 }
 
@@ -38,9 +35,6 @@ function computeVariations(history) {
     const refRoi = computeRoi(ref);
     result[key] = {
       portfolio: (last.netCapital - ref.netCapital) / ref.netCapital * 100,
-      roiOnTotalPurchases: (lastRoi && refRoi && refRoi.roiOnTotalPurchases !== 0)
-        ? (lastRoi.roiOnTotalPurchases - refRoi.roiOnTotalPurchases) / Math.abs(refRoi.roiOnTotalPurchases) * 100
-        : null,
       roiOnCapitalEngaged: (lastRoi && refRoi && refRoi.roiOnCapitalEngaged !== 0)
         ? (lastRoi.roiOnCapitalEngaged - refRoi.roiOnCapitalEngaged) / Math.abs(refRoi.roiOnCapitalEngaged) * 100
         : null

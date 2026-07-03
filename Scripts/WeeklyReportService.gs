@@ -187,14 +187,6 @@ function buildReportHtml(data) {
           <td style="padding:6px 8px; text-align:center;">${fmtVariation(pv("ytd",     "roiOnCapitalEngaged"))}</td>
           <td style="padding:6px 8px; text-align:center;">${fmtVariation(pv("yearly",  "roiOnCapitalEngaged"))}</td>
         </tr>
-        <tr>
-          <td style="padding:6px 8px 6px 0; font-weight:600;">ROI Total Achats</td>
-          <td style="padding:6px 8px; text-align:right; font-weight:600;">${roi ? fmtPct(roi.roiOnTotalPurchases) : "—"}</td>
-          <td style="padding:6px 8px; text-align:center;">${fmtVariation(pv("weekly",  "roiOnTotalPurchases"))}</td>
-          <td style="padding:6px 8px; text-align:center;">${fmtVariation(pv("monthly", "roiOnTotalPurchases"))}</td>
-          <td style="padding:6px 8px; text-align:center;">${fmtVariation(pv("ytd",     "roiOnTotalPurchases"))}</td>
-          <td style="padding:6px 8px; text-align:center;">${fmtVariation(pv("yearly",  "roiOnTotalPurchases"))}</td>
-        </tr>
       </tbody>
     </table>
   </div>

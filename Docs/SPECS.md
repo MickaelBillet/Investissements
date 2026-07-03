@@ -8,8 +8,7 @@ SRS_12 La date de la dernière mise à jour des données doit être affichée
 
 SRS_13 Le nombre total d’actifs en portefeuille doit être affiché
 
-SRS_15 Le ROI du portefeuille doit être affiché sous 2 formes :
-- ROI (Total des achats) = TotalReturns / TotalPurchases × 100
+SRS_15 Le ROI du portefeuille doit être affiché :
 - ROI (Capital Engagé) = TotalReturns / NetCapital × 100
 où TotalReturns = plus-values réalisées depuis l'origine
 
