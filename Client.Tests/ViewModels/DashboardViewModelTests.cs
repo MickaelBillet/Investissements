@@ -515,8 +515,8 @@ public class DashboardViewModelTests
         // ROI_CE today = 1_100 / 52_000 * 100 ≈ 2,1154 %
         // variation relative = (2,1154 - 2) / |2| * 100 ≈ 5,77 %
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m, totalReturns: 1_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m, totalReturns: 1_100m));
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), netCapital: 50_000m, totalReturns: 1_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m, totalReturns: 1_100m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -531,8 +531,8 @@ public class DashboardViewModelTests
     {
         // ROI_ref = 0 → division par zéro → null
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m, totalReturns: 0m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m, totalReturns: 1_000m));
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), netCapital: 50_000m, totalReturns: 0m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m, totalReturns: 1_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -546,9 +546,9 @@ public class DashboardViewModelTests
         // today (20 mai) : ROI = 1_040 / 52_000 * 100 = 2 %
         // variation relative = (2 - 2) / 2 * 100 = 0 %
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 13), portfolio: 50_000m, totalReturns: 1_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 17), portfolio: 51_000m, totalReturns: 1_020m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m, totalReturns: 1_040m));
+            TestData.Snapshot(date: new DateOnly(2026, 5, 13), netCapital: 50_000m, totalReturns: 1_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 17), netCapital: 51_000m, totalReturns: 1_020m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m, totalReturns: 1_040m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -570,7 +570,7 @@ public class DashboardViewModelTests
     [Fact]
     public async Task DailyVariationPercent_WhenOnlyOneEntry_ReturnsNull()
     {
-        var mock = MockWithHistory(TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m));
+        var mock = MockWithHistory(TestData.Snapshot(date: new DateOnly(2026, 5, 19), netCapital: 50_000m));
         var vm   = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -581,8 +581,8 @@ public class DashboardViewModelTests
     public async Task DailyVariationPercent_WhenTwoEntries_ReturnsCorrectPercent()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 50_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 51_000m));
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), netCapital: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 51_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -593,8 +593,8 @@ public class DashboardViewModelTests
     public async Task DailyVariationPercent_WhenPreviousTotalIsZero_ReturnsNull()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 19), portfolio: 0m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 51_000m));
+            TestData.Snapshot(date: new DateOnly(2026, 5, 19), netCapital: 0m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 51_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -605,9 +605,9 @@ public class DashboardViewModelTests
     public async Task WeeklyVariationPercent_WhenEntryExactlySevenDaysBack_ReturnsCorrectPercent()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 13), portfolio: 50_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 17), portfolio: 51_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m));
+            TestData.Snapshot(date: new DateOnly(2026, 5, 13), netCapital: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 17), netCapital: 51_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -619,8 +619,8 @@ public class DashboardViewModelTests
     public async Task WeeklyVariationPercent_WhenNoEntrySevenDaysBack_ReturnsNull()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 15), portfolio: 50_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m));
+            TestData.Snapshot(date: new DateOnly(2026, 5, 15), netCapital: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -634,9 +634,9 @@ public class DashboardViewModelTests
     public async Task MonthlyVariationPercent_WhenEntryThirtyDaysBack_ReturnsCorrectPercent()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 4, 20), portfolio: 50_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5,  5), portfolio: 51_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 55_000m));
+            TestData.Snapshot(date: new DateOnly(2026, 4, 20), netCapital: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5,  5), netCapital: 51_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 55_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -648,8 +648,8 @@ public class DashboardViewModelTests
     public async Task MonthlyVariationPercent_WhenNoEntryThirtyDaysBack_ReturnsNull()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5,  5), portfolio: 50_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 55_000m));
+            TestData.Snapshot(date: new DateOnly(2026, 5,  5), netCapital: 50_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 55_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -660,8 +660,8 @@ public class DashboardViewModelTests
     public async Task YearlyVariationPercent_WhenEntryOneYearBack_ReturnsCorrectPercent()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2025, 5, 20), portfolio: 40_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 52_000m));
+            TestData.Snapshot(date: new DateOnly(2025, 5, 20), netCapital: 40_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -675,10 +675,10 @@ public class DashboardViewModelTests
     public async Task YtdVariationPercent_UsesFirstSnapshotOfCurrentYear()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2025, 12, 31), portfolio: 30_000m),
-            TestData.Snapshot(date: new DateOnly(2026,  1,  2), portfolio: 40_000m),
-            TestData.Snapshot(date: new DateOnly(2026,  3, 15), portfolio: 45_000m),
-            TestData.Snapshot(date: new DateOnly(2026,  5, 20), portfolio: 48_000m));
+            TestData.Snapshot(date: new DateOnly(2025, 12, 31), netCapital: 30_000m),
+            TestData.Snapshot(date: new DateOnly(2026,  1,  2), netCapital: 40_000m),
+            TestData.Snapshot(date: new DateOnly(2026,  3, 15), netCapital: 45_000m),
+            TestData.Snapshot(date: new DateOnly(2026,  5, 20), netCapital: 48_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -690,8 +690,8 @@ public class DashboardViewModelTests
     public async Task YtdVariationPercent_WhenSingleSnapshotInYear_ReturnsZero()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2025, 12, 31), portfolio: 30_000m),
-            TestData.Snapshot(date: new DateOnly(2026,  5, 20), portfolio: 48_000m));
+            TestData.Snapshot(date: new DateOnly(2025, 12, 31), netCapital: 30_000m),
+            TestData.Snapshot(date: new DateOnly(2026,  5, 20), netCapital: 48_000m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -703,8 +703,8 @@ public class DashboardViewModelTests
     public async Task YtdROICapitalEngagedVariation_UsesFirstSnapshotOfCurrentYear()
     {
         var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 1,  2), portfolio: 50_000m, totalReturns: 1_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), portfolio: 50_000m, totalReturns: 1_500m));
+            TestData.Snapshot(date: new DateOnly(2026, 1,  2), netCapital: 50_000m, totalReturns: 1_000m),
+            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 50_000m, totalReturns: 1_500m));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 

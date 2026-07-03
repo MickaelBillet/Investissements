@@ -98,7 +98,7 @@
   <data name="GroupByTheme"      xml:space="preserve"><value>Grouper par thématique</value></data>
 
   <!-- KPI labels -->
-  <data name="Kpi_TotalValue"    xml:space="preserve"><value>Valeur totale</value></data>
+  <data name="Kpi_NetCapital"    xml:space="preserve"><value>Capital net engagé</value></data>
   <data name="Kpi_LastUpdate"    xml:space="preserve"><value>Dernière mise à jour</value></data>
   <data name="Kpi_AssetCount"    xml:space="preserve"><value>Actifs en portefeuille</value></data>
   <data name="Kpi_RoiCapital"    xml:space="preserve"><value>ROI (Capital Engagé)</value></data>

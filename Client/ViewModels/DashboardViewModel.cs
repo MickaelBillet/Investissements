@@ -222,15 +222,15 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         history.FirstOrDefault(s => s.Date.Year == history[^1].Date.Year);
 
     private static decimal? RoiOnCapitalEngagedOf(SnapshotDto s) =>
-        s.PortfolioTotal > 0 ? s.TotalReturns / s.PortfolioTotal * 100m : null;
+        s.NetCapital > 0 ? s.TotalReturns / s.NetCapital * 100m : null;
 
     private static decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf)
     {
         if (history.Count < 2) return null;
         var last      = history[^1];
         var reference = referenceOf(history);
-        if (reference is null || reference.PortfolioTotal == 0) return null;
-        return (last.PortfolioTotal - reference.PortfolioTotal) / reference.PortfolioTotal * 100m;
+        if (reference is null || reference.NetCapital == 0) return null;
+        return (last.NetCapital - reference.NetCapital) / reference.NetCapital * 100m;
     }
 
     private static decimal? ComputeROIVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf, Func<SnapshotDto, decimal?> roiOf)

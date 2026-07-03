@@ -175,11 +175,12 @@ Une ligne par jour. Colonnes (index 0-based) :
 | Index | Colonne | Constante | Description |
 |---|---|---|---|
 | 0 | A | `COL_SNAP_DATE` | Date (yyyy-MM-dd) |
-| 1 | B | `COL_SNAP_PORTFOLIO` | Valeur totale du portefeuille — `sum(currentTotal)` (EUR) |
+| 1 | B | `COL_SNAP_NET_CAPITAL` | Capital net réellement engagé — cellule `NET_PURCHASES` (C42 du Bilan), EUR |
 | 2 | C | `COL_SNAP_LIFESTRATEGY` | Prix unitaire LifeStrategy 40 (EUR) |
 | 3 | D | `COL_SNAP_MSCI_WORLD` | Prix unitaire MSCI World (EUR) |
 | 4 | E | `COL_SNAP_TOTAL_PURCHASES` | Total des achats depuis l'origine (EUR), lu depuis le Bilan |
-| 5 | F | `COL_SNAP_TOTAL_SALES` | Total des retours depuis l'origine (EUR), lu depuis le Bilan |
+| 5 | F | `COL_SNAP_TOTAL_RETURNS` | Plus-values réalisées depuis l'origine (EUR), lu depuis le Bilan |
+| 6 | G | `COL_SNAP_TOTAL_SALES` | Total des ventes depuis l'origine (EUR), lu depuis le Bilan |
 
 ### 6.4 Valeur sentinelle `"ND"`
 

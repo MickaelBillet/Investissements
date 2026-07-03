@@ -7,7 +7,9 @@ const SOURCE_ID    = "188bNY_oSVrHZKZ1Vadj7SxnCosDDw2g-oG8UjDARMAI";
 const DEST_ID      = "1Dvhz3AME0WoGkmiJQ5eBQ4FYno4l_kuyiShk75TZZNE";
 const REPORT_EMAIL = "mickael.billet@gmail.com";
 
+const NET_PURCHASES = "C42";
 const TOTAL_PURCHASES = "F66";
+const TOTAL_SALES = "F68";
 const TOTAL_RETURNS = "F58";
 const CASH_PEA = "B67";
 const TRADE_REPUBLIC_ACCOUNT = "B55";

@@ -4,11 +4,12 @@
 
 // --- Snapshot sheet column indexes (0-based) ---
 const COL_SNAP_DATE            = 0;  // A
-const COL_SNAP_PORTFOLIO       = 1;  // B
+const COL_SNAP_NET_CAPITAL     = 1;  // B
 const COL_SNAP_LIFESTRATEGY    = 2;  // C
 const COL_SNAP_MSCI_WORLD      = 3;  // D
 const COL_SNAP_TOTAL_PURCHASES = 4;  // E
-const COL_SNAP_TOTAL_SALES     = 5;  // F
+const COL_SNAP_TOTAL_RETURNS   = 5;  // F
+const COL_SNAP_TOTAL_SALES     = 6;  // G
 
 function handleSnapshot(action, params) {
 
@@ -67,11 +68,12 @@ function buildSnapshotRow(row) {
 
   return {
     date,
-    portfolioTotal : row[COL_SNAP_PORTFOLIO]        || 0,
+    netCapital     : row[COL_SNAP_NET_CAPITAL]      || 0,
     lifeStrategy   : row[COL_SNAP_LIFESTRATEGY]     || null,
     msciWorld      : row[COL_SNAP_MSCI_WORLD]       || null,
     totalPurchases : row[COL_SNAP_TOTAL_PURCHASES]  || null,
-    totalReturns   : row[COL_SNAP_TOTAL_SALES]      || null
+    totalReturns   : row[COL_SNAP_TOTAL_RETURNS]    || null,
+    totalSales     : row[COL_SNAP_TOTAL_SALES]      || null
   };
 }
 
@@ -98,9 +100,10 @@ function snapshotQuotidien() {
 
   // --- Step 2: compute aggregates from Assets sheet ---
   const rows           = getAssetsData();
-  const portfolioTotal = Math.round((getPortfolioTotal(rows)) * 100) / 100;
+  const netPurchases   = Math.round(resultSheet.getRange(NET_PURCHASES).getValue() * 100) / 100;
   const totalPurchases = Math.round(resultSheet.getRange(TOTAL_PURCHASES).getValue() * 100) / 100;
   const totalReturns   = Math.round(resultSheet.getRange(TOTAL_RETURNS).getValue() * 100) / 100;
+  const totalSales     = Math.round(resultSheet.getRange(TOTAL_SALES).getValue() * 100) / 100;
 
   // --- Step 3: fetch reference stock values ---
   const refStockValues = fetchStockValues();
@@ -117,16 +120,16 @@ function snapshotQuotidien() {
     if (lastDate === today) targetRow = lastRow;
   }
 
-  const rowData = [today, portfolioTotal, refStockValues[0], refStockValues[1], totalPurchases, totalReturns];
+  const rowData = [today, netPurchases, refStockValues[0], refStockValues[1], totalPurchases, totalReturns, totalSales];
   if (targetRow) {
     sheetSnap.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
-    Logger.log("♻️ Snapshot " + today + " overwritten — portfolio total: " + portfolioTotal + " €");
+    Logger.log("♻️ Snapshot " + today + " overwritten — net purchases: " + netPurchases + " €");
   } else {
     sheetSnap.appendRow(rowData);
-    Logger.log("✅ Snapshot " + today + " — portfolio total: " + portfolioTotal + " €");
+    Logger.log("✅ Snapshot " + today + " — net purchases: " + netPurchases + " €");
   }
 
-  Logger.log("✅ Snapshot " + today + " — portfolio total: " + portfolioTotal + " €");
+  Logger.log("✅ Snapshot " + today + " — net purchases: " + netPurchases + " €");
 }
 
 // --- Create the daily trigger (run once manually) ---

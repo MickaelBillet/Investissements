@@ -2,7 +2,7 @@
 
 #### KPIs d’en-tête
 
-SRS_01 La valeur totale du portefeuille doit être affichée en euros
+SRS_01 Le capital net engagé (NetCapital) doit être affiché en euros
 
 SRS_12 La date de la dernière mise à jour des données doit être affichée
 
@@ -10,7 +10,7 @@ SRS_13 Le nombre total d’actifs en portefeuille doit être affiché
 
 SRS_15 Le ROI du portefeuille doit être affiché sous 2 formes :
 - ROI (Total des achats) = TotalReturns / TotalPurchases × 100
-- ROI (Capital Engagé) = TotalReturns / PortfolioTotal × 100
+- ROI (Capital Engagé) = TotalReturns / NetCapital × 100
 où TotalReturns = plus-values réalisées depuis l'origine
 
 SRS_17 Le risque moyen du portefeuille (0–4) doit être affiché, calculé comme la moyenne pondérée par la valeur actuelle des actifs

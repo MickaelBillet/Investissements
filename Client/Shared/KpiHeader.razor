@@ -2,7 +2,7 @@
 @inject ILocalizationService L
 
 <MudGrid Spacing="4">
-    <KpiCard Label="@L.Translate("Kpi_TotalValue")" Value="@(Snapshot?.PortfolioTotal.ToEurAmount() ?? "—")">
+    <KpiCard Label="@L.Translate("Kpi_NetCapital")" Value="@(Snapshot?.NetCapital.ToEurAmount() ?? "—")">
         <SubContent>
             @VariationChips(
                 ("Kpi_DailyPrefix",   DailyVariationPercent),

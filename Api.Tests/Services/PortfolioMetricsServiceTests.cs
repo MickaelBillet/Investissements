@@ -35,15 +35,15 @@ public class PortfolioMetricsServiceTests
         return mock;
     }
 
-    private static SnapshotDto Snap(DateOnly date, decimal portfolio, decimal lifeStrategy, decimal msciWorld,
-        decimal totalPurchases, decimal totalReturns = 0m)
-        => new(date, portfolio, lifeStrategy, msciWorld, totalPurchases, totalReturns);
+    private static SnapshotDto Snap(DateOnly date, decimal netCapital, decimal lifeStrategy, decimal msciWorld,
+        decimal totalPurchases, decimal totalReturns = 0m, decimal? totalSales = null)
+        => new(date, netCapital, lifeStrategy, msciWorld, totalPurchases, totalReturns, totalSales);
 
     private static AssetDto Asset(int risk, decimal currentTotal) =>
         new(1, "Test", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", risk,
             null, null, null, currentTotal, null, null, null, 0m);
 
-    // ── RoiOnCapitalEngaged = TotalReturns / PortfolioTotal × 100 ─────────────
+    // ── RoiOnCapitalEngaged = TotalReturns / NetCapital × 100 ─────────────
 
     [Fact]
     public async Task GetMetricsAsync_WhenSnapshotIsNull_RoiOnCapitalEngagedIsNull()
@@ -56,10 +56,10 @@ public class PortfolioMetricsServiceTests
     }
 
     [Fact]
-    public async Task GetMetricsAsync_RoiOnCapitalEngaged_IsTotalReturnsOverPortfolioTotal()
+    public async Task GetMetricsAsync_RoiOnCapitalEngaged_IsTotalReturnsOverNetCapital()
     {
-        // TotalReturns=667, PortfolioTotal=54890 → 667/54890 × 100 ≈ 1.21 %
-        var snapshot = new SnapshotDto(AnyDate, 54_890m, null, null, 71_674m, 667m);
+        // TotalReturns=667, NetCapital=54890 → 667/54890 × 100 ≈ 1.21 %
+        var snapshot = new SnapshotDto(AnyDate, 54_890m, null, null, 71_674m, 667m, null);
         var svc      = CreateService(MockAssets(), MockSnapshot(snapshot));
 
         var result = await svc.GetMetricsAsync();
@@ -68,9 +68,9 @@ public class PortfolioMetricsServiceTests
     }
 
     [Fact]
-    public async Task GetMetricsAsync_RoiOnCapitalEngaged_WhenPortfolioTotalIsZero_IsNull()
+    public async Task GetMetricsAsync_RoiOnCapitalEngaged_WhenNetCapitalIsZero_IsNull()
     {
-        var snapshot = new SnapshotDto(AnyDate, 0m, null, null, 71_674m, 667m);
+        var snapshot = new SnapshotDto(AnyDate, 0m, null, null, 71_674m, 667m, null);
         var svc      = CreateService(MockAssets(), MockSnapshot(snapshot));
 
         var result = await svc.GetMetricsAsync();
@@ -135,7 +135,7 @@ public class PortfolioMetricsServiceTests
     {
         // LifeStrategy est null → snapshot incomplet, ignoré
         var svc = CreateService(MockAssets(),
-            MockHistory(new SnapshotDto(AnyDate, 10_000m, null, 100m, 10_000m, 0m)));
+            MockHistory(new SnapshotDto(AnyDate, 10_000m, null, 100m, 10_000m, 0m, null)));
 
         var result = await svc.GetIndexedHistoryAsync();
 

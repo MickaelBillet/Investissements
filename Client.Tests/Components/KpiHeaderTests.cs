@@ -29,7 +29,7 @@ public class KpiHeaderTests : BunitContext
     public void KpiHeader_WhenSnapshotProvided_DisplaysEuroSign()
     {
         var cut = Render<KpiHeader>(p => p
-            .Add(c => c.Snapshot,   TestData.Snapshot(portfolio: 12_345m))
+            .Add(c => c.Snapshot,   TestData.Snapshot(netCapital: 12_345m))
             .Add(c => c.AssetCount, 5));
 
         Assert.Contains("€", cut.Markup);

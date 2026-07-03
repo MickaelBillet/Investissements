@@ -109,11 +109,11 @@ portfolioService.GetGeographyDistributionAsync // → _geoStocks / _geoBonds
 
 **Propriétés de variation (calculées côté client depuis `_snapshotHistory`) :**
 
-Deux familles de métriques (valeur portefeuille, ROIC Capital Engagé) × cinq périodes (J / S / M / YTD / 1A) = 10 propriétés.
+Deux familles de métriques (capital net engagé, ROIC Capital Engagé) × cinq périodes (J / S / M / YTD / 1A) = 10 propriétés.
 
 | Famille | Préfixe propriété | Formule |
 |---|---|---|
-| Valeur portefeuille | `…VariationPercent` | `(last - ref) / ref × 100` — variation relative de `PortfolioTotal` |
+| Capital net engagé | `…VariationPercent` | `(last - ref) / ref × 100` — variation relative de `NetCapital` |
 | ROIC Capital Engagé | `…ROICapitalEngagedVariation` | `(ROIC_today - ROIC_ref) / \|ROIC_ref\| × 100` |
 
 Préfixes de période : `Daily` (J−1), `Weekly` (≤ J−7), `Monthly` (≤ J−30), `Ytd` (1er snapshot de l'année courante), `Yearly` (≤ J−365).

@@ -23,7 +23,7 @@ Le dashboard expose deux pages :
 
 | Carte | Source | Comportement si indisponible |
 |---|---|---|
-| Valeur totale | `SnapshotDto.PortfolioTotal` | `—` |
+| Capital net engagé | `SnapshotDto.NetCapital` | `—` |
 | Dernière mise à jour | `SnapshotDto.Date` | `—` |
 | Actifs en portefeuille | `AssetDto[]` count | `0` |
 | ROI / Capital Engagé | `PortfolioMetricsDto.RoiOnCapitalEngaged` | `N/A` |
@@ -31,7 +31,7 @@ Le dashboard expose deux pages :
 
 La carte ROI est colorée en vert (`roi-positive`) si positif, rouge (`roi-negative`) si négatif, neutre si `null`.
 
-Les cartes **Valeur totale** et **ROI (Capital Engagé)** affichent à droite de leur valeur jusqu'à cinq chips de variation :
+Les cartes **Capital net engagé** et **ROI (Capital Engagé)** affichent à droite de leur valeur jusqu'à cinq chips de variation :
 
 | Chip | Calcul | Source |
 |---|---|---|
@@ -41,7 +41,7 @@ Les cartes **Valeur totale** et **ROI (Capital Engagé)** affichent à droite de
 | YTD (depuis le 1er janvier) | idem | dernier vs **1er snapshot de l'année courante** |
 | 1A (annuel) | idem | dernier vs snapshot ≤ J−365 |
 
-- Valeur totale : variation relative de `PortfolioTotal`
+- Capital net engagé : variation relative de `NetCapital`
 - ROI : variation relative du taux ROI — `\|ROI_ref\|` au dénominateur pour gérer les ROI négatifs
 - Chip vert/rouge via `roi-positive` / `roi-negative`
 - Chaque chip n'est affichée que si une référence existe pour sa période ; `null` (chip masquée) si historique insuffisant, aucun snapshot de référence trouvé, ou `ROI_ref = 0`. Pour YTD avec un seul snapshot dans l'année, la référence est ce snapshot → variation `0 %`
@@ -119,12 +119,12 @@ Graphique en courbes (ApexCharts) représentant l'évolution de la performance, 
 
 | Série | Calcul | Masquée si |
 |---|---|---|
-| Portefeuille (ROI) | `(PortfolioTotal + TotalReturns) / TotalPurchases`, normalisé base 100 | jamais |
-| Portefeuille (ROIC) | `(PortfolioTotal + TotalReturns) / PortfolioTotal`, normalisé base 100 | jamais |
+| Portefeuille (ROI) | `(NetCapital + TotalReturns) / TotalPurchases`, normalisé base 100 | jamais |
+| Portefeuille (ROIC) | `(NetCapital + TotalReturns) / NetCapital`, normalisé base 100 | jamais |
 | LifeStrategy 40 | prix unitaire / prix T0 × 100 | `LifeStrategy` absent sur un point |
 | MSCI World | prix unitaire / prix T0 × 100 | `MsciWorld` absent sur un point |
 
-Les données sont fournies par `GET /api/portfolio/metrics/history` (`PerformancePointDto[]`), déjà normalisées base 100 par l'Api. Seuls les snapshots avec `PortfolioTotal > 0` et `TotalPurchases > 0` sont inclus dans le calcul.
+Les données sont fournies par `GET /api/portfolio/metrics/history` (`PerformancePointDto[]`), déjà normalisées base 100 par l'Api. Seuls les snapshots avec `NetCapital > 0` et `TotalPurchases > 0` sont inclus dans le calcul.
 
 ---
 

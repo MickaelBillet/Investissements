@@ -131,14 +131,14 @@ Retourne les métriques agrégées du portefeuille calculées côté API.
 
 **Formules de calcul :**
 ```
-RoiOnCapitalEngaged = TotalReturns / PortfolioTotal × 100
+RoiOnCapitalEngaged = TotalReturns / NetCapital × 100
 AverageRisk         = Σ(risk_i × currentTotal_i) / Σ(currentTotal_i)  [actifs avec currentTotal > 0]
 ```
 
 > `TotalReturns` = plus-values réalisées depuis l'origine (cellule F57 du Bilan).
 
 **Notes :**
-- `roiOnCapitalEngaged` est `null` si `PortfolioTotal` est nul ou indisponible
+- `roiOnCapitalEngaged` est `null` si `NetCapital` est nul ou indisponible
 - `averageRisk` est `null` si la valeur totale des actifs actifs est zéro
 
 ---
