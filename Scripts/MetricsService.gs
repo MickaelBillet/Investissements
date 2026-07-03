@@ -2,12 +2,11 @@
 function computeRoi(snapshot) {
   if (!snapshot || snapshot.totalPurchases === null || snapshot.totalReturns === null) return null;
   const tp = snapshot.totalPurchases;
-  const pt = snapshot.netCapital;
-  if (!tp || !pt) return null;
-  const netReturn = pt + snapshot.totalReturns - tp;
+  const nc = snapshot.netCapital;
+  if (!tp || !nc) return null;
   return {
-    roiOnTotalPurchases: netReturn / tp * 100,
-    roiOnCapitalEngaged: netReturn / pt * 100
+    roiOnTotalPurchases: snapshot.totalReturns / tp * 100,
+    roiOnCapitalEngaged: snapshot.totalReturns / nc * 100
   };
 }
 

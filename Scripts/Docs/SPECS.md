@@ -399,7 +399,6 @@ Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` 
 
 **Formule ROI** (calculée dans `computeRoi`) :
 ```
-netReturn            = netCapital + totalReturns − totalPurchases
-roiOnTotalPurchases  = netReturn / totalPurchases × 100
-roiOnCapitalEngaged  = netReturn / netCapital × 100
+roiOnTotalPurchases  = totalReturns / totalPurchases × 100
+roiOnCapitalEngaged  = totalReturns / netCapital × 100
 ```
