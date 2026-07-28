@@ -1,0 +1,65 @@
+@inject ILocalizationService L
+
+<MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:16px 20px;height:100%;display:flex;flex-direction:column;">
+    <MudText Style="font-size:18px;font-weight:600;color:#37352F;margin-bottom:16px;">
+        @L.Translate("Chart_BondSchedule")
+    </MudText>
+
+    @if (Items.Count == 0)
+    {
+        <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="min-height:300px;">
+            <MudText Typo="Typo.body2" Style="color:#787774;">@L.Translate("Empty_NoData")</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <div style="flex:1;min-height:0;">
+        <ApexChart TItem="BondScheduleDto" Options="_options">
+            <ApexPointSeries TItem="BondScheduleDto"
+                             Items="@Items"
+                             Name="@L.Translate("Chart_Series_BondSchedule")"
+                             SeriesType="SeriesType.Bar"
+                             XValue="@(e => e.Year.ToString())"
+                             YValue="@(e => e.Amount)" />
+        </ApexChart>
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<BondScheduleDto> Items { get; set; } = [];
+
+    private readonly ApexChartOptions<BondScheduleDto> _options = new()
+    {
+        Chart = new Chart
+        {
+            Background = "transparent",
+            Toolbar    = new Toolbar { Show = false },
+            Type       = ApexCharts.ChartType.Bar,
+            Height     = "100%"
+        },
+        Colors = ["#2383E2"],
+        PlotOptions = new PlotOptions
+        {
+            Bar = new PlotOptionsBar { ColumnWidth = "50%" }
+        },
+        Xaxis = new XAxis
+        {
+            Type   = XAxisType.Category,
+            Labels = new XAxisLabels
+            {
+                Style = new AxisLabelStyle { Colors = "#787774", FontSize = "12px" }
+            }
+        },
+        Yaxis = [new YAxis
+        {
+            Labels = new YAxisLabels
+            {
+                Formatter = "function(val) { return val.toLocaleString('fr-FR') + ' €'; }"
+            }
+        }],
+        Legend     = new Legend { Show = false },
+        Grid       = new Grid { BorderColor = "#E9E9E7" },
+        DataLabels = new DataLabels { Enabled = false }
+    };
+}

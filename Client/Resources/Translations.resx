@@ -85,7 +85,7 @@
   <!-- Navigation -->
   <data name="Nav_AppTitle"      xml:space="preserve"><value>Suivi des Investissements</value></data>
   <data name="Nav_Portfolio"     xml:space="preserve"><value>Portefeuille</value></data>
-  <data name="Nav_History"       xml:space="preserve"><value>Historique</value></data>
+  <data name="Nav_Suivi"         xml:space="preserve"><value>Suivi</value></data>
 
   <!-- Panels (titres donuts) -->
   <data name="Panel_AssetClass"  xml:space="preserve"><value>Classes d'actifs</value></data>
@@ -130,6 +130,8 @@
   <data name="Chart_Series_ROIC"         xml:space="preserve"><value>Portefeuille (ROIC)</value></data>
   <data name="Chart_Series_LifeStrategy" xml:space="preserve"><value>LifeStrategy 40</value></data>
   <data name="Chart_Series_MsciWorld"    xml:space="preserve"><value>MSCI World</value></data>
+  <data name="Chart_BondSchedule"        xml:space="preserve"><value>Échéancier de remboursement du capital obligataire (hors coupons)</value></data>
+  <data name="Chart_Series_BondSchedule" xml:space="preserve"><value>Montant à rembourser</value></data>
 
   <!-- Erreurs -->
   <data name="Error_PageNotFound"   xml:space="preserve"><value>Page non trouvée.</value></data>

@@ -6,9 +6,9 @@ using Moq;
 
 namespace InvestissementsDashboard.Client.Tests.ViewModels;
 
-public class HistoryViewModelTests
+public class SuiviViewModelTests
 {
-    private static HistoryViewModel CreateVm(Mock<IPortfolioService> mock)
+    private static SuiviViewModel CreateVm(Mock<IPortfolioService> mock)
     {
         var locMock = new Mock<ILocalizationService>();
         locMock.Setup(l => l.Translate(It.IsAny<string>())).Returns<string>(k => k);
@@ -20,6 +20,8 @@ public class HistoryViewModelTests
         var mock = new Mock<IPortfolioService>();
         mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(points);
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         return mock;
     }
 
@@ -124,5 +126,34 @@ public class HistoryViewModelTests
 
         Assert.Single(vm.ROIC_Series);
         Assert.Empty(vm.MsciWorldSeries);
+    }
+
+    // ── BondSchedule ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task InitializeAsync_PopulatesBondSchedule()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new BondScheduleDto(2027, 1000m), new BondScheduleDto(2030, 500m)]);
+        var vm = CreateVm(mock);
+
+        await vm.InitializeAsync();
+
+        Assert.Equal(2, vm.BondSchedule.Count);
+        Assert.Equal(2027, vm.BondSchedule[0].Year);
+        Assert.Equal(1000m, vm.BondSchedule[0].Amount);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenBondScheduleIsEmpty_LeavesBondScheduleEmpty()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        var vm   = CreateVm(mock);
+
+        await vm.InitializeAsync();
+
+        Assert.Empty(vm.BondSchedule);
+        Assert.Null(vm.ErrorMessage);
     }
 }

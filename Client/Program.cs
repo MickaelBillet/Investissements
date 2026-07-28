@@ -28,6 +28,6 @@ builder.Services.AddHttpClient<IPortfolioService, PortfolioService>(client =>
     client.BaseAddress = apiBase);
 
 builder.Services.AddScoped<DashboardViewModel>();
-builder.Services.AddScoped<HistoryViewModel>();
+builder.Services.AddScoped<SuiviViewModel>();
 
 await builder.Build().RunAsync();
