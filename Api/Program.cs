@@ -12,6 +12,7 @@ var host = new HostBuilder()
         services.AddScoped<ISnapshotService, SnapshotService>();
         services.AddScoped<IPortfolioMetricsService, PortfolioMetricsService>();
         services.AddScoped<IGeographyService, GeographyService>();
+        services.AddScoped<IBondScheduleService, BondScheduleService>();
         services.AddScoped<IMcpService, McpService>();
     })
     .Build();

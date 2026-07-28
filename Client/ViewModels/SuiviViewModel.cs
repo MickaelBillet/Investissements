@@ -1,9 +1,10 @@
 using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
+using InvestissementsDashboard.Shared.Models;
 
 namespace InvestissementsDashboard.Client.ViewModels;
 
-public class HistoryViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
+public class SuiviViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
 {
     public bool    IsLoading    { get; private set; } = true;
     public string? ErrorMessage { get; private set; }
@@ -11,6 +12,7 @@ public class HistoryViewModel(IPortfolioService portfolioService, ILocalizationS
     public IReadOnlyList<IndexedPoint> ROIC_Series { get; private set; } = [];
     public IReadOnlyList<IndexedPoint> LifeStrategySeries { get; private set; } = [];
     public IReadOnlyList<IndexedPoint> MsciWorldSeries    { get; private set; } = [];
+    public IReadOnlyList<BondScheduleDto> BondSchedule     { get; private set; } = [];
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -24,6 +26,7 @@ public class HistoryViewModel(IPortfolioService portfolioService, ILocalizationS
             ROIC_Series = [.. data.Select(p => new IndexedPoint(p.Date, p.ROIC))];
             LifeStrategySeries = [.. data.Where(p => p.LifeStrategy.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy!.Value))];
             MsciWorldSeries    = [.. data.Where(p => p.MsciWorld.HasValue).Select(p => new IndexedPoint(p.Date, p.MsciWorld!.Value))];
+            BondSchedule       = await portfolioService.GetBondScheduleAsync(ct);
         }
         catch (Exception ex)
         {

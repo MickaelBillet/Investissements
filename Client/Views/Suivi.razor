@@ -1,0 +1,35 @@
+@page "/suivi"
+@inject SuiviViewModel ViewModel
+
+<PageTitle>Suivi des Investissements</PageTitle>
+
+@if (ViewModel.IsLoading)
+{
+    <MudStack AlignItems="AlignItems.Center" Style="padding:64px 0;">
+        <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
+    </MudStack>
+}
+else if (ViewModel.ErrorMessage is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
+}
+else
+{
+    <MudStack Spacing="6">
+        <div style="height: calc(100vh - 180px);">
+            <HistoryChart ROIC_Series="@ViewModel.ROIC_Series"
+                          LifeStrategySeries="@ViewModel.LifeStrategySeries"
+                          MsciWorldSeries="@ViewModel.MsciWorldSeries" />
+        </div>
+        <div style="height: 400px;">
+            <BondScheduleChart Items="@ViewModel.BondSchedule" />
+        </div>
+    </MudStack>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.InitializeAsync();
+    }
+}

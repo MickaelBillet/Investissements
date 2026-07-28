@@ -35,8 +35,8 @@ Client/
 │                   ILocalizationService.cs, LocalizationService.cs
 ├── Shared/       → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor
-├── ViewModels/   → DashboardViewModel.cs, HistoryViewModel.cs
-├── Views/        → Dashboard.razor (/), History.razor (/historique)
+├── ViewModels/   → DashboardViewModel.cs, SuiviViewModel.cs
+├── Views/        → Dashboard.razor (/), Suivi.razor (/suivi)
 └── wwwroot/      → index.html, css/app.css, favicon
                      appsettings.json          (ApiBaseUrl vide — fallback sur BaseAddress en prod)
                      appsettings.Development.json  (ApiBaseUrl: http://localhost:7071/)
@@ -46,7 +46,7 @@ Client.Tests/
 ├── Extensions/   → DecimalExtensionsTests
 ├── Helpers/      → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + AddLocalizationMock)
 ├── Models/       → PanelStateTests
-└── ViewModels/   → DashboardViewModelTests, HistoryViewModelTests
+└── ViewModels/   → DashboardViewModelTests, SuiviViewModelTests
 ```
 
 ## 5. UI — Règles MudBlazor
@@ -168,7 +168,7 @@ Framework : xUnit + bUnit. Nommage : `[MethodName]_[Scenario]_[ExpectedResult]`.
 - `TestData` dans `Client.Tests/Helpers/` fournit les factories `Asset(...)`, `Snapshot(...)` et `PerformancePoint(...)`
 - `TestData.AddLocalizationMock(this IServiceCollection services)` — extension à appeler dans le constructeur de tout test de composant qui rend un composant injectant `ILocalizationService`. Le mock utilise `ResourceManager` sur les vraies ressources compilées → les assertions peuvent vérifier les chaînes françaises.
 - `DashboardViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>` (setup `Translate(key) → key`)
-- `HistoryViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
+- `SuiviViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
 - Les tests de composants héritent de `BunitContext` et appellent `Services.AddMudServices(...)` + `Services.AddLocalizationMock()`
 - Lancer les tests : `dotnet test Client.Tests`
 

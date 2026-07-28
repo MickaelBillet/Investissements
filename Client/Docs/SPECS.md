@@ -13,7 +13,7 @@ Le dashboard expose deux pages :
 | Route | Vue |
 |---|---|
 | `/` | Dashboard — état instantané du portefeuille |
-| `/historique` | Historique — évolution de la performance dans le temps |
+| `/suivi` | Suivi — évolution de la performance dans le temps et échéancier de remboursement obligataire |
 
 ---
 
@@ -113,7 +113,7 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 
 ---
 
-## 4. Vue historique (`/historique`)
+## 4. Vue Suivi (`/suivi`)
 
 Graphique en courbes (ApexCharts) représentant l'évolution de la performance, indexée à 100 à la date T0 (première entrée disponible). 4 séries :
 
