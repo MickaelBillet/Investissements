@@ -1,5 +1,6 @@
 using InvestissementsDashboard.Api.Services;
 using InvestissementsDashboard.Shared.Models;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -9,7 +10,7 @@ namespace InvestissementsDashboard.Api.Tests.Services;
 public class SnapshotServiceTests
 {
     private static SnapshotService CreateService(Mock<IAppsScriptService> mock)
-        => new(mock.Object, NullLogger<SnapshotService>.Instance);
+        => new(mock.Object, new MemoryCache(new MemoryCacheOptions()), NullLogger<SnapshotService>.Instance);
 
     [Fact]
     public async Task GetLastAsync_WhenAppsScriptReturnsSnapshot_ReturnsIt()
@@ -36,6 +37,21 @@ public class SnapshotServiceTests
         var result = await CreateService(mock).GetLastAsync();
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetLastAsync_CalledTwiceWithinTtl_CallsAppsScriptOnce()
+    {
+        var expected = new SnapshotDto(new DateOnly(2026, 5, 2), 72000m, 41m, 81m, 60000m, 76000m, 1000m);
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<SnapshotDto>("Snapshot", "getLast", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var service = CreateService(mock);
+        await service.GetLastAsync();
+        await service.GetLastAsync();
+
+        mock.Verify(s => s.CallAsync<SnapshotDto>("Snapshot", "getLast", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
