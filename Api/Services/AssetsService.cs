@@ -1,10 +1,15 @@
 using InvestissementsDashboard.Shared.Models;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace InvestissementsDashboard.Api.Services;
 
 internal sealed class AssetsService : IAssetsService
 {
+    private const string AssetsCacheKey = "assets:getAll";
+    private static readonly TimeSpan AssetsCacheTtl = TimeSpan.FromSeconds(30);
+    private static readonly SemaphoreSlim AssetsCacheLock = new(1, 1);
+
     private static readonly Dictionary<string, string> DimensionServices = new(StringComparer.OrdinalIgnoreCase)
     {
         ["assetClass"]  = "AssetClass",
@@ -14,22 +19,42 @@ internal sealed class AssetsService : IAssetsService
     };
 
     private readonly IAppsScriptService _appsScript;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<AssetsService> _logger;
 
-    public AssetsService(IAppsScriptService appsScript, ILogger<AssetsService> logger)
+    public AssetsService(IAppsScriptService appsScript, IMemoryCache cache, ILogger<AssetsService> logger)
     {
         _appsScript = appsScript;
+        _cache      = cache;
         _logger     = logger;
     }
 
+    // Single-flight cache: avoids the dashboard's concurrent widgets each triggering
+    // their own full-sheet Apps Script scan and overloading the Web App under contention.
     public async Task<IReadOnlyList<AssetDto>> GetAllAsync(CancellationToken ct = default)
     {
-        var result = await _appsScript.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", ct);
+        if (_cache.TryGetValue(AssetsCacheKey, out IReadOnlyList<AssetDto>? cached) && cached is not null)
+            return cached;
 
-        if (result is null || result.Count == 0)
-            _logger.LogWarning("Apps Script returned no assets.");
+        await AssetsCacheLock.WaitAsync(ct);
+        try
+        {
+            if (_cache.TryGetValue(AssetsCacheKey, out cached) && cached is not null)
+                return cached;
 
-        return result ?? [];
+            var result = await _appsScript.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", ct);
+
+            if (result is null || result.Count == 0)
+                _logger.LogWarning("Apps Script returned no assets.");
+
+            result ??= [];
+            _cache.Set(AssetsCacheKey, result, AssetsCacheTtl);
+            return result;
+        }
+        finally
+        {
+            AssetsCacheLock.Release();
+        }
     }
 
     public async Task<IReadOnlyList<DistributionDto>> GetDistributionByDimensionAsync(string dimension, CancellationToken ct = default)

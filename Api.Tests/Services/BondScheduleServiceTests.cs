@@ -16,9 +16,9 @@ public class BondScheduleServiceTests
         return mock;
     }
 
-    private static AssetDto Asset(string information, decimal? totalPurchases, decimal? faceValue = null) =>
+    private static AssetDto Asset(string information, decimal? totalPurchases) =>
         new(1, "Test", "Bonds", "CTO", "CTO TR", "MarketBonds", "", information, "", 2,
-            totalPurchases, null, null, totalPurchases, null, null, null, 0m, faceValue);
+            totalPurchases, null, null, totalPurchases, null, null, null, 0m);
 
     // ── ExtractYear ────────────────────────────────────────────────────────────
 
@@ -65,26 +65,6 @@ public class BondScheduleServiceTests
     }
 
     [Fact]
-    public async Task GetScheduleAsync_FaceValueSet_TakesPriorityOverTotalPurchases()
-    {
-        var svc = CreateService(MockAssets(Asset("échéance 2027", totalPurchases: 1000m, faceValue: 1500m)));
-
-        var result = await svc.GetScheduleAsync();
-
-        Assert.Equal(1500m, result[0].Amount);
-    }
-
-    [Fact]
-    public async Task GetScheduleAsync_FaceValueEmpty_FallsBackToTotalPurchases()
-    {
-        var svc = CreateService(MockAssets(Asset("échéance 2027", totalPurchases: 1000m, faceValue: null)));
-
-        var result = await svc.GetScheduleAsync();
-
-        Assert.Equal(1000m, result[0].Amount);
-    }
-
-    [Fact]
     public async Task GetScheduleAsync_TwoBondsSameYear_AmountsAreSummed()
     {
         var svc = CreateService(MockAssets(
@@ -95,16 +75,6 @@ public class BondScheduleServiceTests
 
         Assert.Single(result);
         Assert.Equal(1500m, result[0].Amount);
-    }
-
-    [Fact]
-    public async Task GetScheduleAsync_FaceValueAndTotalPurchasesBothNull_IsExcludedWithoutThrowing()
-    {
-        var svc = CreateService(MockAssets(Asset("échéance 2027", totalPurchases: null, faceValue: null)));
-
-        var result = await svc.GetScheduleAsync();
-
-        Assert.Empty(result);
     }
 
     [Fact]

@@ -18,6 +18,5 @@ public record AssetDto(
     decimal? UnrealizedGain,
     decimal? Yield,
     decimal? Roi,
-    decimal WeightInPortfolio,
-    decimal? FaceValue = null
+    decimal WeightInPortfolio
 );

@@ -14,3 +14,9 @@ local.settings.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Azurite (émulateur de stockage local)
+__azurite_db_*__.json
+__blobstorage__/
+__queuestorage__/
+__tablestorage__/
