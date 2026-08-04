@@ -1,5 +1,6 @@
 using InvestissementsDashboard.Api.Services;
 using InvestissementsDashboard.Shared.Models;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -9,7 +10,7 @@ namespace InvestissementsDashboard.Api.Tests.Services;
 public class AssetsServiceTests
 {
     private static AssetsService CreateService(Mock<IAppsScriptService> mock)
-        => new(mock.Object, NullLogger<AssetsService>.Instance);
+        => new(mock.Object, new MemoryCache(new MemoryCacheOptions()), NullLogger<AssetsService>.Instance);
 
     [Fact]
     public async Task GetAllAsync_WhenAppsScriptReturnsAssets_ReturnsThem()
@@ -42,6 +43,25 @@ public class AssetsServiceTests
         var result = await CreateService(mock).GetAllAsync();
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_CalledTwiceWithinTtl_CallsAppsScriptOnce()
+    {
+        var expected = new[]
+        {
+            new AssetDto(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 4,
+                5000m, 0m, 0m, 6000m, 1000m, 0m, 20m, 60m)
+        };
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var service = CreateService(mock);
+        await service.GetAllAsync();
+        await service.GetAllAsync();
+
+        mock.Verify(s => s.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

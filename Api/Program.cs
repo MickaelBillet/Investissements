@@ -8,6 +8,7 @@ var host = new HostBuilder()
     .ConfigureServices(services =>
     {
         services.AddHttpClient<IAppsScriptService, AppsScriptService>();
+        services.AddMemoryCache();
         services.AddScoped<IAssetsService, AssetsService>();
         services.AddScoped<ISnapshotService, SnapshotService>();
         services.AddScoped<IPortfolioMetricsService, PortfolioMetricsService>();
