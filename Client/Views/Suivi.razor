@@ -1,5 +1,6 @@
 @page "/suivi"
 @inject SuiviViewModel ViewModel
+@inject ILocalizationService L
 
 <PageTitle>Suivi des Investissements</PageTitle>
 
@@ -15,16 +16,20 @@ else if (ViewModel.ErrorMessage is not null)
 }
 else
 {
-    <MudStack Spacing="6">
-        <div style="height: calc(100vh - 180px);">
-            <HistoryChart ROIC_Series="@ViewModel.ROIC_Series"
-                          LifeStrategySeries="@ViewModel.LifeStrategySeries"
-                          MsciWorldSeries="@ViewModel.MsciWorldSeries" />
-        </div>
-        <div style="height: 400px;">
-            <BondScheduleChart Items="@ViewModel.BondSchedule" />
-        </div>
-    </MudStack>
+    <MudTabs Rounded="true" ApplyEffectsToContainer="true">
+        <MudTabPanel Text="@L.Translate("Suivi_Tab_History")">
+            <div style="height: calc(100vh - 230px);">
+                <HistoryChart ROIC_Series="@ViewModel.ROIC_Series"
+                              LifeStrategySeries="@ViewModel.LifeStrategySeries"
+                              MsciWorldSeries="@ViewModel.MsciWorldSeries" />
+            </div>
+        </MudTabPanel>
+        <MudTabPanel Text="@L.Translate("Suivi_Tab_BondSchedule")">
+            <div style="height: calc(100vh - 230px);">
+                <BondScheduleChart Items="@ViewModel.BondSchedule" />
+            </div>
+        </MudTabPanel>
+    </MudTabs>
 }
 
 @code {
