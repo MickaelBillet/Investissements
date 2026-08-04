@@ -73,6 +73,10 @@ SRS_23 Les sélections zone géographique et secteur économique sont mutuelleme
 
 SRS_19 En mode Master-Detail (drill-down actif), le graphique à secteurs occupe la partie gauche de la vue et le tableau de données (distribution ou actifs selon le niveau) occupe la partie droite en mode côte à côte
 
-#### Vue historique
+#### Vue Suivi
 
 SRS_11 Afficher un graphique en courbe représentant l’évolution de la performance du portefeuille dans le temps, comparée aux références LifeStrategy 40 et MSCI World. Les 3 courbes sont indexées à une base commune à la date T0 (première date disponible dans l’historique) afin de permettre une comparaison relative de la performance.
+
+SRS_24 Afficher un graphique en barres représentant le capital obligataire à percevoir par année d’échéance (hors coupons), agrégé depuis les actifs dont le champ `information` contient une année d'échéance.
+
+SRS_25 La vue Suivi présente le graphique de performance (SRS_11) et l'échéancier obligataire (SRS_24) sous forme de 2 onglets, chacun occupant toute la hauteur disponible, plutôt qu'empilés verticalement avec défilement.

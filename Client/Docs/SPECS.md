@@ -1,8 +1,8 @@
 # SPECS.md — Client (Blazor WASM)
 
 **Statut :** Implémenté  
-**Version :** 1.4  
-**Date :** 2026-05-22
+**Version :** 1.5  
+**Date :** 2026-08-04
 
 ---
 
@@ -115,16 +115,25 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 
 ## 4. Vue Suivi (`/suivi`)
 
-Graphique en courbes (ApexCharts) représentant l'évolution de la performance, indexée à 100 à la date T0 (première entrée disponible). 4 séries :
+La vue présente 2 onglets (`MudTabs`/`MudTabPanel`), chacun occupant toute la hauteur disponible sans scroll — plutôt qu'un empilement vertical des deux graphiques.
+
+### 4.1 Onglet "Performance"
+
+Graphique en courbes (ApexCharts, `HistoryChart.razor`) représentant l'évolution de la performance, indexée à 100 à la date T0 (première entrée disponible). 3 séries :
 
 | Série | Calcul | Masquée si |
 |---|---|---|
-| Portefeuille (ROI) | `(NetCapital + TotalReturns) / TotalPurchases`, normalisé base 100 | jamais |
 | Portefeuille (ROIC) | `(NetCapital + TotalReturns) / NetCapital`, normalisé base 100 | jamais |
 | LifeStrategy 40 | prix unitaire / prix T0 × 100 | `LifeStrategy` absent sur un point |
 | MSCI World | prix unitaire / prix T0 × 100 | `MsciWorld` absent sur un point |
 
-Les données sont fournies par `GET /api/portfolio/metrics/history` (`PerformancePointDto[]`), déjà normalisées base 100 par l'Api. Seuls les snapshots avec `NetCapital > 0` et `TotalPurchases > 0` sont inclus dans le calcul.
+Les données sont fournies par `GET /api/portfolio/metrics/history` (`PerformancePointDto[]`), déjà normalisées base 100 par l'Api. Seuls les snapshots avec `NetCapital > 0`, `LifeStrategy` et `MsciWorld` renseignés sont inclus dans le calcul.
+
+### 4.2 Onglet "Échéancier"
+
+Graphique en barres (ApexCharts, `BondScheduleChart.razor`) représentant le capital obligataire à percevoir par année d'échéance (hors coupons).
+
+Les données sont fournies par `GET /api/assets/bondschedule` (`BondScheduleDto[]`), déjà agrégées par année par l'Api — voir `Api/Docs/SPECS.md` §2.5 pour la logique de calcul.
 
 ---
 

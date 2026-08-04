@@ -34,7 +34,7 @@ Client/
 ├── Services/     → IPortfolioService.cs, PortfolioService.cs,
 │                   ILocalizationService.cs, LocalizationService.cs
 ├── Shared/       → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
-│                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor
+│                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor
 ├── ViewModels/   → DashboardViewModel.cs, SuiviViewModel.cs
 ├── Views/        → Dashboard.razor (/), Suivi.razor (/suivi)
 └── wwwroot/      → index.html, css/app.css, favicon
@@ -56,6 +56,7 @@ Client.Tests/
 - Toujours `MudText`, `MudStack`, `MudPaper` plutôt que div/p/span bruts
 - Icônes : `Icons.Material.Outlined.*` (pas de FontAwesome ni autre lib)
 - Toujours qualifier `MudBlazor.Size.*` (jamais `Size.*` seul) — ambiguïté avec `ApexCharts.Size`
+- Onglets : `MudTabs`/`MudTabPanel` — utilisé sur la page Suivi (`/suivi`) pour que chaque graphique occupe toute la hauteur disponible sans scroll, plutôt qu'un empilement vertical
 
 ## 6. Palette de couleurs
 
