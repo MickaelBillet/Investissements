@@ -29,6 +29,7 @@ Api/
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
 │   ├── AssetsFunction.cs
+│   ├── BondScheduleFunction.cs
 │   ├── GeographyFunction.cs
 │   ├── McpFunction.cs             # Endpoint MCP POST /api/mcp
 │   ├── PortfolioMetricsFunction.cs
@@ -36,6 +37,7 @@ Api/
 ├── Interfaces/                 # Interfaces des services
 │   ├── IAppsScriptService.cs
 │   ├── IAssetsService.cs
+│   ├── IBondScheduleService.cs
 │   ├── IGeographyService.cs
 │   ├── IPortfolioMetricsService.cs
 │   ├── ISnapshotService.cs
@@ -49,6 +51,7 @@ Api/
 ├── Services/
 │   ├── AppsScriptService.cs
 │   ├── AssetsService.cs
+│   ├── BondScheduleService.cs
 │   ├── GeographyService.cs
 │   ├── PortfolioMetricsService.cs
 │   ├── SnapshotService.cs
@@ -120,6 +123,8 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/assets/etfstocks/information` | Apps Script `AssetType.getEtfStocksByInformation` |
 | GET | `/api/assets/etfstocks/information/{information}` | Apps Script `AssetType.getByAssetTypeAndInformation` |
 | GET | `/api/portfolio/metrics` | Compose `AssetsService` + `SnapshotService` |
+| GET | `/api/portfolio/metrics/history` | `PortfolioMetricsService.GetIndexedHistoryAsync` — Apps Script `Snapshot.getHistory`, normalisé base 100 |
+| GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège `Asset.getAll` par année extraite du champ `information` |
 | GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis `Asset.getAll` |
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
 
@@ -154,7 +159,23 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`
 
 ---
 
-## 8. Règles d'implémentation
+## 8. Cache — pattern single-flight
+
+Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.WhenAll` côté Client), et certains appels Apps Script identiques sont ainsi redemandés simultanément par plusieurs services :
+- `Asset.getAll` : `AssetsFunction`, `GeographyService` (×2, Stocks/Bonds), `PortfolioMetricsService`, `BondScheduleService`
+- `Snapshot.getLast` : `SnapshotFunction`, `PortfolioMetricsService`
+
+Sans protection, ça multiplie les appels identiques vers Apps Script et peut saturer le Web App sous contention (erreurs 404 intermittentes observées en local). `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` appliquent donc un cache single-flight :
+
+- `IMemoryCache` (enregistré via `services.AddMemoryCache()` dans `Program.cs`), TTL 30s — largement suffisant car les données ne changent qu'une fois par jour (`snapshotQuotidien` à 6h côté Apps Script)
+- Vérification rapide sans verrou (chemin pris par la quasi-totalité des appels)
+- Si cache vide : `SemaphoreSlim` statique dédié à la clé de cache + double-checked locking, pour qu'une seule requête concurrente déclenche l'appel réel à Apps Script
+
+À reproduire pour tout nouvel appel Apps Script partagé par plusieurs services invoqués en parallèle.
+
+---
+
+## 9. Règles d'implémentation
 
 - Un fichier par Function dans `Functions/`
 - Logger les erreurs avant de retourner un 500 ou 502 (`HttpRequestException` → 502, autres → 500)
@@ -165,7 +186,7 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`
 
 ---
 
-## 9. Git — Règle absolue
+## 10. Git — Règle absolue
 
 **Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
 

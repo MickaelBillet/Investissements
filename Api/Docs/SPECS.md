@@ -1,14 +1,16 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 1.3  
-**Date :** 2026-06-04
+**Version :** 1.4  
+**Date :** 2026-08-04
 
 ---
 
 ## 1. Vue d'ensemble
 
-L'Api expose 8 endpoints REST en lecture seule et 1 endpoint MCP. Les endpoints REST délèguent à l'Apps Script Web App via `IAppsScriptService` (sauf `PortfolioMetricsFunction` qui compose plusieurs services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
+L'Api expose 10 endpoints REST en lecture seule et 1 endpoint MCP. Les endpoints REST délèguent à l'Apps Script Web App via `IAppsScriptService` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis d'autres services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
+
+`AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` sont mis en cache (single-flight, TTL 30s) — voir `Api/Docs/CLAUDE.md` §8.
 
 **Base URL (local)** : `http://localhost:7071`  
 **Base URL (prod)** : interne au Static Web Apps
@@ -116,7 +118,29 @@ Même structure que `GET /api/assets`.
 
 ---
 
-### 2.5 `GET /api/portfolio/metrics`
+### 2.5 `GET /api/assets/bondschedule`
+
+Retourne le capital obligataire à percevoir par année d'échéance (hors coupons), agrégé depuis tous les actifs.
+
+**Réponse** : `BondScheduleDto[]`
+
+```json
+[
+  { "year": 2027, "amount": 3941.00 },
+  { "year": 2029, "amount": 5200.00 }
+]
+```
+
+**Logique de calcul (`BondScheduleService`) :**
+- Pour chaque actif, extrait une année à 4 chiffres isolée (`20\d{2}`) dans le champ `information` (ex. "Obligation Renault, échéance 2027")
+- Additionne `currentTotal` des actifs partageant la même année
+- **Aucun filtre par `assetClass`** — tout actif dont `information` contient une année isolée est inclus, pas seulement `AssetClass = Bonds`
+- Actifs sans année détectée ou sans `currentTotal` exclus
+- Résultats triés par année croissante
+
+---
+
+### 2.6 `GET /api/portfolio/metrics`
 
 Retourne les métriques agrégées du portefeuille calculées côté API.
 
@@ -143,7 +167,28 @@ AverageRisk         = Σ(risk_i × currentTotal_i) / Σ(currentTotal_i)  [actifs
 
 ---
 
-### 2.6 `GET /api/snapshot`
+### 2.7 `GET /api/portfolio/metrics/history`
+
+Retourne l'historique de performance du portefeuille, indexé à une base commune 100 à la date T0 (première entrée disponible).
+
+**Réponse** : `PerformancePointDto[]`
+
+```json
+[
+  { "date": "2026-05-01", "roic": 100.00, "lifeStrategy": 100.00, "msciWorld": 100.00 },
+  { "date": "2026-05-08", "roic": 103.20, "lifeStrategy": 101.10, "msciWorld": 104.50 }
+]
+```
+
+**Notes :**
+- Source : `SnapshotService.GetHistoryAsync` (`Snapshot.getHistory`)
+- Seuls les snapshots avec `NetCapital > 0`, `LifeStrategy` et `MsciWorld` renseignés sont inclus
+- `roic` = `(NetCapital + TotalReturns) / NetCapital`, normalisé base 100 sur T0
+- `lifeStrategy` / `msciWorld` : prix unitaire / prix T0 × 100 ; `null` si absent sur un point
+
+---
+
+### 2.8 `GET /api/snapshot`
 
 Retourne le dernier snapshot du portefeuille.
 
@@ -166,7 +211,7 @@ Retourne le dernier snapshot du portefeuille.
 
 ---
 
-### 2.7 `GET /api/snapshot/history`
+### 2.9 `GET /api/snapshot/history`
 
 Retourne l'historique complet des snapshots en ordre chronologique ascendant.
 
@@ -176,7 +221,7 @@ Même structure que `GET /api/snapshot`.
 
 ---
 
-### 2.8 `GET /api/portfolio/geography/{assetClass}`
+### 2.10 `GET /api/portfolio/geography/{assetClass}`
 
 Retourne la répartition géographique pondérée pour une classe d'actifs.
 
@@ -203,7 +248,7 @@ Retourne la répartition géographique pondérée pour une classe d'actifs.
 
 ---
 
-### 2.9 `POST /api/mcp`
+### 2.11 `POST /api/mcp`
 
 Endpoint MCP (Model Context Protocol) — JSON-RPC 2.0. Permet à Claude Code d'interroger le portefeuille en temps réel.
 
@@ -328,6 +373,8 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `DistributionDto` | `Shared/Models/DistributionDto.cs` | id?, name, currentTotal, weightInPortfolio |
 | `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, netCapital, lifeStrategy?, msciWorld?, totalPurchases, totalReturns, totalSales? |
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnCapitalEngaged?, averageRisk? |
+| `PerformancePointDto` | `Shared/Models/PerformancePointDto.cs` | date, roic, lifeStrategy?, msciWorld? |
+| `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, amount |
 
 > Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.
 
