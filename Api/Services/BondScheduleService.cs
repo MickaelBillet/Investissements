@@ -16,7 +16,7 @@ internal sealed partial class BondScheduleService(IAssetsService assetsService) 
             var year = ExtractYear(asset.Information);
             if (year is null) continue;
 
-            var amount = asset.FaceValue ?? asset.TotalPurchases;
+            var amount = asset.CurrentTotal;
             if (amount is null) continue;
 
             yearMap.TryAdd(year.Value, 0m);

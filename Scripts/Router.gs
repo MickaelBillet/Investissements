@@ -130,7 +130,6 @@ function buildAssetRow(row) {
   const totalSales     = row[COL_TOTAL_SALES];
   const dividends      = row[COL_DIVIDENDS];
   const currentTotal   = row[COL_CURRENT_TOTAL];
-  const faceValue      = row[COL_FACE_VALUE];
 
   // hasFinancialData: purchases/sales data is available (not ND)
   const hasFinancialData = totalPurchases && totalPurchases !== "ND"
@@ -160,7 +159,6 @@ function buildAssetRow(row) {
     totalSales    : hasFinancialData ? ts   : null,
     dividends     : hasFinancialData ? div  : null,
     currentTotal  : ct,
-    faceValue     : typeof faceValue === 'number' ? faceValue : null,
     unrealizedGain: hasFinancialData && hasCurrent && netInvested !== 0
       ? ct - netInvested
       : null,

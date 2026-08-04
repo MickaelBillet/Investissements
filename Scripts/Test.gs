@@ -89,11 +89,6 @@ function testDoGetAllAsset() {
   const result = doGet(e);
   const content = result.getContent();
   Logger.log(content);
-
-  // faceValue must be present on every asset (number or null)
-  const assets = JSON.parse(content);
-  const missing = assets.filter(a => !("faceValue" in a));
-  Logger.log("assets missing faceValue: " + missing.length);
 }
 
 function testDoGetAllSector() {
