@@ -32,18 +32,36 @@ internal sealed class PortfolioMetricsService(IAssetsService assetsService, ISna
 
         if (complete.Count == 0) return [];
 
-        var t0           = complete[0];
-        var t0RoicFactor = RoicFactor(t0);
+        var t0 = complete[0];
+        var points = new List<PerformancePointDto>(complete.Count)
+        {
+            new(t0.Date, 100m, 100m, 100m)
+        };
 
-        return [.. complete.Select(s => new PerformancePointDto(
-            s.Date,
-            ROIC          : RoicFactor(s) / t0RoicFactor * 100m,
-            LifeStrategy  : s.LifeStrategy!.Value / t0.LifeStrategy!.Value * 100m,
-            MsciWorld     : s.MsciWorld!.Value      / t0.MsciWorld!.Value      * 100m))];
+        var roicIndex     = 100m;
+        var previous      = t0;
+        var previousValue = t0.NetCapital + t0.TotalReturns;
+
+        foreach (var s in complete.Skip(1))
+        {
+            var value       = s.NetCapital + s.TotalReturns;
+            var cashFlow    = s.NetCapital - previous.NetCapital;
+            var dailyReturn = previousValue == 0m ? 0m : (value - previousValue - cashFlow) / previousValue;
+
+            roicIndex *= 1 + dailyReturn;
+
+            points.Add(new PerformancePointDto(
+                s.Date,
+                ROIC          : roicIndex,
+                LifeStrategy  : s.LifeStrategy!.Value / t0.LifeStrategy!.Value * 100m,
+                MsciWorld     : s.MsciWorld!.Value      / t0.MsciWorld!.Value      * 100m));
+
+            previous      = s;
+            previousValue = value;
+        }
+
+        return points;
     }
-
-    private static decimal RoicFactor(SnapshotDto s) =>
-        (s.NetCapital + s.TotalReturns) / s.NetCapital;
 
     // ROIC (Capital Engagé) = TotalReturns / NetCapital × 100
     private static decimal? ComputeRoiOnCapitalEngaged(SnapshotDto? snapshot)

@@ -32,6 +32,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((PortfolioMetricsDto?)null);
         mock.Setup(s => s.GetSnapshotHistoryAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<SnapshotDto>)[]);
+        mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         return mock;
@@ -45,6 +47,8 @@ public class DashboardViewModelTests
         mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(metrics);
         mock.Setup(s => s.GetSnapshotHistoryAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<SnapshotDto>)[]);
+        mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         return mock;
@@ -57,6 +61,22 @@ public class DashboardViewModelTests
         mock.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>())).ReturnsAsync((SnapshotDto?)null);
         mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>())).ReturnsAsync((PortfolioMetricsDto?)null);
         mock.Setup(s => s.GetSnapshotHistoryAsync(It.IsAny<CancellationToken>())).ReturnsAsync(history);
+        mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
+        mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        return mock;
+    }
+
+    private static Mock<IPortfolioService> MockWithPerformanceHistory(params PerformancePointDto[] history)
+    {
+        var mock = new Mock<IPortfolioService>();
+        mock.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        mock.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>())).ReturnsAsync((SnapshotDto?)null);
+        mock.Setup(s => s.GetMetricsAsync(It.IsAny<CancellationToken>())).ReturnsAsync((PortfolioMetricsDto?)null);
+        mock.Setup(s => s.GetSnapshotHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<SnapshotDto>)[]);
+        mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>())).ReturnsAsync(history);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         return mock;
@@ -509,30 +529,24 @@ public class DashboardViewModelTests
     // ── DailyROICapitalEngagedVariation / WeeklyROITotalPurchasesVariation ──────
 
     [Fact]
-    public async Task DailyROICapitalEngagedVariation_WhenTwoEntries_ReturnsRelativeChange()
+    public async Task DailyROICapitalEngagedVariation_WhenTwoEntries_ReturnsRoicChange()
     {
-        // ROI_CE hier = 1_000 / 50_000 * 100 = 2 %
-        // ROI_CE today = 1_100 / 52_000 * 100 ≈ 2,1154 %
-        // variation relative = (2,1154 - 2) / |2| * 100 ≈ 5,77 %
-        var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 19), netCapital: 50_000m, totalReturns: 1_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m, totalReturns: 1_100m));
+        // (103.20 - 100.00) / 100.00 * 100 = 3.20 %
+        var mock = MockWithPerformanceHistory(
+            new PerformancePointDto(new DateOnly(2026, 5, 19), 100.00m, null, null),
+            new PerformancePointDto(new DateOnly(2026, 5, 20), 103.20m, null, null));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
-        var roiRef  = 1_000m / 50_000m * 100m;
-        var roiLast = 1_100m / 52_000m * 100m;
-        var expected = (roiLast - roiRef) / Math.Abs(roiRef) * 100m;
-        Assert.Equal(expected, vm.DailyROICapitalEngagedVariation);
+        Assert.Equal(3.20m, vm.DailyROICapitalEngagedVariation);
     }
 
     [Fact]
-    public async Task DailyROICapitalEngagedVariation_WhenReferenceROIIsZero_ReturnsNull()
+    public async Task DailyROICapitalEngagedVariation_WhenReferenceRoicIsZero_ReturnsNull()
     {
-        // ROI_ref = 0 → division par zéro → null
-        var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 19), netCapital: 50_000m, totalReturns: 0m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m, totalReturns: 1_000m));
+        var mock = MockWithPerformanceHistory(
+            new PerformancePointDto(new DateOnly(2026, 5, 19), 0m, null, null),
+            new PerformancePointDto(new DateOnly(2026, 5, 20), 103.20m, null, null));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -540,15 +554,12 @@ public class DashboardViewModelTests
     }
 
     [Fact]
-    public async Task WeeklyROICapitalEngagedVariation_WhenEntryExactlySevenDaysBack_ReturnsRelativeChange()
+    public async Task WeeklyROICapitalEngagedVariation_WhenEntryExactlySevenDaysBack_ReturnsRoicChange()
     {
-        // ref (13 mai) : ROI = 1_000 / 50_000 * 100 = 2 %
-        // today (20 mai) : ROI = 1_040 / 52_000 * 100 = 2 %
-        // variation relative = (2 - 2) / 2 * 100 = 0 %
-        var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 5, 13), netCapital: 50_000m, totalReturns: 1_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 17), netCapital: 51_000m, totalReturns: 1_020m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 52_000m, totalReturns: 1_040m));
+        var mock = MockWithPerformanceHistory(
+            new PerformancePointDto(new DateOnly(2026, 5, 13), 100.00m, null, null),
+            new PerformancePointDto(new DateOnly(2026, 5, 17), 101.50m, null, null),
+            new PerformancePointDto(new DateOnly(2026, 5, 20), 100.00m, null, null));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
@@ -702,14 +713,13 @@ public class DashboardViewModelTests
     [Fact]
     public async Task YtdROICapitalEngagedVariation_UsesFirstSnapshotOfCurrentYear()
     {
-        var mock = MockWithHistory(
-            TestData.Snapshot(date: new DateOnly(2026, 1,  2), netCapital: 50_000m, totalReturns: 1_000m),
-            TestData.Snapshot(date: new DateOnly(2026, 5, 20), netCapital: 50_000m, totalReturns: 1_500m));
+        var mock = MockWithPerformanceHistory(
+            new PerformancePointDto(new DateOnly(2026, 1,  2), 100.00m, null, null),
+            new PerformancePointDto(new DateOnly(2026, 5, 20), 150.00m, null, null));
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
-        // ROI_ref = 1_000 / 50_000 * 100 = 2 % ; ROI_last = 1_500 / 50_000 * 100 = 3 %
-        // variation relative = (3 - 2) / 2 * 100 = 50 %
+        // (150.00 - 100.00) / 100.00 * 100 = 50 %
         Assert.Equal(50m, vm.YtdROICapitalEngagedVariation);
     }
 }

@@ -11,6 +11,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     private IReadOnlyList<DistributionDto> _geoBonds         = [];
     private PortfolioMetricsDto?           _metrics;
     private IReadOnlyList<SnapshotDto>     _snapshotHistory  = [];
+    private IReadOnlyList<PerformancePointDto> _performanceHistory = [];
 
     public SnapshotDto? LastSnapshot  { get; private set; }
     public bool         IsLoading     { get; private set; } = true;
@@ -31,11 +32,11 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     public decimal? YtdVariationPercent                  => ComputeVariation(_snapshotHistory, RefYearStart);
     public decimal? YearlyVariationPercent               => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 365));
 
-    public decimal? DailyROICapitalEngagedVariation      => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 1),   RoiOnCapitalEngagedOf);
-    public decimal? WeeklyROICapitalEngagedVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 7),   RoiOnCapitalEngagedOf);
-    public decimal? MonthlyROICapitalEngagedVariation    => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 30),  RoiOnCapitalEngagedOf);
-    public decimal? YtdROICapitalEngagedVariation        => ComputeROIVariation(_snapshotHistory, RefYearStart,             RoiOnCapitalEngagedOf);
-    public decimal? YearlyROICapitalEngagedVariation     => ComputeROIVariation(_snapshotHistory, h => RefDaysBack(h, 365), RoiOnCapitalEngagedOf);
+    public decimal? DailyROICapitalEngagedVariation      => ComputePerformanceVariation(_performanceHistory, h => RefDaysBack(h, 1));
+    public decimal? WeeklyROICapitalEngagedVariation     => ComputePerformanceVariation(_performanceHistory, h => RefDaysBack(h, 7));
+    public decimal? MonthlyROICapitalEngagedVariation    => ComputePerformanceVariation(_performanceHistory, h => RefDaysBack(h, 30));
+    public decimal? YtdROICapitalEngagedVariation        => ComputePerformanceVariation(_performanceHistory, RefYearStart);
+    public decimal? YearlyROICapitalEngagedVariation     => ComputePerformanceVariation(_performanceHistory, h => RefDaysBack(h, 365));
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -49,19 +50,21 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
                 t.ContinueWith(r => r.IsCompletedSuccessfully ? r.Result : (IReadOnlyList<DistributionDto>)[],
                                TaskScheduler.Default);
 
-            var assetsTask    = portfolioService.GetAssetsAsync(ct);
-            var snapshotTask  = portfolioService.GetLastSnapshotAsync(ct);
-            var metricsTask   = portfolioService.GetMetricsAsync(ct);
-            var historyTask   = portfolioService.GetSnapshotHistoryAsync(ct);
-            var geoStocksTask = SafeGeo(portfolioService.GetGeographyDistributionAsync("Stocks", ct));
-            var geoBondsTask  = SafeGeo(portfolioService.GetGeographyDistributionAsync("Bonds", ct));
-            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, historyTask, geoStocksTask, geoBondsTask);
-            _assets          = await assetsTask;
-            LastSnapshot     = await snapshotTask;
-            _metrics         = await metricsTask;
-            _snapshotHistory = await historyTask;
-            _geoStocks       = await geoStocksTask;
-            _geoBonds        = await geoBondsTask;
+            var assetsTask      = portfolioService.GetAssetsAsync(ct);
+            var snapshotTask    = portfolioService.GetLastSnapshotAsync(ct);
+            var metricsTask     = portfolioService.GetMetricsAsync(ct);
+            var historyTask     = portfolioService.GetSnapshotHistoryAsync(ct);
+            var performanceTask = portfolioService.GetIndexedHistoryAsync(ct);
+            var geoStocksTask   = SafeGeo(portfolioService.GetGeographyDistributionAsync("Stocks", ct));
+            var geoBondsTask    = SafeGeo(portfolioService.GetGeographyDistributionAsync("Bonds", ct));
+            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, historyTask, performanceTask, geoStocksTask, geoBondsTask);
+            _assets             = await assetsTask;
+            LastSnapshot        = await snapshotTask;
+            _metrics            = await metricsTask;
+            _snapshotHistory    = await historyTask;
+            _performanceHistory = await performanceTask;
+            _geoStocks          = await geoStocksTask;
+            _geoBonds           = await geoBondsTask;
         }
         catch (Exception ex)
         {
@@ -221,9 +224,6 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     private static SnapshotDto? RefYearStart(IReadOnlyList<SnapshotDto> history) =>
         history.FirstOrDefault(s => s.Date.Year == history[^1].Date.Year);
 
-    private static decimal? RoiOnCapitalEngagedOf(SnapshotDto s) =>
-        s.NetCapital > 0 ? s.TotalReturns / s.NetCapital * 100m : null;
-
     private static decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf)
     {
         if (history.Count < 2) return null;
@@ -233,16 +233,25 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         return (last.NetCapital - reference.NetCapital) / reference.NetCapital * 100m;
     }
 
-    private static decimal? ComputeROIVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf, Func<SnapshotDto, decimal?> roiOf)
+    // Reference selectors for PerformancePointDto (TWR series) — same logic as the SnapshotDto overloads above.
+    private static PerformancePointDto? RefDaysBack(IReadOnlyList<PerformancePointDto> history, int daysBack) =>
+        daysBack == 1
+            ? history[^2]
+            : history.LastOrDefault(s => s.Date <= history[^1].Date.AddDays(-daysBack));
+
+    private static PerformancePointDto? RefYearStart(IReadOnlyList<PerformancePointDto> history) =>
+        history.FirstOrDefault(s => s.Date.Year == history[^1].Date.Year);
+
+    // Sub-period return of the TWR-chained ROIC series: ratio-invariant to the series' T0 reference date.
+    private static decimal? ComputePerformanceVariation(
+        IReadOnlyList<PerformancePointDto> history,
+        Func<IReadOnlyList<PerformancePointDto>, PerformancePointDto?> referenceOf)
     {
         if (history.Count < 2) return null;
         var last      = history[^1];
         var reference = referenceOf(history);
-        if (reference is null) return null;
-        var roiLast = roiOf(last);
-        var roiRef  = roiOf(reference);
-        if (!roiLast.HasValue || !roiRef.HasValue || roiRef.Value == 0) return null;
-        return (roiLast.Value - roiRef.Value) / Math.Abs(roiRef.Value) * 100m;
+        if (reference is null || reference.ROIC == 0) return null;
+        return (last.ROIC - reference.ROIC) / reference.ROIC * 100m;
     }
 
     private static IReadOnlyList<DistributionItem> ComputeDistribution(
