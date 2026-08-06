@@ -31,21 +31,23 @@ Le dashboard expose deux pages :
 
 La carte ROI est colorée en vert (`roi-positive`) si positif, rouge (`roi-negative`) si négatif, neutre si `null`.
 
-Les cartes **Capital net engagé** et **ROI (Capital Engagé)** affichent à droite de leur valeur jusqu'à cinq chips de variation :
+Les cartes **Capital net engagé** et **ROI (Capital Engagé)** affichent à droite de leur valeur jusqu'à cinq chips de variation, mesurant deux choses différentes :
+
+- **Capital net engagé** : variation de `NetCapital` — combien a été versé/retiré sur la période, pas une performance
+- **ROI (Capital Engagé)** : variation du `ROIC` (série TWR, `GetIndexedHistoryAsync`) — la vraie performance de marché du portefeuille, neutralisée de l'effet des versements/retraits
 
 | Chip | Calcul | Source |
 |---|---|---|
-| J (quotidien) | `(last − prev) / \|ref\| × 100` | dernier vs avant-dernier snapshot |
-| S (hebdomadaire) | idem | dernier vs snapshot ≤ J−7 |
-| M (mensuel) | idem | dernier vs snapshot ≤ J−30 |
-| YTD (depuis le 1er janvier) | idem | dernier vs **1er snapshot de l'année courante** |
-| 1A (annuel) | idem | dernier vs snapshot ≤ J−365 |
+| J (quotidien) | `(last − ref) / ref × 100` | dernier vs avant-dernier point |
+| S (hebdomadaire) | idem | dernier vs point ≤ J−7 |
+| M (mensuel) | idem | dernier vs point ≤ J−30 |
+| YTD (depuis le 1er janvier) | idem | dernier vs **1er point de l'année courante** |
+| 1A (annuel) | idem | dernier vs point ≤ J−365 |
 
-- Capital net engagé : variation relative de `NetCapital`
-- ROI : variation relative du taux ROI — `\|ROI_ref\|` au dénominateur pour gérer les ROI négatifs
+- Capital net engagé : calculé depuis `_snapshotHistory` (`GET /api/snapshot/history`), base `NetCapital`
+- ROI (Capital Engagé) : calculé depuis `_performanceHistory` (`GET /api/portfolio/metrics/history`, série TWR), base `ROIC`
 - Chip vert/rouge via `roi-positive` / `roi-negative`
-- Chaque chip n'est affichée que si une référence existe pour sa période ; `null` (chip masquée) si historique insuffisant, aucun snapshot de référence trouvé, ou `ROI_ref = 0`. Pour YTD avec un seul snapshot dans l'année, la référence est ce snapshot → variation `0 %`
-- Calculés côté Client dans `DashboardViewModel` depuis `_snapshotHistory` (`GET /api/snapshot/history`), via les sélecteurs de référence `RefDaysBack` (J/S/M/1A) et `RefYearStart` (YTD)
+- Chaque chip n'est affichée que si une référence existe pour sa période ; `null` (chip masquée) si historique insuffisant, aucun point de référence trouvé, ou valeur de référence = 0. Pour YTD avec un seul point dans l'année, la référence est ce point → variation `0 %`
 
 ---
 
@@ -123,7 +125,7 @@ Graphique en courbes (ApexCharts, `HistoryChart.razor`) représentant l'évoluti
 
 | Série | Calcul | Masquée si |
 |---|---|---|
-| Portefeuille (ROIC) | `(NetCapital + TotalReturns) / NetCapital`, normalisé base 100 | jamais |
+| Portefeuille (ROIC) | TWR chaîné (rendement journalier neutralisant les flux de capital), base 100 — voir `Api/Docs/SPECS.md` §2.7 | jamais |
 | LifeStrategy 40 | prix unitaire / prix T0 × 100 | `LifeStrategy` absent sur un point |
 | MSCI World | prix unitaire / prix T0 × 100 | `MsciWorld` absent sur un point |
 

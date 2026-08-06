@@ -179,7 +179,7 @@ Une ligne par jour. Colonnes (index 0-based) :
 | 2 | C | `COL_SNAP_LIFESTRATEGY` | Prix unitaire LifeStrategy 40 (EUR) |
 | 3 | D | `COL_SNAP_MSCI_WORLD` | Prix unitaire MSCI World (EUR) |
 | 4 | E | `COL_SNAP_TOTAL_PURCHASES` | Total des achats depuis l'origine (EUR), lu depuis le Bilan |
-| 5 | F | `COL_SNAP_TOTAL_RETURNS` | Plus-values réalisées depuis l'origine (EUR), lu depuis le Bilan |
+| 5 | F | `COL_SNAP_TOTAL_RETURNS` | Plus-values réalisées et latentes depuis l'origine (EUR), lu depuis le Bilan — les cours d'actions sont saisis à la main chaque jour |
 | 6 | G | `COL_SNAP_TOTAL_SALES` | Total des ventes depuis l'origine (EUR), lu depuis le Bilan |
 
 ### 6.4 Valeur sentinelle `"ND"`

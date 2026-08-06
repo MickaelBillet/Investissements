@@ -120,9 +120,9 @@ Deux familles de métriques (capital net engagé, ROIC Capital Engagé) × cinq 
 Préfixes de période : `Daily` (J−1), `Weekly` (≤ J−7), `Monthly` (≤ J−30), `Ytd` (1er snapshot de l'année courante), `Yearly` (≤ J−365).
 Ex. : `MonthlyVariationPercent`, `YtdROICapitalEngagedVariation`, `YearlyROICapitalEngagedVariation`.
 
-La référence à comparer est fournie par un sélecteur : `RefDaysBack(history, n)` pour J/S/M/1A, `RefYearStart(history)` pour YTD. Les helpers `ComputeVariation` / `ComputeROIVariation` prennent ce sélecteur en paramètre.
+La référence à comparer est fournie par un sélecteur : `RefDaysBack(history, n)` pour J/S/M/1A, `RefYearStart(history)` pour YTD (surchargés pour `SnapshotDto` et `PerformancePointDto`). L'helper `ComputeVariation` (sur `_snapshotHistory`, base `NetCapital`) calcule la variation du capital net ; `ComputePerformanceVariation` (sur `_performanceHistory`, la série TWR de `GetIndexedHistoryAsync`) calcule la variation du `ROIC` — c'est ce dernier qui alimente les puces `*ROICapitalEngagedVariation` sous la carte "ROI (Capital Engagé)", pour refléter la vraie performance du portefeuille plutôt qu'une variation relative du ratio ROI (petit dénominateur, amplifiait artificiellement l'écart).
 
-Retournent `null` si historique insuffisant, si aucune référence n'est trouvée pour la période, ou si `ROI_ref == 0`. Pour YTD avec un seul snapshot dans l'année, la référence est ce snapshot → `0 %`.
+Retournent `null` si historique insuffisant, si aucune référence n'est trouvée pour la période, ou si la valeur de référence (`NetCapital` ou `ROIC`) vaut `0`. Pour YTD avec un seul point dans l'année, la référence est ce point → `0 %`.
 
 **`KpiCard` — slot `SubContent` :**
 `KpiCard` accepte un `RenderFragment? SubContent` affiché à droite de la valeur (même ligne, `MudStack Row`). Utilisé pour les chips de variation J/S/M/YTD/1A dans `KpiHeader.razor`, rendues par le helper local `VariationChips(params (string Prefix, decimal? Value)[])` (une chip par période non nulle).

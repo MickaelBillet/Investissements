@@ -159,7 +159,7 @@ RoiOnCapitalEngaged = TotalReturns / NetCapital × 100
 AverageRisk         = Σ(risk_i × currentTotal_i) / Σ(currentTotal_i)  [actifs avec currentTotal > 0]
 ```
 
-> `TotalReturns` = plus-values réalisées depuis l'origine (cellule F57 du Bilan).
+> `TotalReturns` = plus-values réalisées et latentes depuis l'origine (cellule F57 du Bilan) — les cours d'actions sont saisis à la main chaque jour, donc la valeur suit aussi les mouvements de marché non réalisés.
 
 **Notes :**
 - `roiOnCapitalEngaged` est `null` si `NetCapital` est nul ou indisponible
@@ -180,11 +180,21 @@ Retourne l'historique de performance du portefeuille, indexé à une base commun
 ]
 ```
 
+**Calcul du ROIC (TWR — rendement pondéré dans le temps) :**
+```
+Value(t)     = NetCapital(t) + TotalReturns(t)
+CashFlow(t)  = NetCapital(t) − NetCapital(t−1)      // versement (+) ou retrait (−) du jour
+Return(t)    = ( Value(t) − Value(t−1) − CashFlow(t) ) / Value(t−1)
+Index(t0)    = 100
+Index(t)     = Index(t−1) × (1 + Return(t))
+```
+
+> Le `CashFlow(t)` neutralise l'effet des versements/retraits sur `NetCapital`, pour que `roic` ne reflète que la performance réelle du portefeuille — pas les mouvements de trésorerie. Sans cette neutralisation, un simple ratio `(NetCapital+TotalReturns)/NetCapital` normalisé base 100 produit des sauts artificiels : un retrait de ~2251 € a par exemple généré un -3,88 % en un jour avec l'ancienne formule, alors que le rendement de marché réel ce jour-là était de -0,28 %.
+
 **Notes :**
 - Source : `SnapshotService.GetHistoryAsync` (`Snapshot.getHistory`)
 - Seuls les snapshots avec `NetCapital > 0`, `LifeStrategy` et `MsciWorld` renseignés sont inclus
-- `roic` = `(NetCapital + TotalReturns) / NetCapital`, normalisé base 100 sur T0
-- `lifeStrategy` / `msciWorld` : prix unitaire / prix T0 × 100 ; `null` si absent sur un point
+- `lifeStrategy` / `msciWorld` : prix unitaire / prix T0 × 100 ; `null` si absent sur un point (pas de TWR — ce sont des cours purs, sans flux de capital)
 
 ---
 

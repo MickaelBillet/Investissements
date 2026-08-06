@@ -171,4 +171,38 @@ public class PortfolioMetricsServiceTests
         Assert.Equal(110m, result[1].LifeStrategy);
         Assert.Equal(90m,  result[1].MsciWorld);
     }
+
+    [Fact]
+    public async Task GetIndexedHistoryAsync_Roic_IsNotAffectedByPureCashWithdrawal()
+    {
+        var d0 = new DateOnly(2025, 1, 1);
+        var d1 = new DateOnly(2025, 1, 2);
+        var svc = CreateService(MockAssets(),
+            MockHistory(
+                Snap(d0, 60_871.35m, 100m, 200m, 80_000m, totalReturns: 1_648.87m),
+                // retrait de 2251.04, TotalReturns baisse de 174.54 (perte réalisée liée au retrait)
+                Snap(d1, 58_620.31m, 100m, 200m, 80_000m, totalReturns: 1_474.33m)));
+
+        var result = await svc.GetIndexedHistoryAsync();
+
+        // Return(t) = (60094.64 - 62520.22 - (-2251.04)) / 62520.22 ≈ -0.2792 %
+        var expected = 100m * (1 + (60_094.64m - 62_520.22m + 2_251.04m) / 62_520.22m);
+        Assert.Equal(Math.Round(expected, 4), Math.Round(result[1].ROIC, 4));
+    }
+
+    [Fact]
+    public async Task GetIndexedHistoryAsync_Roic_IsNotAffectedByPureCashDeposit()
+    {
+        var d0 = new DateOnly(2025, 1, 1);
+        var d1 = new DateOnly(2025, 1, 2);
+        var svc = CreateService(MockAssets(),
+            MockHistory(
+                Snap(d0, 10_000m, 100m, 200m, 10_000m, totalReturns: 500m),
+                // versement de 1000 entre d0 et d1, gains inchangés
+                Snap(d1, 11_000m, 100m, 200m, 10_000m, totalReturns: 500m)));
+
+        var result = await svc.GetIndexedHistoryAsync();
+
+        Assert.Equal(100m, result[1].ROIC);
+    }
 }
