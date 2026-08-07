@@ -19,19 +19,19 @@
                              Items="@ROIC_Series"
                              Name="@L.Translate("Chart_Series_ROIC")"
                              SeriesType="SeriesType.Line"
-                             XValue="@(e => e.Date.ToString("dd/MM/yy"))"
+                             XValue="@(e => e.Date.ToDateTime(TimeOnly.MinValue))"
                              YValue="@(e => (decimal)e.Value)" />
             <ApexPointSeries TItem="IndexedPoint"
                              Items="@LifeStrategySeries"
                              Name="@L.Translate("Chart_Series_LifeStrategy")"
                              SeriesType="SeriesType.Line"
-                             XValue="@(e => e.Date.ToString("dd/MM/yy"))"
+                             XValue="@(e => e.Date.ToDateTime(TimeOnly.MinValue))"
                              YValue="@(e => (decimal)e.Value)" />
             <ApexPointSeries TItem="IndexedPoint"
                              Items="@MsciWorldSeries"
                              Name="@L.Translate("Chart_Series_MsciWorld")"
                              SeriesType="SeriesType.Line"
-                             XValue="@(e => e.Date.ToString("dd/MM/yy"))"
+                             XValue="@(e => e.Date.ToDateTime(TimeOnly.MinValue))"
                              YValue="@(e => (decimal)e.Value)" />
         </ApexChart>
         </div>
@@ -70,10 +70,13 @@
         Stroke  = new Stroke { Curve = Curve.Smooth, Width = [2, 2, 2] },
         Xaxis   = new XAxis
         {
-            Type   = XAxisType.Category,
+            Type   = XAxisType.Datetime,
             Labels = new XAxisLabels
             {
-                Style = new AxisLabelStyle { Colors = "#787774", FontSize = "12px" }
+                Style               = new AxisLabelStyle { Colors = "#787774", FontSize = "12px" },
+                DatetimeUTC         = false,
+                HideOverlappingLabels = true,
+                DatetimeFormatter   = new DatetimeFormatter { Day = "dd/MM/yy" }
             }
         },
         Yaxis = [new YAxis
