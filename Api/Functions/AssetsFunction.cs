@@ -87,7 +87,29 @@ public sealed class AssetsFunction
         }
     }
 
-[Function(nameof(GetAssetsDistribution))]
+[Function(nameof(GetAssetTypeReference))]
+    public async Task<IActionResult> GetAssetTypeReference(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "assets/types/reference")] HttpRequest req,
+        CancellationToken ct)
+    {
+        try
+        {
+            var reference = await _assetsService.GetAssetTypeReferenceAsync(ct);
+            return new OkObjectResult(reference);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to call Apps Script.");
+            return new StatusCodeResult(StatusCodes.Status502BadGateway);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Failed to retrieve asset type reference.");
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    [Function(nameof(GetAssetsDistribution))]
     public async Task<IActionResult> GetAssetsDistribution(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "assets/distribution/{dimension}")] HttpRequest req,
         string dimension,

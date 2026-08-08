@@ -33,20 +33,7 @@
   <data name="Crypto"        xml:space="preserve"><value>Crypto-monnaies</value></data>
   <data name="Miscellaneous" xml:space="preserve"><value>Divers</value></data>
 
-  <!-- Asset types -->
-  <data name="Stock"                xml:space="preserve"><value>Action</value></data>
-  <data name="ETF_Stocks"           xml:space="preserve"><value>ETF Actions</value></data>
-  <data name="ETF_Bunds"            xml:space="preserve"><value>ETF Obligations</value></data>
-  <data name="Cash_Deposite"        xml:space="preserve"><value>Dépôt</value></data>
-  <data name="MarketBonds"          xml:space="preserve"><value>Obligations cotées</value></data>
-  <data name="Savings"              xml:space="preserve"><value>Épargne</value></data>
-  <data name="Direct_loans_P2P"     xml:space="preserve"><value>Prêts P2P</value></data>
-  <data name="SCI_SCPI"             xml:space="preserve"><value>SCI/SCPI</value></data>
-  <data name="ETC_ETC_Commodities"  xml:space="preserve"><value>ETC Matières premières</value></data>
-  <data name="UnlistedBonds"        xml:space="preserve"><value>Obligations non cotées</value></data>
-  <data name="OPCVM"                xml:space="preserve"><value>OPCVM</value></data>
-  <data name="EuroFunds"            xml:space="preserve"><value>Fonds euros</value></data>
-  <data name="MoneyMarketETF"       xml:space="preserve"><value>ETF monétaire</value></data>
+  <!-- Asset types: label read dynamically from the AssetType sheet's LabelFR column, see DashboardViewModel.TranslateAssetType -->
 
   <!-- Support types -->
   <data name="AccountBank"    xml:space="preserve"><value>Compte bancaire</value></data>

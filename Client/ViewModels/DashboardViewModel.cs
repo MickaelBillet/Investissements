@@ -12,6 +12,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     private PortfolioMetricsDto?           _metrics;
     private IReadOnlyList<SnapshotDto>     _snapshotHistory  = [];
     private IReadOnlyList<PerformancePointDto> _performanceHistory = [];
+    private IReadOnlyList<AssetTypeReferenceDto> _assetTypeRef = [];
 
     public SnapshotDto? LastSnapshot  { get; private set; }
     public bool         IsLoading     { get; private set; } = true;
@@ -57,7 +58,8 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
             var performanceTask = portfolioService.GetIndexedHistoryAsync(ct);
             var geoStocksTask   = SafeGeo(portfolioService.GetGeographyDistributionAsync("Stocks", ct));
             var geoBondsTask    = SafeGeo(portfolioService.GetGeographyDistributionAsync("Bonds", ct));
-            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, historyTask, performanceTask, geoStocksTask, geoBondsTask);
+            var assetTypeRefTask = portfolioService.GetAssetTypeReferenceAsync(ct);
+            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, historyTask, performanceTask, geoStocksTask, geoBondsTask, assetTypeRefTask);
             _assets             = await assetsTask;
             LastSnapshot        = await snapshotTask;
             _metrics            = await metricsTask;
@@ -65,6 +67,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
             _performanceHistory = await performanceTask;
             _geoStocks          = await geoStocksTask;
             _geoBonds           = await geoBondsTask;
+            _assetTypeRef       = await assetTypeRefTask;
         }
         catch (Exception ex)
         {
@@ -82,10 +85,13 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
             return localizationService.Translate($"Panel_{panel.Type}");
 
         var segments = Enumerable.Range(0, panel.Level)
-            .Select(i => panel.Selected(i)!)
-            .Select(key => panel.Type == PanelType.Risk
-                ? localizationService.Translate($"Risk_{key}")
-                : localizationService.Translate(key));
+            .Select(i => (Index: i, Key: panel.Selected(i)!))
+            .Select(s => (panel.Type, s.Index) switch
+            {
+                (PanelType.Risk, _)       => localizationService.Translate($"Risk_{s.Key}"),
+                (PanelType.AssetClass, 1) => TranslateAssetType(s.Key),
+                _                         => localizationService.Translate(s.Key)
+            });
 
         return string.Join(" › ", segments);
     }
@@ -137,8 +143,11 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
              .Where(a => a.AssetClass == assetClass && a.Geography.Contains(zone))
              .OrderByDescending(a => a.CurrentTotal)];
 
-    private static readonly HashSet<string> GeoAndSectorEligibleTypes =
-        ["Stock", "ETF_Stocks", "MarketBonds", "UnlistedBonds"];
+    private HashSet<string> GeoAndSectorEligibleTypes =>
+        [.. _assetTypeRef.Where(r => r.GeoSectorEligible).Select(r => r.Name)];
+
+    private string TranslateAssetType(string assetType) =>
+        _assetTypeRef.FirstOrDefault(r => r.Name == assetType)?.LabelFr ?? assetType;
 
     public IReadOnlyList<DistributionItem> GetSectorForClass(string assetClass) =>
         ComputeDistribution(
@@ -162,7 +171,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         return panel.Level switch
         {
             0 => ComputeDistribution(ActiveAssets(), a => a.AssetClass, localizationService.Translate),
-            1 => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)), a => a.AssetType, localizationService.Translate),
+            1 => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)), a => a.AssetType, TranslateAssetType),
             2 when isEtfGrouped
               => ComputeDistribution(
                     ActiveAssets().Where(a => a.AssetClass == panel.Selected(0) && a.AssetType == "ETF_Stocks"),

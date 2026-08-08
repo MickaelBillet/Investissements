@@ -108,14 +108,9 @@ const SUPPORT = {
   KRAKEN     : "Kraken"
 };
 
-// --- Geography filter: asset classes and types eligible for geographic breakdown ---
+// --- Geography filter: asset classes eligible for geographic breakdown ---
+// Asset type eligibility is read dynamically from the AssetType sheet (GeoSectorEligible column) — see getAssetTypeMeta().
 const GEOGRAPHY_ASSET_CLASSES = [ASSET_CLASS.STOCKS, ASSET_CLASS.BONDS];
-const GEOGRAPHY_ASSET_TYPES   = [
-  ASSET_TYPE.STOCK,
-  ASSET_TYPE.ETF_STOCKS,
-  ASSET_TYPE.MARKET_BONDS,
-  ASSET_TYPE.UNLISTED_BONDS
-];
 
 /// --- Risk scale (0=risk free, 1=very low, 4=high) ---
 const RISK = {

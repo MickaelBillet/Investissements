@@ -105,7 +105,7 @@ Footer : total de la colonne Valeur actuelle.
 Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélectionnée est `Stocks` ou `Bonds`, la colonne droite affiche **deux donuts côte à côte** à la place du tableau de distribution habituel :
 
 - **Zones géographiques** : alimenté par `ViewModel.GetGeographyForClass(assetClass)`, pré-chargé au démarrage depuis `GET /api/portfolio/geography/{assetClass}`
-- **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, calculé côté client depuis les actifs chargés
+- **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, calculé côté client depuis les actifs chargés, filtré aux `AssetType` marqués éligibles (`GeoSectorEligible = TRUE` dans l'onglet `AssetType` du Sheet, exposé via `GET /api/assets/types/reference`)
 
 **Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `_selectedZone` dans `Dashboard.razor`.
 

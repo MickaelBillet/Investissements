@@ -1,5 +1,6 @@
 using InvestissementsDashboard.Api.Functions;
 using InvestissementsDashboard.Api.Services;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -55,5 +56,18 @@ public class AssetsFunctionTests
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal("Invalid parameter.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task GetAssetTypeReference_ReturnsServiceResult()
+    {
+        var expected = new[] { new AssetTypeReferenceDto(1, "Stock", "Action", true) };
+        var mock = new Mock<IAssetsService>();
+        mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
+
+        var result = await CreateFunction(mock).GetAssetTypeReference(MockRequest(), CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(expected, ok.Value);
     }
 }

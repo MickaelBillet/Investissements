@@ -51,6 +51,19 @@ function testDoGetAllAssetType() {
   Logger.log(result.getContent());
 }
 
+function testDoGetAssetTypeReference() {
+  const e = {
+    parameter: {
+      apiKey  : "token-zapto",
+      service : "AssetType",
+      action  : "getReference"
+    }
+  };
+
+  const result = doGet(e);
+  Logger.log(result.getContent());
+}
+
 function testDoGetAllSupportType() {
   const e = {
     parameter: {

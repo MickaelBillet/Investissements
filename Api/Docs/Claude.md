@@ -122,6 +122,7 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/assets/distribution/{dimension}` | Apps Script `{Dimension}.getDistribution` |
 | GET | `/api/assets/etfstocks/information` | Apps Script `AssetType.getEtfStocksByInformation` |
 | GET | `/api/assets/etfstocks/information/{information}` | Apps Script `AssetType.getByAssetTypeAndInformation` |
+| GET | `/api/assets/types/reference` | Apps Script `AssetType.getReference` — métadonnées `AssetTypeReferenceDto` (`labelFr`, `geoSectorEligible`) lues depuis l'onglet `AssetType` |
 | GET | `/api/portfolio/metrics` | Compose `AssetsService` + `SnapshotService` |
 | GET | `/api/portfolio/metrics/history` | `PortfolioMetricsService.GetIndexedHistoryAsync` — Apps Script `Snapshot.getHistory`, normalisé base 100 |
 | GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège `Asset.getAll` par année extraite du champ `information` |
@@ -168,6 +169,7 @@ Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.Wh
 Sans protection, ça multiplie les appels identiques vers Apps Script et peut saturer le Web App sous contention (erreurs 404 intermittentes observées en local). `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` appliquent donc un cache single-flight :
 
 - `IMemoryCache` (enregistré via `services.AddMemoryCache()` dans `Program.cs`), TTL 30s — largement suffisant car les données ne changent qu'une fois par jour (`snapshotQuotidien` à 6h côté Apps Script)
+- `AssetsService.GetAssetTypeReferenceAsync` (appelé par `GeographyService` et directement par le Client) applique le même pattern avec une TTL plus longue (5 min) — les colonnes `labelFr`/`geoSectorEligible` de l'onglet `AssetType` changent rarement
 - Vérification rapide sans verrou (chemin pris par la quasi-totalité des appels)
 - Si cache vide : `SemaphoreSlim` statique dédié à la clé de cache + double-checked locking, pour qu'une seule requête concurrente déclenche l'appel réel à Apps Script
 

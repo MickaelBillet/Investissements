@@ -46,4 +46,10 @@ internal sealed class PortfolioService(HttpClient httpClient) : IPortfolioServic
         var result = await httpClient.GetFromJsonAsync<BondScheduleDto[]>("/api/assets/bondschedule", ct);
         return result ?? [];
     }
+
+    public async Task<IReadOnlyList<AssetTypeReferenceDto>> GetAssetTypeReferenceAsync(CancellationToken ct = default)
+    {
+        var result = await httpClient.GetFromJsonAsync<AssetTypeReferenceDto[]>("/api/assets/types/reference", ct);
+        return result ?? [];
+    }
 }

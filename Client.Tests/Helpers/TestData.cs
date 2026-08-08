@@ -47,6 +47,16 @@ internal static class TestData
         decimal?  totalSales     = null) =>
         new(date ?? new DateOnly(2025, 1, 1), netCapital, lifeStrategy, msciWorld, totalPurchases, totalReturns, totalSales);
 
+    public static readonly IReadOnlyList<AssetTypeReferenceDto> DefaultAssetTypeReference =
+    [
+        new(1, "Stock",         "Action",                 true),
+        new(2, "ETF_Stocks",    "ETF Actions",            true),
+        new(3, "ETF_Bunds",     "ETF Obligations",        false),
+        new(4, "MarketBonds",   "Obligations cotées",     true),
+        new(5, "UnlistedBonds", "Obligations non cotées", true),
+        new(6, "Savings",       "Épargne",                false),
+    ];
+
     public static PerformancePointDto PerformancePoint(
         DateOnly? date          = null,
         decimal   roic          = 100m,

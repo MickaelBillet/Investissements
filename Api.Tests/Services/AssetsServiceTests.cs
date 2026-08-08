@@ -183,4 +183,51 @@ public class AssetsServiceTests
 
         Assert.Empty(result);
     }
+
+    [Fact]
+    public async Task GetAssetTypeReferenceAsync_WhenAppsScriptReturnsMetadata_ReturnsThem()
+    {
+        var expected = new[]
+        {
+            new AssetTypeReferenceDto(1, "Stock", "Action", true),
+            new AssetTypeReferenceDto(2, "Savings", "Épargne", false)
+        };
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await CreateService(mock).GetAssetTypeReferenceAsync();
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Action", result[0].LabelFr);
+        Assert.True(result[0].GeoSectorEligible);
+        Assert.False(result[1].GeoSectorEligible);
+    }
+
+    [Fact]
+    public async Task GetAssetTypeReferenceAsync_WhenAppsScriptReturnsNull_ReturnsEmptyList()
+    {
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<AssetTypeReferenceDto>?)null);
+
+        var result = await CreateService(mock).GetAssetTypeReferenceAsync();
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetAssetTypeReferenceAsync_CalledTwiceWithinTtl_CallsAppsScriptOnce()
+    {
+        var expected = new[] { new AssetTypeReferenceDto(1, "Stock", "Action", true) };
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var service = CreateService(mock);
+        await service.GetAssetTypeReferenceAsync();
+        await service.GetAssetTypeReferenceAsync();
+
+        mock.Verify(s => s.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
