@@ -118,6 +118,21 @@ Même structure que `GET /api/assets`.
 
 ---
 
+### 2.4bis `GET /api/assets/types/reference`
+
+Retourne les métadonnées brutes de l'onglet `AssetType` (id, libellé FR, éligibilité géo/secteur) — source unique consommée par le Client pour afficher les libellés `AssetType` et filtrer la ventilation géographique/sectorielle, sans aucune liste codée en dur.
+
+**Réponse** : `AssetTypeReferenceDto[]`
+
+```json
+[
+  { "id": 1, "name": "Stock", "labelFr": "Action", "geoSectorEligible": true },
+  { "id": 6, "name": "Savings", "labelFr": "Épargne", "geoSectorEligible": false }
+]
+```
+
+---
+
 ### 2.5 `GET /api/assets/bondschedule`
 
 Retourne le capital obligataire à percevoir par année d'échéance (hors coupons), agrégé depuis tous les actifs.
@@ -385,6 +400,7 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnCapitalEngaged?, averageRisk? |
 | `PerformancePointDto` | `Shared/Models/PerformancePointDto.cs` | date, roic, lifeStrategy?, msciWorld? |
 | `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, amount |
+| `AssetTypeReferenceDto` | `Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
 
 > Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.
 

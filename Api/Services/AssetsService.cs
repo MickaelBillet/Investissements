@@ -10,6 +10,10 @@ internal sealed class AssetsService : IAssetsService
     private static readonly TimeSpan AssetsCacheTtl = TimeSpan.FromSeconds(30);
     private static readonly SemaphoreSlim AssetsCacheLock = new(1, 1);
 
+    private const string AssetTypeReferenceCacheKey = "assettype:reference";
+    private static readonly TimeSpan AssetTypeReferenceCacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly SemaphoreSlim AssetTypeReferenceCacheLock = new(1, 1);
+
     private static readonly Dictionary<string, string> DimensionServices = new(StringComparer.OrdinalIgnoreCase)
     {
         ["assetClass"]  = "AssetClass",
@@ -81,5 +85,26 @@ internal sealed class AssetsService : IAssetsService
         return result ?? [];
     }
 
+    // Single-flight cache: AssetType reference metadata (labelFr, geoSectorEligible) is near-static, safe to cache longer than the assets list.
+    public async Task<IReadOnlyList<AssetTypeReferenceDto>> GetAssetTypeReferenceAsync(CancellationToken ct = default)
+    {
+        if (_cache.TryGetValue(AssetTypeReferenceCacheKey, out IReadOnlyList<AssetTypeReferenceDto>? cached) && cached is not null)
+            return cached;
 
+        await AssetTypeReferenceCacheLock.WaitAsync(ct);
+        try
+        {
+            if (_cache.TryGetValue(AssetTypeReferenceCacheKey, out cached) && cached is not null)
+                return cached;
+
+            var result = await _appsScript.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", ct);
+            result ??= [];
+            _cache.Set(AssetTypeReferenceCacheKey, result, AssetTypeReferenceCacheTtl);
+            return result;
+        }
+        finally
+        {
+            AssetTypeReferenceCacheLock.Release();
+        }
+    }
 }

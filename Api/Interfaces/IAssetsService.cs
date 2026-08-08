@@ -8,4 +8,5 @@ public interface IAssetsService
     Task<IReadOnlyList<DistributionDto>> GetDistributionByDimensionAsync(string dimension, CancellationToken ct = default);
     Task<IReadOnlyList<AggregateDto>>   GetEtfStocksByInformationAsync(CancellationToken ct = default);
     Task<IReadOnlyList<AssetDto>>       GetByAssetTypeAndInformationAsync(string assetType, string information, CancellationToken ct = default);
+    Task<IReadOnlyList<AssetTypeReferenceDto>> GetAssetTypeReferenceAsync(CancellationToken ct = default);
 }

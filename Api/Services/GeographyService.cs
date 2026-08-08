@@ -5,20 +5,25 @@ namespace InvestissementsDashboard.Api.Services;
 
 internal sealed class GeographyService(IAssetsService assetsService) : IGeographyService
 {
-    private static readonly HashSet<string> EligibleAssetTypes =
-        ["Stock", "ETF_Stocks", "MarketBonds", "UnlistedBonds"];
-
     public async Task<IReadOnlyList<DistributionDto>> GetDistributionAsync(
         string assetClass, CancellationToken ct = default)
     {
-        var assets = await assetsService.GetAllAsync(ct);
+        var assetsTask   = assetsService.GetAllAsync(ct);
+        var typeRefTask  = assetsService.GetAssetTypeReferenceAsync(ct);
+        await Task.WhenAll(assetsTask, typeRefTask);
+
+        var assets = await assetsTask;
+        var eligibleAssetTypes = (await typeRefTask)
+            .Where(t => t.GeoSectorEligible)
+            .Select(t => t.Name)
+            .ToHashSet();
 
         var zoneMap = new Dictionary<string, decimal>();
 
         foreach (var asset in assets)
         {
             if (asset.AssetClass != assetClass) continue;
-            if (!EligibleAssetTypes.Contains(asset.AssetType)) continue;
+            if (!eligibleAssetTypes.Contains(asset.AssetType)) continue;
             if (asset.CurrentTotal is not > 0m) continue;
 
             foreach (var (zone, pct) in ParseGeography(asset.Geography))

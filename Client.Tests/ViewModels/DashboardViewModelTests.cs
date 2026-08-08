@@ -36,6 +36,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestData.DefaultAssetTypeReference);
         return mock;
     }
 
@@ -51,6 +53,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestData.DefaultAssetTypeReference);
         return mock;
     }
 
@@ -65,6 +69,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestData.DefaultAssetTypeReference);
         return mock;
     }
 
@@ -79,6 +85,8 @@ public class DashboardViewModelTests
         mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>())).ReturnsAsync(history);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestData.DefaultAssetTypeReference);
         return mock;
     }
 

@@ -106,6 +106,7 @@ portfolioService.GetLastSnapshotAsync(ct)      // → LastSnapshot
 portfolioService.GetMetricsAsync(ct)           // → _metrics (ROIC + AverageRisk)
 portfolioService.GetSnapshotHistoryAsync(ct)   // → _snapshotHistory (variations J/S/M/YTD/1A)
 portfolioService.GetGeographyDistributionAsync // → _geoStocks / _geoBonds
+portfolioService.GetAssetTypeReferenceAsync    // → _assetTypeRef (labelFr + geoSectorEligible par AssetType)
 ```
 
 **Propriétés de variation (calculées côté client depuis `_snapshotHistory`) :**
@@ -159,6 +160,8 @@ public DashboardViewModel(IPortfolioService portfolioService, ILocalizationServi
 `ILocalizationService` est enregistré **singleton** dans `Program.cs`. Il est déjà importé globalement via `_Imports.razor` — aucun `@using` supplémentaire requis dans les composants.
 
 Fallback : si une clé n'existe pas dans le `.resx`, `Translate()` retourne la clé brute (jamais d'exception).
+
+**Exception — libellés `AssetType`** : ne passent pas par `Translations.resx` ni `ILocalizationService`. Ils sont lus depuis l'onglet `AssetType` du Sheet (colonne `LabelFR`) via `GET /api/assets/types/reference`, résolus dans `DashboardViewModel.TranslateAssetType(assetType)` (fallback : nom brut si `labelFr` absent). Ajouter un nouveau `AssetType` ne nécessite donc aucune entrée `.resx`.
 
 ---
 

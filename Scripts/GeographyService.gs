@@ -4,8 +4,11 @@
 
 function handleGeography(action, params) {
 
-  const rows     = getAssetsData();
-  const eligible = rows.filter(isGeographyEligible);
+  const rows              = getAssetsData();
+  const eligibleAssetTypes = getAssetTypeMeta()
+    .filter(m => m.geoSectorEligible)
+    .map(m => m.name);
+  const eligible = rows.filter(row => isGeographyEligible(row, eligibleAssetTypes));
 
   switch (action) {
 
@@ -21,10 +24,10 @@ function handleGeography(action, params) {
   }
 }
 
-// --- Filter: Stocks/Bonds classes AND eligible asset types ---
-function isGeographyEligible(row) {
+// --- Filter: Stocks/Bonds classes AND eligible asset types (per AssetType sheet's GeoSectorEligible column) ---
+function isGeographyEligible(row, eligibleAssetTypes) {
   return GEOGRAPHY_ASSET_CLASSES.includes(row[COL_ASSET_CLASS])
-      && GEOGRAPHY_ASSET_TYPES.includes(row[COL_ASSET_TYPE]);
+      && eligibleAssetTypes.includes(row[COL_ASSET_TYPE]);
 }
 
 // --- Parse "Zone1 : X% - Zone2 : Y%" into [{ zone, pct }] ---

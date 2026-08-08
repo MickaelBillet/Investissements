@@ -9,10 +9,25 @@ public class GeographyServiceTests
 {
     private static GeographyService CreateService(Mock<IAssetsService> mock) => new(mock.Object);
 
-    private static Mock<IAssetsService> MockAssets(params AssetDto[] assets)
+    private static readonly AssetTypeReferenceDto[] DefaultAssetTypeReference =
+    [
+        new(1, "Stock",         "Action",             true),
+        new(2, "ETF_Stocks",    "ETF Actions",        true),
+        new(3, "MarketBonds",   "Obligations cotées", true),
+        new(4, "UnlistedBonds", "Obligations non cotées", true),
+        new(5, "ETF_Bunds",     "ETF Obligations",    false),
+        new(6, "OPCVM",         "OPCVM",              false),
+    ];
+
+    private static Mock<IAssetsService> MockAssets(params AssetDto[] assets) =>
+        MockAssets(DefaultAssetTypeReference, assets);
+
+    private static Mock<IAssetsService> MockAssets(
+        IReadOnlyList<AssetTypeReferenceDto> assetTypeReference, params AssetDto[] assets)
     {
         var mock = new Mock<IAssetsService>();
         mock.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(assets);
+        mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>())).ReturnsAsync(assetTypeReference);
         return mock;
     }
 
@@ -97,6 +112,20 @@ public class GeographyServiceTests
         var svc = CreateService(MockAssets(
             Asset("Stocks", "ETF_Stocks", "Europe : 100%", 1000m),
             Asset("Stocks", "OPCVM",      "Europe : 100%", 2000m)));
+
+        var result = await svc.GetDistributionAsync("Stocks");
+
+        var europe = result.First(d => d.Name == "Europe");
+        Assert.Equal(1000m, europe.CurrentTotal);
+    }
+
+    [Fact]
+    public async Task GetDistributionAsync_UsesGeoSectorEligibleFlagFromReference()
+    {
+        var reference = new[] { new AssetTypeReferenceDto(1, "Crowdfunding", "Crowdfunding", true) };
+        var svc = CreateService(MockAssets(reference,
+            Asset("Stocks", "Crowdfunding", "Europe : 100%", 1000m),
+            Asset("Stocks", "ETF_Stocks",   "Europe : 100%", 2000m)));
 
         var result = await svc.GetDistributionAsync("Stocks");
 

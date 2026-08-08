@@ -17,6 +17,10 @@ function handleAssetType(action, params) {
     case "getDistribution":
       return getAssetTypeDistribution(rows, portfolioTotal);
 
+    // --- Return reference metadata (id, name, labelFr, geoSectorEligible) from the AssetType sheet ---
+    case "getReference":
+      return getAssetTypeMeta();
+
     // --- Return individual assets belonging to a given AssetType ---
     case "getByAssetType":
       if (!params.assetType) return { error: "Missing parameter: assetType" };
@@ -55,20 +59,45 @@ function getAssetTypeAll(rows, portfolioTotal) {
 function getAssetTypeDistribution(rows, portfolioTotal) {
 
   const groups = groupBy(rows, COL_ASSET_TYPE);
-  const ids    = getReferenceIds(SHEET_ASSET_TYPE);
+  const meta   = getAssetTypeMeta();
+  const byName = {};
+  meta.forEach(m => { byName[m.name] = m; });
 
   return Object.keys(groups).map(assetType => {
     const currentTotal = sumColumn(groups[assetType], COL_CURRENT_TOTAL);
+    const m = byName[assetType];
 
     return {
-      id               : ids[assetType] !== undefined ? ids[assetType] : null,
+      id               : m ? m.id : null,
       name             : assetType,
+      labelFr          : m ? m.labelFr : null,
       currentTotal,
       weightInPortfolio: portfolioTotal !== 0
         ? Math.round(currentTotal / portfolioTotal * 10000) / 100
         : 0
     };
   });
+}
+
+// --- Return reference metadata for every row of the AssetType sheet ---
+// Columns (0-based): A=id, B=name, C=assetClass, D=labelFr, E=geoSectorEligible
+function getAssetTypeMeta() {
+  const ss    = SpreadsheetApp.openById(DEST_ID);
+  const sheet = ss.getSheetByName(SHEET_ASSET_TYPE);
+  if (!sheet) return [];
+
+  const data = sheet.getRange(1, 1, sheet.getLastRow(), 5).getValues();
+
+  return data.slice(1)
+    .filter(row => row[1] !== "")
+    .map(row => ({
+      id               : row[0],
+      name             : row[1],
+      labelFr          : row[3] !== "" ? row[3] : null,
+      geoSectorEligible: row[4] === true
+        || String(row[4]).trim().toUpperCase() === "TRUE"
+        || String(row[4]).trim().toUpperCase() === "OUI"
+    }));
 }
 
 // --- Return ETF_Stocks grouped by COL_INFORMATION with aggregated metrics ---

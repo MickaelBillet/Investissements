@@ -179,10 +179,11 @@ Regroupe les actifs par **type d'actif** (`ETF_Stocks`, `OPCVM`, `Crypto`, etc.)
 | Action | Paramètres | Réponse |
 |---|---|---|
 | `getAll` | — | `Aggregate[]` — tous les types avec métriques complètes |
-| `getDistribution` | — | `Distribution[]` — poids de chaque type |
+| `getDistribution` | — | `Distribution[]` (+ `labelFr`) — poids de chaque type |
 | `getByAssetType` | `assetType` ✱ | `Asset[]` — actifs individuels du type demandé |
 | `getEtfStocksByInformation` | — | `Aggregate[]` — ETF_Stocks groupés par champ `information` |
 | `getByAssetTypeAndInformation` | `assetType` ✱, `information` ✱ | `Asset[]` — actifs du type filtrés par `information` |
+| `getReference` | — | `AssetTypeMeta[]` — métadonnées brutes de l'onglet `AssetType` (`{ id, name, labelFr, geoSectorEligible }`) |
 
 **Exemples**
 ```
@@ -191,9 +192,12 @@ Regroupe les actifs par **type d'actif** (`ETF_Stocks`, `OPCVM`, `Crypto`, etc.)
 ?service=AssetType&action=getByAssetType&assetType=ETF_Stocks
 ?service=AssetType&action=getEtfStocksByInformation
 ?service=AssetType&action=getByAssetTypeAndInformation&assetType=ETF_Stocks&information=World
+?service=AssetType&action=getReference
 ```
 
 Valeurs valides pour `assetType` : voir `ASSET_TYPE` dans `Config.gs`.
+
+**Onglet `AssetType` (colonnes A:E)** : `id`, `name`, `assetClass` (classe d'actif parente, non exposée par `getReference`), `labelFr` (libellé FR affiché par le Client), `geoSectorEligible` (détermine si ce type entre dans la ventilation géographique et sectorielle — valeurs acceptées : `TRUE`/`FALSE` ou `oui`/`non`, insensible à la casse). Lus dynamiquement par `getAssetTypeMeta()` (`AssetTypeService.gs`) — ajouter un nouveau type ne nécessite aucune modification de code, uniquement une nouvelle ligne dans le Sheet.
 
 ---
 
@@ -307,8 +311,8 @@ Calcule la **répartition géographique pondérée** pour les actifs de type mar
 ```
 
 **Filtre d'éligibilité :**
-- Classes d'actifs : `GEOGRAPHY_ASSET_CLASSES` = `["Stocks", "Bonds"]`
-- Types d'actifs : `GEOGRAPHY_ASSET_TYPES` = `["Stock", "ETF_Stocks", "ETF_Bunds", "MarketBonds", "UnlistedBonds"]`
+- Classes d'actifs : `GEOGRAPHY_ASSET_CLASSES` (`Config.gs`) = `["Stocks", "Bonds"]`
+- Types d'actifs : lus dynamiquement depuis l'onglet `AssetType` — types dont `geoSectorEligible = TRUE` (voir `getAssetTypeMeta()` dans `AssetTypeService.gs`)
 
 **Parsing du champ `geography` :** format `Zone1 : X% - Zone2 : Y%`. La valeur `currentTotal` de l'actif est ventilée proportionnellement sur chaque zone. Les lignes avec `currentTotal ≤ 0` sont ignorées.
 
@@ -344,6 +348,7 @@ Accès à l'**historique quotidien** de la valeur totale du portefeuille.
 | `AssetType` | `getAll` | — | Groupe |
 | `AssetType` | `getDistribution` | — | Distribution |
 | `AssetType` | `getByAssetType` | `assetType` ✱ | Actif individuel |
+| `AssetType` | `getReference` | — | Métadonnées brutes du Sheet |
 | `SupportType` | `getAll` | — | Groupe |
 | `SupportType` | `getDistribution` | — | Distribution |
 | `SupportType` | `getBySupportType` | `supportType` ✱ | Sous-groupe |
