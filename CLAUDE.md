@@ -32,7 +32,7 @@ Les données sont maintenues dans un Google Sheets personnel, mis à jour quotid
 
 **Sécurité :**
 - Usage strictement personnel et privé
-- Le token Apps Script et l'URL du Web App ne doivent jamais être exposés côté client
+- Les identifiants du compte de service Google (email + clé privée) ne doivent jamais être exposés côté client
 
 **Opérationnelles :**
 - Mise à jour des données entièrement automatique (aucune intervention manuelle)
@@ -132,9 +132,9 @@ Voir SECURITY.MD
 - Aucune clé de fonction (Function Key) nécessaire
 
 #### 5.2.3 Protection des données Google Sheets
-- Le Google Sheets est accessible uniquement via l'Apps Script (authentifié via le compte Google propriétaire)
-- Les Azure Functions n'ont pas de clé API Google Sheets — elles passent par l'Apps Script
-- Seul l'Apps Script peut lire et écrire sur les feuilles
+- Lecture : l'Azure Function lit directement le Sheet `DEST_ID` via l'API Google Sheets, authentifiée par un compte de service dédié avec accès **Lecteur uniquement** (partagé explicitement sur ce Sheet, pas d'accès projet GCP plus large)
+- Écriture : seul l'Apps Script (authentifié via le compte Google propriétaire) écrit sur les feuilles — ETL quotidien et rapport hebdomadaire
+- Le compte de service Azure ne peut donc jamais modifier les données, uniquement les lire
 
 ---
 
@@ -145,7 +145,7 @@ Deux Google Sheets sont utilisés :
 | Constante | Rôle |
 |---|---|
 | `SOURCE_ID` | Feuille personnelle de l'utilisateur — onglet "Bilan" (source des valeurs brutes) |
-| `DEST_ID` | Feuille structurée API — onglets "Asset" et "Snapshot" (servie par l'Apps Script) |
+| `DEST_ID` | Feuille structurée API — onglets "Asset" et "Snapshot" (écrite par l'Apps Script, lue directement par l'Api via l'API Google Sheets) |
 
 ### 6.1 Principe général
 Le Google Sheets DEST est structuré comme une base de données relationnelle. Chaque onglet représente une table distincte avec un rôle précis.
@@ -347,8 +347,8 @@ jobs:
 Les composants sont à développer dans cet ordre :
 
 1. **Google Sheets** — ✅ Structure définie (section 6)
-2. **Google Apps Script** — ✅ ETL + API REST implémentés (`Scripts/`)
-3. **Azure Functions** — ✅ Endpoints REST implémentés (`Api/`) — proxy vers Apps Script
+2. **Google Apps Script** — ✅ ETL quotidien + rapport hebdomadaire implémentés (`Scripts/`) — plus d'API REST, voir point 3
+3. **Azure Functions** — ✅ Endpoints REST implémentés (`Api/`) — lecture directe du Sheet via l'API Google Sheets (`GoogleSheets/`)
 4. **Blazor WASM** — ✅ Dashboard implémenté (`Client/`)
 5. **CI/CD** — ✅ Pipeline opérationnel
 6. **Domaine custom** — ✅ Décision prise : `invest.zapto.fr` — CNAME à créer chez Ionos, validation dans Azure Portal

@@ -1,3 +1,4 @@
+using InvestissementsDashboard.Api.Mappers;
 using InvestissementsDashboard.GoogleSheets;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Caching.Memory;
