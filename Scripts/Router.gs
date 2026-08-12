@@ -1,79 +1,22 @@
 // =====================================================================
-// Router.gs — Single HTTP entry point, authentication and dispatch
+// Router.gs — Shared read/aggregation helpers used by the daily ETL
+// and the weekly email report (rapportHebdomadaire).
+//
+// There is no HTTP entry point here anymore — the dashboard reads the
+// Google Sheet directly via the Sheets API (see Api/Services/AssetsService.cs,
+// SnapshotService.cs). This file only holds what snapshotQuotidien() and
+// rapportHebdomadaire() still call.
 // =====================================================================
-function setApiToken() {
-  PropertiesService.getScriptProperties().setProperty("API_TOKEN", "token-zapto");
-  Logger.log("✅ Token saved");
-}
-
-function doGet(e) {
-
-  // --- Token verification ---
-  const API_TOKEN = PropertiesService.getScriptProperties().getProperty("API_TOKEN");
-  if (e.parameter.apiKey !== API_TOKEN) {
-    return buildResponse({ error: "Unauthorized" });
-  }
-
-  // --- Read query parameters ---
-  const service = e.parameter.service || "";
-  const action  = e.parameter.action  || "";
-
-  // --- Dispatch to the appropriate service ---
-  try {
-    let result;
-
-    switch (service) {
-      case "AssetClass":
-        result = handleAssetClass(action, e.parameter);
-        break;
-      case "AssetType":
-        result = handleAssetType(action, e.parameter);
-        break;
-      case "SupportType":
-        result = handleSupportType(action, e.parameter);
-        break;
-      case "Support":
-        result = handleSupport(action, e.parameter);
-        break;
-      case "Asset":
-        result = handleAsset(action, e.parameter);
-        break;
-      case "Sector":
-        result = handleSector(action, e.parameter);
-        break;
-      case "Geography":
-        result = handleGeography(action, e.parameter);
-        break;
-      case "Snapshot":
-        result = handleSnapshot(action, e.parameter);
-        break;
-      default:
-        result = { error: "Unknown service: " + service };
-    }
-
-    return buildResponse(result);
-
-  } catch (err) {
-    return buildResponse({ error: err.message });
-  }
-}
-
-// --- Build a JSON response ---
-function buildResponse(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
 
 // --- Read all asset rows from the Assets sheet (header excluded) ---
 function getAssetsData() {
   const ss        = SpreadsheetApp.openById(DEST_ID);
   const sheet     = ss.getSheetByName(SHEET_ASSETS);
-  
+
   // Get all rows up to the last row with any content
   const lastRow   = sheet.getLastRow();
   const lastCol   = sheet.getLastColumn();
-  
+
   const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
 
   // Skip header row and filter out empty and Not Defined rows
@@ -89,86 +32,6 @@ function getPortfolioTotal(rows) {
     }
   }
   return sum;
-}
-
-function getDividendsTotal(rows) {
-  let sum = 0;
-  for (let i = 0; i < rows.length; i++) {
-    const div = rows[i][COL_DIVIDENDS];
-    if (div && div !== "ND") {
-      sum += div;
-    }
-  }
-  return sum;
-}
-
-function getTotalPurchases(rows) {
-  let sum = 0;
-  for (let i = 0; i < rows.length; i++) {
-    const tp = rows[i][COL_TOTAL_PURCHASES];
-    if (tp && tp !== "ND") {
-      sum += tp;
-    }
-  }
-  return sum;
-}
-
-function getTotalSales(rows) {
-  let sum = 0;
-  for (let i = 0; i < rows.length; i++) {
-    const ts = rows[i][COL_TOTAL_SALES];
-    if (ts && ts !== "ND") {
-      sum += ts;
-    }
-  }
-  return sum;
-}
-
-// --- Build a single asset object from a raw sheet row ---
-function buildAssetRow(row) {
-  const totalPurchases = row[COL_TOTAL_PURCHASES];
-  const totalSales     = row[COL_TOTAL_SALES];
-  const dividends      = row[COL_DIVIDENDS];
-  const currentTotal   = row[COL_CURRENT_TOTAL];
-
-  // hasFinancialData: purchases/sales data is available (not ND)
-  const hasFinancialData = totalPurchases && totalPurchases !== "ND"
-                        && totalSales     !== "ND";
-
-  // Use raw sheet value directly — only null if not a number
-  const ct          = typeof currentTotal === 'number' ? currentTotal : null;
-  const hasCurrent  = ct !== null;
-
-  const tp          = hasFinancialData ? (totalPurchases || 0) : 0;
-  const ts          = hasFinancialData ? (totalSales     || 0) : 0;
-  const div         = hasFinancialData ? (dividends      || 0) : 0;
-  const netInvested = tp - ts;
-
-  return {
-    id           : parseInt(row[COL_ID], 10),
-    name         : String(row[COL_NAME]        ?? ""),
-    assetClass   : String(row[COL_ASSET_CLASS]  ?? ""),
-    supportType  : String(row[COL_SUPPORT_TYPE] ?? ""),
-    support      : String(row[COL_SUPPORT]      ?? ""),
-    assetType    : String(row[COL_ASSET_TYPE]   ?? ""),
-    sector       : String(row[COL_SECTOR]       ?? ""),
-    information  : String(row[COL_INFORMATION]  ?? ""),
-    geography    : String(row[COL_GEOGRAPHY]    ?? ""),
-    risk         : parseInt(row[COL_RISK], 10),
-    totalPurchases: hasFinancialData ? tp   : null,
-    totalSales    : hasFinancialData ? ts   : null,
-    dividends     : hasFinancialData ? div  : null,
-    currentTotal  : ct,
-    unrealizedGain: hasFinancialData && hasCurrent && netInvested !== 0
-      ? ct - netInvested
-      : null,
-    yield: hasFinancialData && netInvested !== 0
-      ? Math.round(div / netInvested * 10000) / 100
-      : null,
-    roi: hasFinancialData && tp !== 0
-      ? Math.round((ct + ts + div - tp) / tp * 10000) / 100
-      : null
-  };
 }
 
 // --- Aggregate a group of rows into a single summary object ---
@@ -224,7 +87,7 @@ function aggregateGroup(name, rows, groupTotal, portfolioTotal) {
 }
 
 // =====================================================================
-// Shared utility functions (used by all services)
+// Shared utility functions
 // =====================================================================
 
 // --- Read a reference sheet and return a { name: id } map ---
@@ -264,8 +127,8 @@ function sumColumn(rows, colIndex) {
   let sum = 0;
 
   for (let i = 0; i < rows.length; i++) {
-    const valeur = rows[i][colIndex] || 0;  
-    sum = sum + valeur;                 
+    const valeur = rows[i][colIndex] || 0;
+    sum = sum + valeur;
   }
 
   return sum;

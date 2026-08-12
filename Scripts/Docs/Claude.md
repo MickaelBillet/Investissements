@@ -4,11 +4,13 @@
 
 ## 1. Rôle
 
-Les Scripts constituent la couche ETL et API du projet. Ils s'exécutent exclusivement dans l'**éditeur Google Apps Script** (script.google.com) — aucune commande de build locale.
+Les Scripts s'exécutent exclusivement dans l'**éditeur Google Apps Script** (script.google.com) — aucune commande de build locale.
 
-Deux responsabilités :
+Deux responsabilités, toutes deux déclenchées par des triggers temporels (jamais par une requête HTTP — il n'y a plus de Web App) :
 - **ETL quotidien** : synchroniser les valeurs courantes depuis le Bilan (SOURCE), calculer et appender un snapshot dans la feuille historique (DEST)
-- **API REST** : exposer les données de la feuille DEST via un Web App HTTP (lecture seule)
+- **Rapport hebdomadaire** : email HTML récapitulatif envoyé chaque lundi
+
+Le dashboard (Api Azure Functions) ne parle plus à ces scripts — il lit le Sheet `InvestData` directement via l'API Google Sheets officielle (compte de service), voir `Api/Docs/CLAUDE.md`.
 
 ---
 
@@ -17,19 +19,18 @@ Deux responsabilités :
 | Fichier | Rôle |
 |---|---|
 | `Config.gs` | Constantes partagées : IDs des feuilles, index de colonnes, enumerations |
-| `Router.gs` | Point d'entrée HTTP `doGet(e)`, authentification, dispatch, helpers partagés |
+| `Router.gs` | Helpers partagés lus par l'ETL et le rapport hebdo : `getAssetsData()`, `getPortfolioTotal()`, `aggregateGroup()`, `getReferenceIds()`, `groupBy()`, `sumColumn()` |
 | `SyncData.gs` | ETL : `syncCurrentTotal()` — synchronise les colonnes I–L de l'onglet Asset depuis le Bilan |
-| `SnapshotService.gs` | ETL : `snapshotQuotidien()` — calcule et appende un snapshot quotidien ; endpoints `getLast` / `getHistory` |
+| `SnapshotService.gs` | ETL : `snapshotQuotidien()` — calcule et appende un snapshot quotidien ; `handleSnapshot("getHistory", ...)` utilisé par le rapport hebdo |
 | `StockValueService.gs` | Récupère les prix des ETF de référence via `GOOGLEFINANCE` (cellule temporaire) |
-| `AssetClasseService.gs` | Service `AssetClass` |
-| `AssetTypeService.gs` | Service `AssetType` |
-| `SupportTypeService.gs` | Service `SupportType` |
-| `SupportService.gs` | Service `Support` |
-| `AssetService.gs` | Service `Asset` |
-| `SectorService.gs` | Service `Sector` |
+| `AssetClasseService.gs` | `handleAssetClass("getDistribution", ...)` — utilisé par le rapport hebdo |
+| `SupportTypeService.gs` | `handleSupportType("getDistribution", ...)` — utilisé par le rapport hebdo |
+| `AssetService.gs` | `handleAsset("getDistributionByRisk", ...)` — utilisé par le rapport hebdo |
 | `MetricsService.gs` | Calcul du ROI et des variations S/M/YTD/1A depuis l'historique snapshot |
 | `WeeklyReportService.gs` | Rapport email HTML hebdomadaire — envoyé chaque lundi à 08h00 |
-| `Test.gs` | Fonctions de test manuelles |
+| `Test.gs` | Fonctions de test manuelles — appellent les handlers directement (plus de simulation HTTP) |
+
+> `AssetTypeService.gs`, `SectorService.gs`, `SupportService.gs` et `GeographyService.gs` ont été supprimés — ils ne servaient que l'ancien Web App HTTP, plus appelés par personne depuis la migration vers l'API Google Sheets côté Api.
 
 ---
 
@@ -37,33 +38,14 @@ Deux responsabilités :
 
 - **Exécuter une fonction** : sélectionner dans le menu déroulant, cliquer Run
 - **Exécuter un test** : sélectionner une fonction `test*` dans `Test.gs`, cliquer Run — résultats dans les Logs (`Ctrl+Entrée`)
-- **Déployer en Web App** : Deploy → New deployment → Web App (execute as me, access: anyone)
-- **Initialiser le token API** : exécuter `setApiToken()` une fois après chaque nouveau déploiement
 - **Créer le déclencheur quotidien** : exécuter `creerDeclencheurSnapshot()` une fois — enregistre `snapshotQuotidien` à 06h00 chaque jour
 - **Créer le déclencheur hebdomadaire** : exécuter `creerDeclencheurHebdomadaire()` une fois — enregistre `rapportHebdomadaire` chaque lundi à 08h00
 
----
-
-## 4. Flux de requête HTTP
-
-`doGet(e)` dans `Router.gs` est l'unique point d'entrée. Chaque requête doit passer un paramètre `apiKey` (token stocké dans Script Properties). Le routage se fait sur `?service=X&action=Y` :
-
-```
-GET ?apiKey=...&service=AssetClass&action=getAll
-         │
-    Router.gs → doGet(e)
-         ├── AssetClass   → AssetClasseService.gs
-         ├── AssetType    → AssetTypeService.gs
-         ├── SupportType  → SupportTypeService.gs
-         ├── Support      → SupportService.gs
-         ├── Asset        → AssetService.gs
-         ├── Sector       → SectorService.gs
-         └── Snapshot     → SnapshotService.gs
-```
+Plus de déploiement Web App à gérer (pas de `setApiToken()`, pas de token d'API) — ces scripts ne sont plus jamais appelés depuis l'extérieur.
 
 ---
 
-## 5. ETL quotidien — `snapshotQuotidien()`
+## 4. ETL quotidien — `snapshotQuotidien()`
 
 Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheurSnapshot()`.
 
@@ -83,7 +65,7 @@ Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheu
 
 ---
 
-## 6. `fetchStockValues()`
+## 5. `fetchStockValues()`
 
 Utilise une cellule temporaire `ZZ1` pour forcer le calcul `GOOGLEFINANCE` — Apps Script ne supporte pas nativement cette fonction. La cellule est effacée après lecture.
 
@@ -91,37 +73,22 @@ Retourne `[prixLifeStrategy, prixMSCIWorld]`. En cas d'erreur, retourne `-1` pou
 
 ---
 
-## 7. Pattern des services
+## 6. Handlers restants (rapport hebdo uniquement)
 
-Chaque fichier service suit le même schéma :
-
-| Fonction | Rôle |
-|---|---|
-| `handle*(action, params)` | Switch sur `action`, retourne les données ou `{ error: "..." }` |
-| `get*All()` | Agrège toutes les lignes groupées par la dimension du service |
-| `get*Distribution()` | Vue allégée `{ name, currentTotal, weightInPortfolio }` par groupe |
-| `getBy*()` | Drill-down : filtre par valeur de dimension |
-
-Helpers partagés dans `Router.gs` : `getAssetsData()`, `getPortfolioTotal()`, `getDividendsTotal()`, `getTotalPurchases()`, `getTotalSales()`, `buildAssetRow()`, `aggregateGroup()`, `groupBy()`, `sumColumn()`.
-
----
-
-## 8. Pattern de test (`Test.gs`)
-
-Les tests simulent des requêtes HTTP en construisant un faux objet `e.parameter` et en appelant `doGet(e)` :
+`handleAssetClass`, `handleSupportType`, `handleAsset` et `handleSnapshot` ne gardent plus qu'une seule action chacun — celle utilisée par `rapportHebdomadaire()` (`WeeklyReportService.gs`). Appel direct de fonction, pas de requête HTTP :
 
 ```js
-function testDoGetAllAssetClass() {
-  const e = { parameter: { apiKey: "token-zapto", service: "AssetClass", action: "getAll" } };
-  Logger.log(doGet(e).getContent());
-}
+handleSnapshot("getHistory", {})
+handleAssetClass("getDistribution", {})
+handleSupportType("getDistribution", {})
+handleAsset("getDistributionByRisk", {})
 ```
 
-Ajouter une fonction de test pour chaque nouveau service ou action avant de déployer.
+Si un nouveau besoin de lecture apparaît côté rapport hebdo, ajouter l'action directement dans le handler concerné plutôt que de réintroduire un point d'entrée HTTP générique.
 
 ---
 
-## 9. Enumerations et constantes (`Config.gs`)
+## 7. Enumerations et constantes (`Config.gs`)
 
 Toutes les valeurs de dimension sont des constantes dans `Config.gs` (`ASSET_CLASS`, `ASSET_TYPE`, `SUPPORT_TYPE`, `SUPPORT`, `RISK`). Ne jamais coder de chaînes en dur — utiliser toujours ces constantes.
 
@@ -129,7 +96,7 @@ Les constantes `COL_SOURCE_*` définissent les index de colonnes de la feuille s
 
 ---
 
-## 10. Git — Règle absolue
+## 8. Git — Règle absolue
 
 **Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
 

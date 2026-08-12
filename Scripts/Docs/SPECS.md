@@ -1,375 +1,43 @@
 # SPECS.md — Scripts Google Apps Script
 
-**Statut :** Implémenté  
-**Version :** 1.2  
-**Date :** 2026-06-04  
+**Statut :** Implémenté
+**Version :** 2.0 — Web App HTTP retiré, le dashboard lit le Sheet directement via l'API Google Sheets (voir `Api/Docs/SPECS.md`)
+**Date :** 2026-08-12
 
 ---
 
 ## 1. Vue d'ensemble
 
-L'Apps Script expose une API REST en lecture seule via un déploiement Web App Google.  
-Toutes les requêtes passent par la fonction `doGet(e)` dans `Router.gs`.
+Il n'y a plus de point d'entrée HTTP (`doGet` a été retiré) — l'Api Azure Functions lit désormais le Google Sheet `InvestData` (`DEST_ID`) directement via l'API Google Sheets officielle, avec un compte de service (voir `Api/Docs/CLAUDE.md`). Les fichiers `.gs` couvrent deux responsabilités restantes, toutes deux déclenchées par des triggers temporels, jamais par une requête HTTP :
 
-**URL de base**
-```
-https://script.google.com/macros/s/{DEPLOYMENT_ID}/exec
-```
-
-**Authentification**  
-Chaque requête doit inclure le paramètre `apiKey`. Le token est stocké dans les Script Properties (jamais dans le code source).
-
-**Format de requête**
-```
-GET {URL_BASE}?apiKey={TOKEN}&service={SERVICE}&action={ACTION}[&param=valeur]
-```
-
-**Format de réponse**  
-JSON. En cas d'erreur, la réponse contient un champ `error` :
-```json
-{ "error": "message d'erreur" }
-```
+- **ETL quotidien** (`SnapshotService.gs` : `snapshotQuotidien()`, `SyncData.gs` : `syncCurrentTotal()`) — synchronise les valeurs courantes depuis le Bilan (SOURCE) et appende un snapshot dans la feuille historique (DEST), tous les jours à 06h00.
+- **Rapport hebdomadaire** (`WeeklyReportService.gs` : `rapportHebdomadaire()`) — envoie un email HTML récapitulatif chaque lundi à 08h00. Réutilise en interne les handlers `handleSnapshot`, `handleAssetClass`, `handleSupportType`, `handleAsset` (appel de fonction direct, pas HTTP).
 
 ---
 
-## 2. Objets de référence
+## 2. ETL quotidien — `snapshotQuotidien()`
 
-### 2.1 Objet `Aggregate`
+Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheurSnapshot()`.
 
-Retourné par les actions `getAll` et `getBy*` au niveau groupe.
-
-```json
-{
-  "name": "string",
-  "totalPurchases": 12500.00,
-  "totalSales": 800.00,
-  "dividends": 320.00,
-  "currentTotal": 14200.00,
-  "hasIncompleteData": false,
-  "unrealizedGain": 2520.00,
-  "yield": 2.73,
-  "roi": 16.12,
-  "weightInGroup": 45.20,
-  "weightInPortfolio": 18.30
-}
+```
+1. syncCurrentTotal()    → met à jour les colonnes I–L de l'onglet Asset (DEST)
+2. getAssetsData()       → lit toutes les lignes valides de l'onglet Asset
+3. resultSheet C42 (NET_PURCHASES)   → netCapital     (capital net réellement engagé, lu depuis le Bilan)
+4. resultSheet F66 (TOTAL_PURCHASES) → totalPurchases (lu directement depuis le Bilan)
+5. resultSheet F58 (TOTAL_RETURNS)   → totalReturns   (lu directement depuis le Bilan)
+6. resultSheet F68 (TOTAL_SALES)     → totalSales     (lu directement depuis le Bilan)
+7. fetchStockValues()    → prix LifeStrategy (AMS:V40A) et MSCI World (EPA:MWRD)
+8. Si une ligne existe déjà pour la date du jour → overwrite ; sinon → appendRow
+   [date, netCapital, ref1, ref2, totalPurchases, totalReturns, totalSales]
 ```
 
-| Champ | Type | Description |
-|---|---|---|
-| `name` | string | Nom du groupe |
-| `totalPurchases` | number | Total des achats en EUR |
-| `totalSales` | number | Total des ventes en EUR |
-| `dividends` | number | Dividendes perçus en EUR |
-| `currentTotal` | number | Valeur actuelle en EUR |
-| `hasIncompleteData` | boolean | `true` si au moins un actif du groupe a des données `"ND"` |
-| `unrealizedGain` | number \| null | Plus-value latente en EUR (`null` si données incomplètes) |
-| `yield` | number \| null | Rendement en % sur le capital net investi (`null` si données incomplètes) |
-| `roi` | number \| null | Retour sur investissement en % (`null` si données incomplètes) |
-| `weightInGroup` | number | Poids en % dans le groupe parent |
-| `weightInPortfolio` | number | Poids en % dans le portefeuille total |
+`netCapital`, `totalPurchases`, `totalReturns` et `totalSales` sont lus directement depuis des cellules du Bilan (SOURCE) car ils couvrent l'historique complet incluant les actifs vendus, non listés dans l'onglet Asset.
 
-### 2.2 Objet `Distribution`
-
-Retourné par les actions `getDistribution`.
-
-```json
-{
-  "id": 0,
-  "name": "string",
-  "currentTotal": 14200.00,
-  "weightInPortfolio": 18.30
-}
-```
-
-| Champ | Type | Description |
-|---|---|---|
-| `id` | number \| null | Identifiant numérique lu depuis l'onglet de référence (`AssetClass`, `AssetType`, `SupportType`, `Support`) — `null` si non trouvé |
-| `name` | string | Nom du groupe |
-| `currentTotal` | number | Valeur actuelle en EUR |
-| `weightInPortfolio` | number | Poids en % dans le portefeuille total |
-
-### 2.3 Objet `Asset`
-
-Retourné par les actions qui descendent au niveau de l'actif individuel.
-
-```json
-{
-  "id": 1,
-  "name": "MSCI World ETF",
-  "assetClass": "Stocks",
-  "supportType": "PEA",
-  "support": "PEA TR",
-  "assetType": "ETF_Stocks",
-  "information": "",
-  "risk": 4,
-  "totalPurchases": 5000.00,
-  "totalSales": 0.00,
-  "dividends": 0.00,
-  "currentTotal": 6200.00,
-  "unrealizedGain": 1200.00,
-  "yield": 0.00,
-  "roi": 24.00,
-  "weightInPortfolio": 8.10,
-  "weightInGroup": 22.50
-}
-```
-
-> `weightInGroup` est présent uniquement quand l'actif est retourné dans un contexte de groupe (`getBySupport`, `getByAssetType`, `getByRisk`).  
-> Les champs financiers (`totalPurchases`, `totalSales`, etc.) sont `null` quand la valeur est `"ND"` dans la feuille.
-
-### 2.4 Objet `Snapshot`
-
-```json
-{
-  "date": "2026-05-04",
-  "netCapital": 59149.20,
-  "lifeStrategy": 42.15,
-  "msciWorld": 87.30,
-  "totalPurchases": 65000.00,
-  "totalReturns": 83200.00,
-  "totalSales": 1351.28
-}
-```
-
-| Champ | Type | Description |
-|---|---|---|
-| `date` | string | Date au format `yyyy-MM-dd` |
-| `netCapital` | number | Capital net réellement engagé — cellule `NET_PURCHASES` (C42 du Bilan), EUR |
-| `lifeStrategy` | number \| null | Prix unitaire ETF LifeStrategy 40 (EUR) — `AMS:V40A` |
-| `msciWorld` | number \| null | Prix unitaire ETF MSCI World (EUR) — `EPA:MWRD` |
-| `totalPurchases` | number \| null | Total des achats depuis l'origine (EUR), incluant actifs vendus |
-| `totalReturns` | number \| null | Total des plus-values réalisées depuis l'origine (EUR) |
-| `totalSales` | number \| null | Total des ventes depuis l'origine (EUR), incluant actifs vendus |
-
-**Comparaison avec les références (dashboard) :**
-```
-netCapital_index = netCapital_today / netCapital_j0
-ref_index        = refPrice_today / refPrice_j0
-```
+`fetchStockValues()` utilise une cellule temporaire `ZZ1` pour forcer le calcul `GOOGLEFINANCE` (Apps Script ne le supporte pas nativement). Retourne `[prixLifeStrategy, prixMSCIWorld]`, `-1` en cas d'erreur sur un ticker.
 
 ---
 
-## 3. Services
-
-### 3.1 AssetClass
-
-Regroupe les actifs par **classe d'actif** (`Stocks`, `Bonds`, `Cash`, etc.).
-
-| Action | Paramètres | Réponse |
-|---|---|---|
-| `getAll` | — | `Aggregate[]` — toutes les classes avec métriques complètes |
-| `getDistribution` | — | `Distribution[]` — poids de chaque classe |
-| `getByAssetClass` | `assetClass` ✱ | `Aggregate[]` — AssetTypes dans la classe demandée |
-
-**Exemples**
-```
-?service=AssetClass&action=getAll
-?service=AssetClass&action=getDistribution
-?service=AssetClass&action=getByAssetClass&assetClass=Stocks
-```
-
-Valeurs valides pour `assetClass` : voir `ASSET_CLASS` dans `Config.gs`.
-
----
-
-### 3.2 AssetType
-
-Regroupe les actifs par **type d'actif** (`ETF_Stocks`, `OPCVM`, `Crypto`, etc.).
-
-| Action | Paramètres | Réponse |
-|---|---|---|
-| `getAll` | — | `Aggregate[]` — tous les types avec métriques complètes |
-| `getDistribution` | — | `Distribution[]` (+ `labelFr`) — poids de chaque type |
-| `getByAssetType` | `assetType` ✱ | `Asset[]` — actifs individuels du type demandé |
-| `getEtfStocksByInformation` | — | `Aggregate[]` — ETF_Stocks groupés par champ `information` |
-| `getByAssetTypeAndInformation` | `assetType` ✱, `information` ✱ | `Asset[]` — actifs du type filtrés par `information` |
-| `getReference` | — | `AssetTypeMeta[]` — métadonnées brutes de l'onglet `AssetType` (`{ id, name, labelFr, geoSectorEligible }`) |
-
-**Exemples**
-```
-?service=AssetType&action=getAll
-?service=AssetType&action=getDistribution
-?service=AssetType&action=getByAssetType&assetType=ETF_Stocks
-?service=AssetType&action=getEtfStocksByInformation
-?service=AssetType&action=getByAssetTypeAndInformation&assetType=ETF_Stocks&information=World
-?service=AssetType&action=getReference
-```
-
-Valeurs valides pour `assetType` : voir `ASSET_TYPE` dans `Config.gs`.
-
-**Onglet `AssetType` (colonnes A:E)** : `id`, `name`, `assetClass` (classe d'actif parente, non exposée par `getReference`), `labelFr` (libellé FR affiché par le Client), `geoSectorEligible` (détermine si ce type entre dans la ventilation géographique et sectorielle — valeurs acceptées : `TRUE`/`FALSE` ou `oui`/`non`, insensible à la casse). Lus dynamiquement par `getAssetTypeMeta()` (`AssetTypeService.gs`) — ajouter un nouveau type ne nécessite aucune modification de code, uniquement une nouvelle ligne dans le Sheet.
-
----
-
-### 3.3 SupportType
-
-Regroupe les actifs par **type d'enveloppe** (`PEA`, `CTO`, `LifeInsurance`, etc.).
-
-| Action | Paramètres | Réponse |
-|---|---|---|
-| `getAll` | — | `Aggregate[]` — tous les types d'enveloppe avec métriques complètes |
-| `getDistribution` | — | `Distribution[]` — poids de chaque type d'enveloppe |
-| `getBySupportType` | `supportType` ✱ | `Aggregate[]` — Supports (brokers) dans le type d'enveloppe demandé |
-
-**Exemples**
-```
-?service=SupportType&action=getAll
-?service=SupportType&action=getDistribution
-?service=SupportType&action=getBySupportType&supportType=PEA
-```
-
-Valeurs valides pour `supportType` : voir `SUPPORT_TYPE` dans `Config.gs`.
-
----
-
-### 3.4 Support
-
-Regroupe les actifs par **enveloppe / broker** (`PEA TR`, `Spirica`, `Kraken`, etc.).
-
-| Action | Paramètres | Réponse |
-|---|---|---|
-| `getAll` | — | `Aggregate[]` — tous les supports avec métriques complètes |
-| `getDistribution` | — | `Distribution[]` — poids de chaque support |
-| `getBySupport` | `support` ✱ | `Asset[]` — actifs individuels dans le support demandé |
-
-**Exemples**
-```
-?service=Support&action=getAll
-?service=Support&action=getDistribution
-?service=Support&action=getBySupport&support=PEA%20TR
-```
-
-Valeurs valides pour `support` : voir `SUPPORT` dans `Config.gs`.
-
----
-
-### 3.5 Asset
-
-Expose les **actifs individuels** avec leurs métriques complètes, filtrables par niveau de risque.
-
-| Action | Paramètres | Réponse |
-|---|---|---|
-| `getAll` | — | `Asset[]` — tous les actifs avec métriques et `weightInPortfolio` |
-| `getDistribution` | — | `Distribution[]` (+ `id`) — poids de chaque actif |
-| `getByRisk` | `risk` ✱ (entier 0–4) | `Asset[]` — actifs du niveau de risque demandé |
-| `getDistributionByRisk` | — | `Aggregate[]` — métriques agrégées par niveau de risque |
-
-**Exemples**
-```
-?service=Asset&action=getAll
-?service=Asset&action=getDistribution
-?service=Asset&action=getByRisk&risk=4
-?service=Asset&action=getDistributionByRisk
-```
-
-**Échelle de risque**
-
-| Valeur | Niveau |
-|---|---|
-| `0` | Sans risque |
-| `1` | Très faible |
-| `2` | Faible |
-| `3` | Moyen |
-| `4` | Élevé |
-
----
-
-### 3.6 Sector
-
-Regroupe les actifs par **secteur économique** (valeur libre issue de la colonne `Sector` de l'onglet Asset).
-
-| Action | Paramètres | Réponse |
-|---|---|---|
-| `getAll` | — | `Aggregate[]` — tous les secteurs avec métriques complètes |
-| `getDistribution` | — | `Distribution[]` (id=null) — poids de chaque secteur |
-| `getBySector` | `sector` ✱ | `Asset[]` — actifs individuels du secteur demandé |
-
-**Exemples**
-```
-?service=Sector&action=getAll
-?service=Sector&action=getDistribution
-?service=Sector&action=getBySector&sector=Technology
-```
-
-> Le champ `id` est toujours `null` dans les réponses `Distribution` de ce service car le secteur est une valeur libre sans table de référence.
-
----
-
-### 3.7 Geography
-
-Calcule la **répartition géographique pondérée** pour les actifs de type marché (Stocks, ETF, Obligations).
-
-| Action | Paramètres | Réponse |
-|---|---|---|
-| `getDistribution` | `assetClass` ○ (`Stocks` ou `Bonds`) | `Distribution[]` — poids de chaque zone géographique |
-
-**Exemples**
-```
-?service=Geography&action=getDistribution
-?service=Geography&action=getDistribution&assetClass=Stocks
-?service=Geography&action=getDistribution&assetClass=Bonds
-```
-
-**Filtre d'éligibilité :**
-- Classes d'actifs : `GEOGRAPHY_ASSET_CLASSES` (`Config.gs`) = `["Stocks", "Bonds"]`
-- Types d'actifs : lus dynamiquement depuis l'onglet `AssetType` — types dont `geoSectorEligible = TRUE` (voir `getAssetTypeMeta()` dans `AssetTypeService.gs`)
-
-**Parsing du champ `geography` :** format `Zone1 : X% - Zone2 : Y%`. La valeur `currentTotal` de l'actif est ventilée proportionnellement sur chaque zone. Les lignes avec `currentTotal ≤ 0` sont ignorées.
-
-> Le champ `id` est toujours `null` — les zones géographiques sont des valeurs libres sans table de référence.
-
----
-
-### 3.8 Snapshot
-
-Accès à l'**historique quotidien** de la valeur totale du portefeuille.
-
-| Action | Paramètres | Réponse |
-|---|---|---|
-| `getLast` | — | `Snapshot` — dernier snapshot enregistré |
-| `getHistory` | `limit` ○ (entier) | `Snapshot[]` — derniers N snapshots, ordre chronologique ascendant. Par défaut : tous. |
-
-**Exemples**
-```
-?service=Snapshot&action=getLast
-?service=Snapshot&action=getHistory
-?service=Snapshot&action=getHistory&limit=30
-```
-
----
-
-## 4. Récapitulatif des endpoints
-
-| Service | Action | Paramètre | Niveau de réponse |
-|---|---|---|---|
-| `AssetClass` | `getAll` | — | Groupe |
-| `AssetClass` | `getDistribution` | — | Distribution |
-| `AssetClass` | `getByAssetClass` | `assetClass` ✱ | Sous-groupe |
-| `AssetType` | `getAll` | — | Groupe |
-| `AssetType` | `getDistribution` | — | Distribution |
-| `AssetType` | `getByAssetType` | `assetType` ✱ | Actif individuel |
-| `AssetType` | `getReference` | — | Métadonnées brutes du Sheet |
-| `SupportType` | `getAll` | — | Groupe |
-| `SupportType` | `getDistribution` | — | Distribution |
-| `SupportType` | `getBySupportType` | `supportType` ✱ | Sous-groupe |
-| `Support` | `getAll` | — | Groupe |
-| `Support` | `getDistribution` | — | Distribution |
-| `Support` | `getBySupport` | `support` ✱ | Actif individuel |
-| `Asset` | `getAll` | — | Actif individuel |
-| `Asset` | `getDistribution` | — | Distribution |
-| `Asset` | `getByRisk` | `risk` ✱ | Actif individuel |
-| `Asset` | `getDistributionByRisk` | — | Groupe |
-| `Geography` | `getDistribution` | `assetClass` ○ | Distribution |
-| `Snapshot` | `getLast` | — | Snapshot |
-| `Snapshot` | `getHistory` | `limit` ○ | Snapshot[] |
-
-✱ Requis — ○ Optionnel
-
----
-
-## 5. Rapports automatisés
-
-### 5.1 Rapport hebdomadaire (`WeeklyReportService.gs`)
+## 3. Rapport hebdomadaire (`WeeklyReportService.gs`)
 
 Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` via `MailApp`.
 
@@ -383,9 +51,10 @@ Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` 
 | Actifs en portefeuille | Nombre d'actifs actifs |
 | Risque moyen | Moyenne pondérée par `currentTotal` sur l'échelle 0–4 |
 | ROI Capital Engagé | Valeur courante + variations S/M/YTD/1A |
-| Répartition par classe d'actifs | Distribution `AssetClass` |
-| Répartition par type de support | Distribution `SupportType` |
-| Répartition par niveau de risque | Distribution par risque |
+| Répartition par classe d'actifs | `handleAssetClass("getDistribution", {})` |
+| Répartition par type de support | `handleSupportType("getDistribution", {})` |
+| Répartition par niveau de risque | `handleAsset("getDistributionByRisk", {})` |
+| Historique complet | `handleSnapshot("getHistory", {})` |
 
 **Calcul des variations (`MetricsService.gs`) :**
 
@@ -398,5 +67,46 @@ Envoyé automatiquement chaque **lundi à 08h00** à `mickael.billet@gmail.com` 
 
 **Formule ROI** (calculée dans `computeRoi`) :
 ```
-roiOnCapitalEngaged  = totalReturns / netCapital × 100
+roiOnCapitalEngaged = totalReturns / netCapital × 100
+```
+
+---
+
+## 4. Objets retournés par les handlers restants
+
+Ces handlers ne sont plus exposés en HTTP — ils ne sont appelés que par `rapportHebdomadaire()` (voir section 3) et testables directement depuis `Test.gs`.
+
+### `Aggregate` (`handleAsset("getDistributionByRisk", {})`)
+```json
+{
+  "name": "Risk 4",
+  "totalPurchases": 12500.00,
+  "totalSales": 800.00,
+  "dividends": 320.00,
+  "currentTotal": 14200.00,
+  "hasIncompleteData": false,
+  "unrealizedGain": 2520.00,
+  "yield": 2.73,
+  "roi": 16.12,
+  "weightInGroup": 45.20,
+  "weightInPortfolio": 18.30
+}
+```
+
+### `Distribution` (`handleAssetClass`/`handleSupportType`, action `getDistribution`)
+```json
+{ "id": 0, "name": "Stocks", "currentTotal": 14200.00, "weightInPortfolio": 18.30 }
+```
+
+### `Snapshot` (`handleSnapshot("getHistory", {})`)
+```json
+{
+  "date": "2026-05-04",
+  "netCapital": 59149.20,
+  "lifeStrategy": 42.15,
+  "msciWorld": 87.30,
+  "totalPurchases": 65000.00,
+  "totalReturns": 83200.00,
+  "totalSales": 1351.28
+}
 ```

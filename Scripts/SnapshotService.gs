@@ -11,6 +11,9 @@ const COL_SNAP_TOTAL_PURCHASES = 4;  // E
 const COL_SNAP_TOTAL_RETURNS   = 5;  // F
 const COL_SNAP_TOTAL_SALES     = 6;  // G
 
+// Only "getHistory" remains — used by rapportHebdomadaire(). "getLast" was
+// only ever served over the Web App, now replaced by the Api reading the
+// Sheet directly (Api/Services/SnapshotService.cs).
 function handleSnapshot(action, params) {
 
   const sheet = SpreadsheetApp.openById(DEST_ID).getSheetByName(SHEET_SNAPSHOT);
@@ -21,10 +24,6 @@ function handleSnapshot(action, params) {
 
   switch (action) {
 
-    // --- Return the most recent snapshot ---
-    case "getLast":
-      return getSnapshotLast(rows);
-
     // --- Return snapshot history with optional limit ---
     case "getHistory":
       const limit = params.limit ? parseInt(params.limit) : rows.length;
@@ -33,17 +32,6 @@ function handleSnapshot(action, params) {
     default:
       return { error: "Unknown action: " + action };
   }
-}
-
-// --- Return the most recent snapshot ---
-function getSnapshotLast(rows) {
-
-  if (rows.length === 0) return { error: "No snapshot available" };
-
-  // Last row is the most recent snapshot
-  const last = rows[rows.length - 1];
-
-  return buildSnapshotRow(last);
 }
 
 // --- Return the last N snapshots ordered by date ascending ---

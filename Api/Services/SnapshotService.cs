@@ -1,3 +1,4 @@
+using InvestissementsDashboard.GoogleSheets;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -14,15 +15,15 @@ internal sealed class SnapshotService : ISnapshotService
     private static readonly TimeSpan HistoryCacheTtl = TimeSpan.FromMinutes(5);
     private static readonly SemaphoreSlim HistoryCacheLock = new(1, 1);
 
-    private readonly IAppsScriptService _appsScript;
+    private readonly IGoogleSheetsClient _sheetsClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<SnapshotService> _logger;
 
-    public SnapshotService(IAppsScriptService appsScript, IMemoryCache cache, ILogger<SnapshotService> logger)
+    public SnapshotService(IGoogleSheetsClient sheetsClient, IMemoryCache cache, ILogger<SnapshotService> logger)
     {
-        _appsScript = appsScript;
-        _cache      = cache;
-        _logger     = logger;
+        _sheetsClient = sheetsClient;
+        _cache        = cache;
+        _logger       = logger;
     }
 
     // Single-flight cache: PortfolioMetricsService and the dashboard's own snapshot
@@ -38,7 +39,11 @@ internal sealed class SnapshotService : ISnapshotService
             if (_cache.TryGetValue(LastSnapshotCacheKey, out cached))
                 return cached;
 
-            var result = await _appsScript.CallAsync<SnapshotDto>("Snapshot", "getLast", ct);
+            var rows = SheetMappers.GetSnapshotRows(await _sheetsClient.GetRangeAsync("Snapshot", ct));
+            if (rows.Count == 0)
+                _logger.LogWarning("Google Sheets returned no snapshots.");
+
+            var result = rows.Count > 0 ? SheetMappers.BuildSnapshotRow(rows[^1]) : null;
             _cache.Set(LastSnapshotCacheKey, result, LastSnapshotCacheTtl);
             return result;
         }
@@ -49,7 +54,7 @@ internal sealed class SnapshotService : ISnapshotService
     }
 
     // Single-flight cache: the snapshot history only changes once a day (06:00 cron),
-    // so a generous TTL avoids re-hitting Apps Script on every page load.
+    // so a generous TTL avoids re-reading the sheet on every page load.
     public async Task<IReadOnlyList<SnapshotDto>> GetHistoryAsync(CancellationToken ct = default)
     {
         if (_cache.TryGetValue(HistoryCacheKey, out IReadOnlyList<SnapshotDto>? cached) && cached is not null)
@@ -61,8 +66,9 @@ internal sealed class SnapshotService : ISnapshotService
             if (_cache.TryGetValue(HistoryCacheKey, out cached) && cached is not null)
                 return cached;
 
-            var result = await _appsScript.CallAsync<IReadOnlyList<SnapshotDto>>("Snapshot", "getHistory", ct);
-            result ??= [];
+            var rows = SheetMappers.GetSnapshotRows(await _sheetsClient.GetRangeAsync("Snapshot", ct));
+            IReadOnlyList<SnapshotDto> result = rows.Select(SheetMappers.BuildSnapshotRow).ToList();
+
             _cache.Set(HistoryCacheKey, result, HistoryCacheTtl);
             return result;
         }

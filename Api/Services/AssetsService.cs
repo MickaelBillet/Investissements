@@ -1,3 +1,4 @@
+using InvestissementsDashboard.GoogleSheets;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -14,27 +15,27 @@ internal sealed class AssetsService : IAssetsService
     private static readonly TimeSpan AssetTypeReferenceCacheTtl = TimeSpan.FromMinutes(5);
     private static readonly SemaphoreSlim AssetTypeReferenceCacheLock = new(1, 1);
 
-    private static readonly Dictionary<string, string> DimensionServices = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, int> DimensionColumns = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["assetClass"]  = "AssetClass",
-        ["supportType"] = "SupportType",
-        ["support"]     = "Support",
-        ["assetType"]   = "AssetType",
+        ["assetClass"]  = SheetMappers.AssetClassColumn,
+        ["supportType"] = SheetMappers.SupportTypeColumn,
+        ["support"]     = SheetMappers.SupportColumn,
+        ["assetType"]   = SheetMappers.AssetTypeColumn,
     };
 
-    private readonly IAppsScriptService _appsScript;
+    private readonly IGoogleSheetsClient _sheetsClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AssetsService> _logger;
 
-    public AssetsService(IAppsScriptService appsScript, IMemoryCache cache, ILogger<AssetsService> logger)
+    public AssetsService(IGoogleSheetsClient sheetsClient, IMemoryCache cache, ILogger<AssetsService> logger)
     {
-        _appsScript = appsScript;
-        _cache      = cache;
-        _logger     = logger;
+        _sheetsClient = sheetsClient;
+        _cache        = cache;
+        _logger       = logger;
     }
 
     // Single-flight cache: avoids the dashboard's concurrent widgets each triggering
-    // their own full-sheet Apps Script scan and overloading the Web App under contention.
+    // their own full-sheet read and overloading the Google Sheets API quota.
     public async Task<IReadOnlyList<AssetDto>> GetAllAsync(CancellationToken ct = default)
     {
         if (_cache.TryGetValue(AssetsCacheKey, out IReadOnlyList<AssetDto>? cached) && cached is not null)
@@ -46,12 +47,14 @@ internal sealed class AssetsService : IAssetsService
             if (_cache.TryGetValue(AssetsCacheKey, out cached) && cached is not null)
                 return cached;
 
-            var result = await _appsScript.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", ct);
+            var rows = SheetMappers.GetAssetRows(await _sheetsClient.GetRangeAsync("Asset", ct));
 
-            if (result is null || result.Count == 0)
-                _logger.LogWarning("Apps Script returned no assets.");
+            if (rows.Count == 0)
+                _logger.LogWarning("Google Sheets returned no assets.");
 
-            result ??= [];
+            var portfolioTotal = SheetMappers.GetPortfolioTotal(rows);
+            IReadOnlyList<AssetDto> result = rows.Select(row => SheetMappers.BuildAssetRow(row, portfolioTotal)).ToList();
+
             _cache.Set(AssetsCacheKey, result, AssetsCacheTtl);
             return result;
         }
@@ -63,26 +66,43 @@ internal sealed class AssetsService : IAssetsService
 
     public async Task<IReadOnlyList<DistributionDto>> GetDistributionByDimensionAsync(string dimension, CancellationToken ct = default)
     {
-        if (!DimensionServices.TryGetValue(dimension, out var service))
+        if (!DimensionColumns.TryGetValue(dimension, out var column))
             throw new ArgumentException(
-                $"Unknown dimension '{dimension}'. Valid values: {string.Join(", ", DimensionServices.Keys)}.",
+                $"Unknown dimension '{dimension}'. Valid values: {string.Join(", ", DimensionColumns.Keys)}.",
                 nameof(dimension));
 
-        var result = await _appsScript.CallAsync<IReadOnlyList<DistributionDto>>(service, "getDistribution", ct);
-        return result ?? [];
+        var rows = SheetMappers.GetAssetRows(await _sheetsClient.GetRangeAsync("Asset", ct));
+        var portfolioTotal = SheetMappers.GetPortfolioTotal(rows);
+        return SheetMappers.GetDistributionByColumn(rows, column, portfolioTotal);
     }
 
     public async Task<IReadOnlyList<AggregateDto>> GetEtfStocksByInformationAsync(CancellationToken ct = default)
     {
-        var result = await _appsScript.CallAsync<IReadOnlyList<AggregateDto>>("AssetType", "getEtfStocksByInformation", null, ct);
-        return result ?? [];
+        var rows = SheetMappers.GetAssetRows(await _sheetsClient.GetRangeAsync("Asset", ct));
+        var portfolioTotal = SheetMappers.GetPortfolioTotal(rows);
+
+        var etfRows = rows.Where(row => row.Count > SheetMappers.AssetTypeColumn
+            && row[SheetMappers.AssetTypeColumn]?.ToString() == "ETF_Stocks").ToList();
+        if (etfRows.Count == 0) return [];
+
+        var groupTotal = SheetMappers.SumColumn(etfRows, SheetMappers.CurrentTotalColumn);
+        return SheetMappers.GroupBy(etfRows, SheetMappers.InformationColumn)
+            .Select(g => SheetMappers.AggregateGroup(g.Key, g.Value, groupTotal, portfolioTotal))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<AssetDto>> GetByAssetTypeAndInformationAsync(string assetType, string information, CancellationToken ct = default)
     {
-        var extra = new Dictionary<string, string> { ["assetType"] = assetType, ["information"] = information };
-        var result = await _appsScript.CallAsync<IReadOnlyList<AssetDto>>("AssetType", "getByAssetTypeAndInformation", extra, ct);
-        return result ?? [];
+        var rows = SheetMappers.GetAssetRows(await _sheetsClient.GetRangeAsync("Asset", ct));
+        var portfolioTotal = SheetMappers.GetPortfolioTotal(rows);
+
+        var filtered = rows.Where(row =>
+            row.Count > SheetMappers.InformationColumn
+            && row[SheetMappers.AssetTypeColumn]?.ToString() == assetType
+            && row[SheetMappers.InformationColumn]?.ToString() == information).ToList();
+        if (filtered.Count == 0) return [];
+
+        return filtered.Select(row => SheetMappers.BuildAssetRow(row, portfolioTotal)).ToList();
     }
 
     // Single-flight cache: AssetType reference metadata (labelFr, geoSectorEligible) is near-static, safe to cache longer than the assets list.
@@ -97,8 +117,9 @@ internal sealed class AssetsService : IAssetsService
             if (_cache.TryGetValue(AssetTypeReferenceCacheKey, out cached) && cached is not null)
                 return cached;
 
-            var result = await _appsScript.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", ct);
-            result ??= [];
+            var rows = SheetMappers.GetAssetTypeRows(await _sheetsClient.GetRangeAsync("AssetType", ct));
+            IReadOnlyList<AssetTypeReferenceDto> result = rows.Select(SheetMappers.BuildAssetTypeReference).ToList();
+
             _cache.Set(AssetTypeReferenceCacheKey, result, AssetTypeReferenceCacheTtl);
             return result;
         }
