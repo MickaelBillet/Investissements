@@ -2,7 +2,7 @@
 
 ## 1. Rôle
 
-Couche backend serverless entre le Google Apps Script et le Blazor WASM. Détient l'URL et le token de l'Apps Script Web App, expose des endpoints REST internes consommés uniquement par le frontend hébergé sur le même Azure Static Web Apps.
+Couche backend serverless entre Google Sheets et le Blazor WASM. Lit le Sheet `InvestData` directement via l'API Google Sheets officielle (compte de service, projet `GoogleSheets/`), expose des endpoints REST internes consommés uniquement par le frontend hébergé sur le même Azure Static Web Apps.
 
 ---
 
@@ -12,6 +12,7 @@ Couche backend serverless entre le Google Apps Script et le Blazor WASM. Détien
 |---|---|
 | Runtime | .NET 9, Azure Functions v4 isolated worker |
 | Modèle HTTP | `Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore` |
+| Accès données | `Google.Apis.Sheets.v4` via le projet `GoogleSheets/` (référencé, pas de dépendance Google directe dans l'Api) |
 | Tests | xUnit + Moq |
 | Déploiement | Lié à Azure Static Web Apps (Managed Functions) |
 
@@ -35,7 +36,6 @@ Api/
 │   ├── PortfolioMetricsFunction.cs
 │   └── SnapshotFunction.cs
 ├── Interfaces/                 # Interfaces des services
-│   ├── IAppsScriptService.cs
 │   ├── IAssetsService.cs
 │   ├── IBondScheduleService.cs
 │   ├── IGeographyService.cs
@@ -43,13 +43,11 @@ Api/
 │   ├── ISnapshotService.cs
 │   └── Mcp/
 │       └── IMcpService.cs         # Interface du handler JSON-RPC
-├── JsonConverter/              # Converters System.Text.Json
-│   ├── FlexibleIntConverter.cs
-│   └── FlexibleStringConverter.cs
+├── Mappers/
+│   └── SheetMappers.cs            # Fonctions pures : lignes brutes Sheets → DTOs (mapping + agrégation)
 ├── Mcp/
 │   └── McpToolRegistry.cs         # Registre statique des 8 outils MCP
 ├── Services/
-│   ├── AppsScriptService.cs
 │   ├── AssetsService.cs
 │   ├── BondScheduleService.cs
 │   ├── GeographyService.cs
@@ -63,6 +61,8 @@ Api/
 
 Les modèles JSON-RPC (`JsonRpcRequest`, `JsonRpcResponse`, etc.) sont dans `Shared/Models/Mcp/McpModels.cs`.
 
+`SheetMappers` est un `static class` interne sans état — fonctions pures (ligne brute → DTO), pas de DI, à distinguer des vrais services injectés dans `Services/`.
+
 ---
 
 ## 4. Architecture — flux de données
@@ -73,12 +73,12 @@ Blazor WASM
     │ HTTP GET /api/...
     ▼
 Azure Functions (C#)
-    │ GET {APPS_SCRIPT_URL}?apiKey=...&service=X&action=Y
+    │ IGoogleSheetsClient.GetRangeAsync("Asset" | "Snapshot" | "AssetType")
     ▼
-Google Apps Script Web App
-    │ lit Google Sheets DEST
+GoogleSheets/ (Google.Apis.Sheets.v4, compte de service)
+    │ lit Google Sheets DEST directement
     ▼
-JSON response → désérialisé en DTO
+Lignes brutes → SheetMappers → DTO
 ```
 
 **Flux MCP (Claude Code) :**
@@ -90,12 +90,12 @@ McpFunction → McpService (JSON-RPC router)
     │ délègue au service métier existant
     ▼
 IAssetsService / ISnapshotService / etc.
-    │ appelle Apps Script (même flux que le dashboard)
+    │ même flux que le dashboard (lecture directe du Sheet)
     ▼
-JSON response → sérialisé en McpContent
+DTO → sérialisé en McpContent
 ```
 
-Les Azure Functions ne lisent **pas** directement Google Sheets — elles appellent uniquement l'Apps Script Web App.
+Il n'y a plus d'Apps Script Web App dans ce flux — Apps Script ne fait plus que l'ETL quotidien et le rapport hebdomadaire par email (voir `Scripts/Docs/CLAUDE.md`), sans lien avec l'Api.
 
 ---
 
@@ -105,8 +105,9 @@ Les variables d'environnement sont injectées via `IConfiguration` (App Settings
 
 | Variable | Usage |
 |---|---|
-| `APPS_SCRIPT_URL` | URL du déploiement Web App Google Apps Script |
-| `APPS_SCRIPT_API_KEY` | Token d'authentification (`apiKey`) de l'Apps Script |
+| `GOOGLE_SHEET_ID` | ID du Google Sheet `InvestData` (`DEST_ID`) |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email du compte de service Google (accès Lecteur sur le Sheet) |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Clé privée du compte de service (format PEM, `\n` littéraux) |
 
 Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 
@@ -116,17 +117,17 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 
 | Méthode | Route | Source |
 |---|---|---|
-| GET | `/api/snapshot` | Apps Script `Snapshot.getLast` |
-| GET | `/api/snapshot/history` | Apps Script `Snapshot.getHistory` |
-| GET | `/api/assets` | Apps Script `Asset.getAll` |
-| GET | `/api/assets/distribution/{dimension}` | Apps Script `{Dimension}.getDistribution` |
-| GET | `/api/assets/etfstocks/information` | Apps Script `AssetType.getEtfStocksByInformation` |
-| GET | `/api/assets/etfstocks/information/{information}` | Apps Script `AssetType.getByAssetTypeAndInformation` |
-| GET | `/api/assets/types/reference` | Apps Script `AssetType.getReference` — métadonnées `AssetTypeReferenceDto` (`labelFr`, `geoSectorEligible`) lues depuis l'onglet `AssetType` |
+| GET | `/api/snapshot` | Sheet `Snapshot`, dernière ligne |
+| GET | `/api/snapshot/history` | Sheet `Snapshot`, toutes les lignes |
+| GET | `/api/assets` | Sheet `Asset`, toutes les lignes |
+| GET | `/api/assets/distribution/{dimension}` | Sheet `Asset`, groupé par colonne (`assetClass`/`assetType`/`support`/`supportType`) |
+| GET | `/api/assets/etfstocks/information` | Sheet `Asset`, filtré `ETF_Stocks`, groupé par `information` |
+| GET | `/api/assets/etfstocks/information/{information}` | Sheet `Asset`, filtré par type + `information` |
+| GET | `/api/assets/types/reference` | Sheet `AssetType` — `AssetTypeReferenceDto` (`labelFr`, `geoSectorEligible`) |
 | GET | `/api/portfolio/metrics` | Compose `AssetsService` + `SnapshotService` |
-| GET | `/api/portfolio/metrics/history` | `PortfolioMetricsService.GetIndexedHistoryAsync` — Apps Script `Snapshot.getHistory`, normalisé base 100 |
-| GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège `Asset.getAll` par année extraite du champ `information` |
-| GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis `Asset.getAll` |
+| GET | `/api/portfolio/metrics/history` | `PortfolioMetricsService.GetIndexedHistoryAsync` — historique `Snapshot`, normalisé base 100 |
+| GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège les assets par année extraite du champ `information` |
+| GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis les assets |
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
@@ -150,30 +151,30 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`
 
 ---
 
-## 7. Désérialisation JSON
+## 7. Mapping des lignes brutes (`Mappers/SheetMappers.cs`)
 
-`AppsScriptService` utilise `System.Text.Json` avec :
-- `PropertyNameCaseInsensitive = true` — les DTOs C# (PascalCase) matchent le JSON camelCase de l'Apps Script
-- `NumberHandling = AllowReadingFromString` — Google Sheets peut retourner des nombres comme strings
-- `FlexibleIntConverter` — gère les IDs et risks retournés comme floats ou strings (`"5.0"` → `5`)
-- `FlexibleStringConverter` — tolère les tokens JSON Number là où un string est attendu (ex : champ `information` numérique)
+`IGoogleSheetsClient.GetRangeAsync` retourne des lignes brutes (`IReadOnlyList<IReadOnlyList<object>>`), avec `ValueRenderOption = UNFORMATTED_VALUE` côté `GoogleSheetsClient` (valeurs typées, pas de formatage locale/devise). `SheetMappers` porte en C# pur la logique historiquement dans `Scripts/Router.gs` (`buildAssetRow`, `buildSnapshotRow`, `groupBy`, `sumColumn`, `aggregateGroup`) :
+
+- Les cellules numériques arrivent en `double` ou `long` selon qu'elles ont une partie décimale ou non — toujours passer par `AsDecimalOrNull`/`AsDecimalOrZero`, jamais de cast direct.
+- Les dates (colonne `Snapshot.Date`) : Google Sheets convertit automatiquement un texte reconnu comme une date en valeur interne — elles reviennent en numéro de série (jours depuis 1899-12-30), typé `long` ou `double` selon le cas. `AsDate` gère les deux, avec un fallback texte pour compatibilité.
+- Sentinel `"ND"` (Not Defined) et lignes `"Not Defined"` : même traitement que côté Apps Script historique (voir `Scripts/Docs/CLAUDE.md`).
 
 ---
 
 ## 8. Cache — pattern single-flight
 
-Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.WhenAll` côté Client), et certains appels Apps Script identiques sont ainsi redemandés simultanément par plusieurs services :
-- `Asset.getAll` : `AssetsFunction`, `GeographyService` (×2, Stocks/Bonds), `PortfolioMetricsService`, `BondScheduleService`
-- `Snapshot.getLast` : `SnapshotFunction`, `PortfolioMetricsService`
+Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.WhenAll` côté Client), et certains appels Sheets identiques sont ainsi redemandés simultanément par plusieurs services :
+- Sheet `Asset` : `AssetsFunction`, `GeographyService` (×2, Stocks/Bonds), `PortfolioMetricsService`, `BondScheduleService`
+- Sheet `Snapshot` : `SnapshotFunction`, `PortfolioMetricsService`
 
-Sans protection, ça multiplie les appels identiques vers Apps Script et peut saturer le Web App sous contention (erreurs 404 intermittentes observées en local). `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` appliquent donc un cache single-flight :
+`AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync`/`GetHistoryAsync` appliquent donc un cache single-flight :
 
-- `IMemoryCache` (enregistré via `services.AddMemoryCache()` dans `Program.cs`), TTL 30s — largement suffisant car les données ne changent qu'une fois par jour (`snapshotQuotidien` à 6h côté Apps Script)
-- `AssetsService.GetAssetTypeReferenceAsync` (appelé par `GeographyService` et directement par le Client) applique le même pattern avec une TTL plus longue (5 min) — les colonnes `labelFr`/`geoSectorEligible` de l'onglet `AssetType` changent rarement
+- `IMemoryCache` (enregistré via `services.AddMemoryCache()` dans `Program.cs`), TTL 30s pour `GetAllAsync`/`GetLastAsync` — largement suffisant car les données ne changent qu'une fois par jour (`snapshotQuotidien` à 6h côté Apps Script)
+- `AssetsService.GetAssetTypeReferenceAsync` et `SnapshotService.GetHistoryAsync` appliquent le même pattern avec une TTL plus longue (5 min) — ces données changent rarement/une fois par jour
 - Vérification rapide sans verrou (chemin pris par la quasi-totalité des appels)
-- Si cache vide : `SemaphoreSlim` statique dédié à la clé de cache + double-checked locking, pour qu'une seule requête concurrente déclenche l'appel réel à Apps Script
+- Si cache vide : `SemaphoreSlim` statique dédié à la clé de cache + double-checked locking, pour qu'une seule requête concurrente déclenche l'appel réel à l'API Sheets
 
-À reproduire pour tout nouvel appel Apps Script partagé par plusieurs services invoqués en parallèle.
+À reproduire pour tout nouvel appel Sheets partagé par plusieurs services invoqués en parallèle.
 
 ---
 
@@ -182,7 +183,7 @@ Sans protection, ça multiplie les appels identiques vers Apps Script et peut sa
 - Un fichier par Function dans `Functions/`
 - Logger les erreurs avant de retourner un 500 ou 502 (`HttpRequestException` → 502, autres → 500)
 - Pas de logique métier dans les Functions — déléguer aux services
-- Tests unitaires xUnit pour chaque service (mock `IAppsScriptService`)
+- Tests unitaires xUnit pour chaque service (mock `IGoogleSheetsClient`, lignes brutes en entrée)
 - `InternalsVisibleTo("DynamicProxyGenAssembly2")` dans `AssemblyInfo.cs` pour Moq sur interfaces internes
 > Prendre en compte les conseils dans le fichier `clean-code-tips.md`
 

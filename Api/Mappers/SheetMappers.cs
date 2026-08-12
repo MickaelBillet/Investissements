@@ -1,6 +1,6 @@
 using InvestissementsDashboard.Shared.Models;
 
-namespace InvestissementsDashboard.Api.Services;
+namespace InvestissementsDashboard.Api.Mappers;
 
 // Pure row-to-DTO mapping and aggregation, ported from Scripts/Router.gs, AssetService.gs,
 // AssetTypeService.gs and SnapshotService.gs — same column layout as Scripts/Config.gs.

@@ -1,14 +1,14 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 1.4  
-**Date :** 2026-08-04
+**Version :** 2.0 — lecture directe du Google Sheet via l'API Sheets, l'Apps Script Web App n'est plus dans le chemin
+**Date :** 2026-08-12
 
 ---
 
 ## 1. Vue d'ensemble
 
-L'Api expose 10 endpoints REST en lecture seule et 1 endpoint MCP. Les endpoints REST délèguent à l'Apps Script Web App via `IAppsScriptService` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis d'autres services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
+L'Api expose 10 endpoints REST en lecture seule et 1 endpoint MCP. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
 
 `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` sont mis en cache (single-flight, TTL 30s) — voir `Api/Docs/CLAUDE.md` §8.
 
@@ -75,8 +75,8 @@ Retourne la distribution du portefeuille par dimension, avec le poids de chaque 
 ```
 
 **Notes :**
-- `id` est l'identifiant de la dimension lu depuis l'onglet de référence (`AssetClass`, `AssetType`, `SupportType`, `Support`)
-- Résultats triés par `currentTotal` décroissant (côté Apps Script)
+- `id` est toujours `null` — non consommé par le Client, la lecture de l'onglet de référence a été retirée lors de la migration vers l'API Sheets
+- Pas de tri appliqué — ordre de première apparition dans l'onglet `Asset`
 
 ---
 
@@ -324,7 +324,7 @@ Endpoint MCP (Model Context Protocol) — JSON-RPC 2.0. Permet à Claude Code d'
 | `-32600` | `InvalidRequest` | Body null ou vide |
 | `-32601` | `MethodNotFound` | Méthode ou outil inconnu |
 | `-32602` | `InvalidParams` | Paramètre manquant ou invalide |
-| `-32603` | `InternalError` | Erreur Apps Script ou exception inattendue |
+| `-32603` | `InternalError` | Erreur de lecture du Sheet ou exception inattendue |
 
 **Authentification :**
 
@@ -383,8 +383,9 @@ En local : définir `MCP_API_KEY` dans `local.settings.json` (gitignorée) ou da
 |---|---|
 | `200 OK` | Succès |
 | `400 Bad Request` | Paramètre invalide (ex : dimension inconnue sur `/api/assets/distribution/{dimension}`) |
-| `502 Bad Gateway` | Erreur HTTP lors de l'appel à l'Apps Script |
-| `500 Internal Server Error` | Erreur inattendue (désérialisation, calcul) |
+| `500 Internal Server Error` | Erreur lors de l'appel à l'API Google Sheets, du mapping ou du calcul |
+
+> Les `Functions/*.cs` ont encore un `catch (HttpRequestException)` → 502, hérité de l'ancien `AppsScriptService`. Le SDK `Google.Apis.Sheets.v4` lève plutôt `Google.GoogleApiException`, qui ne correspond pas à ce catch — en pratique toute erreur Sheets tombe donc dans le `catch` générique (500). Ce bloc 502 est inoffensif mais mort ; à nettoyer ou à remplacer par un `catch (GoogleApiException)` dans un futur passage.
 
 ---
 
