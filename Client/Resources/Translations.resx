@@ -126,5 +126,6 @@
   <data name="Error_PageNotFound"   xml:space="preserve"><value>Page non trouvée.</value></data>
   <data name="Error_LoadingData"    xml:space="preserve"><value>Impossible de charger les données : {0}</value></data>
   <data name="Error_LoadingHistory" xml:space="preserve"><value>Impossible de charger l'historique : {0}</value></data>
+  <data name="Error_LoadingBondSchedule" xml:space="preserve"><value>Impossible de charger l'échéancier obligataire : {0}</value></data>
 
 </root>

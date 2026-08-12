@@ -4,6 +4,9 @@
 
 function handleAssetType(action, params) {
 
+  // --- getReference only needs the AssetType sheet — skip the Asset sheet read entirely ---
+  if (action === "getReference") return getAssetTypeMeta();
+
   const rows           = getAssetsData();
   const portfolioTotal = getPortfolioTotal(rows);
 
@@ -16,10 +19,6 @@ function handleAssetType(action, params) {
     // --- Return distribution (weight) of each asset type ---
     case "getDistribution":
       return getAssetTypeDistribution(rows, portfolioTotal);
-
-    // --- Return reference metadata (id, name, labelFr, geoSectorEligible) from the AssetType sheet ---
-    case "getReference":
-      return getAssetTypeMeta();
 
     // --- Return individual assets belonging to a given AssetType ---
     case "getByAssetType":

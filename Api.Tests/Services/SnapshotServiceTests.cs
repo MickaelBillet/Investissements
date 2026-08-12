@@ -84,4 +84,22 @@ public class SnapshotServiceTests
 
         Assert.Empty(result);
     }
+
+    [Fact]
+    public async Task GetHistoryAsync_CalledTwiceWithinTtl_CallsAppsScriptOnce()
+    {
+        var expected = new[]
+        {
+            new SnapshotDto(new DateOnly(2026, 5, 1), 70000m, 40.1m, 80.2m, 60000m, 75000m, 900m)
+        };
+        var mock = new Mock<IAppsScriptService>();
+        mock.Setup(s => s.CallAsync<IReadOnlyList<SnapshotDto>>("Snapshot", "getHistory", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var service = CreateService(mock);
+        await service.GetHistoryAsync();
+        await service.GetHistoryAsync();
+
+        mock.Verify(s => s.CallAsync<IReadOnlyList<SnapshotDto>>("Snapshot", "getHistory", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

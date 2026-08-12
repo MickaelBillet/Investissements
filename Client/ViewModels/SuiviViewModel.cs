@@ -6,8 +6,9 @@ namespace InvestissementsDashboard.Client.ViewModels;
 
 public class SuiviViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
 {
-    public bool    IsLoading    { get; private set; } = true;
-    public string? ErrorMessage { get; private set; }
+    public bool    IsLoading         { get; private set; } = true;
+    public string? HistoryError      { get; private set; }
+    public string? BondScheduleError { get; private set; }
 
     public IReadOnlyList<IndexedPoint> ROIC_Series { get; private set; } = [];
     public IReadOnlyList<IndexedPoint> LifeStrategySeries { get; private set; } = [];
@@ -18,23 +19,39 @@ public class SuiviViewModel(IPortfolioService portfolioService, ILocalizationSer
     {
         if (!IsLoading && ROIC_Series.Count > 0) return;
 
-        IsLoading    = true;
-        ErrorMessage = null;
+        IsLoading         = true;
+        HistoryError      = null;
+        BondScheduleError = null;
+
+        await Task.WhenAll(LoadHistoryAsync(ct), LoadBondScheduleAsync(ct));
+
+        IsLoading = false;
+    }
+
+    private async Task LoadHistoryAsync(CancellationToken ct)
+    {
         try
         {
             var data = await portfolioService.GetIndexedHistoryAsync(ct);
             ROIC_Series = [.. data.Select(p => new IndexedPoint(p.Date, p.ROIC))];
             LifeStrategySeries = [.. data.Where(p => p.LifeStrategy.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy!.Value))];
             MsciWorldSeries    = [.. data.Where(p => p.MsciWorld.HasValue).Select(p => new IndexedPoint(p.Date, p.MsciWorld!.Value))];
-            BondSchedule       = await portfolioService.GetBondScheduleAsync(ct);
         }
         catch (Exception ex)
         {
-            ErrorMessage = string.Format(localizationService.Translate("Error_LoadingHistory"), ex.Message);
+            HistoryError = string.Format(localizationService.Translate("Error_LoadingHistory"), ex.Message);
         }
-        finally
+    }
+
+    private async Task LoadBondScheduleAsync(CancellationToken ct)
+    {
+        try
         {
-            IsLoading = false;
+            BondSchedule = await portfolioService.GetBondScheduleAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            BondScheduleError = string.Format(localizationService.Translate("Error_LoadingBondSchedule"), ex.Message);
         }
     }
 }

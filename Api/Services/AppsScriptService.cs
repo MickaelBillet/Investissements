@@ -19,6 +19,11 @@ internal sealed class AppsScriptService : IAppsScriptService
         Converters = { new FlexibleIntConverter(), new FlexibleStringConverter() }
     };
 
+    // Global throttle: Google's Apps Script Web App errors out (502/503) when too many
+    // distinct actions (Asset.getAll, Snapshot.getLast, Snapshot.getHistory, ...) hit it
+    // concurrently, as happens when a page fires several API calls at once.
+    private static readonly SemaphoreSlim GlobalCallThrottle = new(1, 1);
+
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
     private readonly string _apiKey;
@@ -37,11 +42,19 @@ internal sealed class AppsScriptService : IAppsScriptService
 
     public async Task<T?> CallAsync<T>(string service, string action, IReadOnlyDictionary<string, string>? extraParams, CancellationToken ct = default)
     {
-        var response = await _httpClient.GetAsync(BuildRequestUrl(service, action, extraParams), ct);
-        EnsureHttpSuccess(response, service, action);
-        var content = await response.Content.ReadAsStringAsync(ct);
-        ThrowIfAppsScriptError(content, service, action);
-        return JsonSerializer.Deserialize<T>(content, JsonOptions);
+        await GlobalCallThrottle.WaitAsync(ct);
+        try
+        {
+            var response = await _httpClient.GetAsync(BuildRequestUrl(service, action, extraParams), ct);
+            EnsureHttpSuccess(response, service, action);
+            var content = await response.Content.ReadAsStringAsync(ct);
+            ThrowIfAppsScriptError(content, service, action);
+            return JsonSerializer.Deserialize<T>(content, JsonOptions);
+        }
+        finally
+        {
+            GlobalCallThrottle.Release();
+        }
     }
 
     private string BuildRequestUrl(string service, string action, IReadOnlyDictionary<string, string>? extraParams = null)
