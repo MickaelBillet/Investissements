@@ -1,158 +1,26 @@
-function testSnapshotGetLast() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "Snapshot",
-      action  : "getLast"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
-}
+// =====================================================================
+// Test.gs — Manual test functions. Run individually in the Apps Script
+// editor (Run > select function), check Logs (Ctrl+Entrée).
+//
+// No more doGet-based tests — there is no HTTP entry point anymore.
+// These call the remaining handlers directly, exactly as
+// rapportHebdomadaire() does.
+// =====================================================================
 
 function testSnapshotGetHistory() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "Snapshot",
-      action  : "getHistory",
-      limit   : "30"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
+  Logger.log(JSON.stringify(handleSnapshot("getHistory", {})));
 }
 
-function testDoGetAllAssetClass() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "AssetClass",
-      action  : "getAll"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
+function testAssetClassGetDistribution() {
+  Logger.log(JSON.stringify(handleAssetClass("getDistribution", {})));
 }
 
-function testDoGetAllAssetType() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "AssetType",
-      action  : "getAll"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
+function testSupportTypeGetDistribution() {
+  Logger.log(JSON.stringify(handleSupportType("getDistribution", {})));
 }
 
-function testDoGetAssetTypeReference() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "AssetType",
-      action  : "getReference"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
-}
-
-function testDoGetAllSupportType() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "SupportType",
-      action  : "getAll"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
-}
-
-function testDoGetAllSupport() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "Support",
-      action  : "getAll"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
-}
-
-function testDoGetAllAsset() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "Asset",
-      action  : "getAll"
-    }
-  };
-
-  const result = doGet(e);
-  const content = result.getContent();
-  Logger.log(content);
-}
-
-function testDoGetAllSector() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "Sector",
-      action  : "getAll"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
-}
-
-function testGetEtfStocksByInformation() {
-  const e = {
-    parameter: {
-      apiKey  : "token-zapto",
-      service : "AssetType",
-      action  : "getEtfStocksByInformation"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
-}
-
-function testGetByAssetTypeAndInformation() {
-  const e = {
-    parameter: {
-      apiKey      : "token-zapto",
-      service     : "AssetType",
-      action      : "getByAssetTypeAndInformation",
-      assetType   : "ETF_Stocks",
-      information : "ETF Hydrogen"
-    }
-  };
-
-  const result = doGet(e);
-  Logger.log(result.getContent());
-}
-
-function testGeographyGetDistribution() {
-  const e = { parameter: { apiKey: "token-zapto", service: "Geography", action: "getDistribution" } };
-  Logger.log(doGet(e).getContent());
-}
-
-function testGeographyGetByZone() {
-  const e = { parameter: { apiKey: "token-zapto", service: "Geography", action: "getByZone", zone: "Europe" } };
-  Logger.log(doGet(e).getContent());
+function testAssetGetDistributionByRisk() {
+  Logger.log(JSON.stringify(handleAsset("getDistributionByRisk", {})));
 }
 
 function testRapportHebdomadaire() {

@@ -46,25 +46,29 @@ Les données sont maintenues dans un Google Sheets personnel, mis à jour quotid
 
 ```
 Google Sheets (multi-onglets, style BDD)
-       │ Apps Script (ETL quotidien + API REST Web App)
-       ▼
-Azure Functions (C# — liées à Static Web Apps)
-       │ Appelle Apps Script Web App (token sécurisé)
-       │ API interne sécurisée (pas de token exposé)
-       ▼
-Blazor WASM + MudBlazor + ApexCharts
-       │ GitHub Actions (CI/CD)
-       ▼
-Azure Static Web Apps + nom de domaine custom
+       ▲                              │
+       │ Apps Script (ETL quotidien)  │ API Google Sheets (compte de service)
+       │ écrit chaque jour à 06h00    │ lue directement, pas d'intermédiaire
+       │                              ▼
+       └──────────────────  Azure Functions (C# — liées à Static Web Apps)
+                                       │ API interne sécurisée (pas de token exposé)
+                                       ▼
+                              Blazor WASM + MudBlazor + ApexCharts
+                                       │ GitHub Actions (CI/CD)
+                                       ▼
+                              Azure Static Web Apps + nom de domaine custom
 ```
+
+Apps Script n'expose plus de Web App HTTP — il ne fait plus qu'écrire (ETL quotidien + rapport hebdomadaire par email). L'Api lit le Sheet directement via l'API Google Sheets officielle (`Google.Apis.Sheets.v4`, compte de service), dans un projet dédié `GoogleSheets/`.
 
 ### Stack technique
 
 | Composant | Technologie | Justification |
 |---|---|---|
 | **Données** | Google Sheets | Ecosystème déjà en place, gratuit |
-| **API données** | Google Apps Script Web App | ETL + API REST, intégré à Google Sheets, gratuit |
-| **Backend** | Azure Functions (C#) | Serverless, gratuit, proxy sécurisé vers Apps Script |
+| **Lecture données** | API Google Sheets (compte de service) | Lecture directe, rapide, sans cold start — remplace l'ancien Web App Apps Script |
+| **ETL** | Google Apps Script (triggers temporels) | Écrit dans le Sheet chaque jour à 06h00, gratuit |
+| **Backend** | Azure Functions (C#) | Serverless, gratuit, lit le Sheet via `GoogleSheets/` (projet dédié) |
 | **Frontend** | Blazor WASM (C#) | Langage maîtrisé par le développeur |
 | **UI Components** | MudBlazor | Riche, bien maintenu |
 | **Graphiques** | ApexCharts for Blazor | Couvre tous les types de graphiques requis |
@@ -82,17 +86,17 @@ Azure Static Web Apps + nom de domaine custom
 - Mis à jour manuellement par l'utilisateur au quotidien
 - Structure détaillée des onglets à définir avec Claude Code
 
-### 4.2 Google Apps Script (ETL quotidien)
-- S'exécute automatiquement chaque jour à heure fixe
+### 4.2 Google Apps Script (ETL quotidien + rapport hebdomadaire)
+- S'exécute automatiquement chaque jour à 06h00 (ETL) et chaque lundi à 08h00 (rapport email)
 - Lit les données du jour depuis les onglets snapshot
 - Calcule les agrégats (valeur totale, % par catégorie, etc.)
 - Appende une ligne dans les onglets historiques
-- Aucune intervention manuelle requise
+- N'expose plus de Web App HTTP — aucune intervention manuelle requise
 
 ### 4.3 Azure Functions (backend C#)
-- Détient l'URL et le token de l'Apps Script Web App (stockés dans App Settings)
+- Détient les identifiants du compte de service Google (email + clé privée, stockés dans App Settings)
 - Expose des endpoints REST consommés par le Blazor WASM
-- Appelle l'Apps Script Web App et transforme la réponse en DTOs C#
+- Lit le Google Sheet directement via l'API Sheets officielle (projet `GoogleSheets/`) et construit les DTOs C#
 - Liées à Azure Static Web Apps (sécurité interne, pas d'exposition publique)
 
 ### 4.4 Blazor WASM (frontend C#)
@@ -114,10 +118,11 @@ Voir SECURITY.MD
 
 ### 5.2 Règles particulières
 
-#### 5.2.1 Protection du token Apps Script
-- L'URL et le token (`APPS_SCRIPT_API_KEY`) de l'Apps Script Web App sont stockés dans les **Application Settings** de l'Azure Function
+#### 5.2.1 Protection des identifiants Google
+- L'ID du Sheet et les identifiants du compte de service (`GOOGLE_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_KEY`) sont stockés dans les **Application Settings** de l'Azure Function
 - Ils sont chiffrés au repos par Azure, accessibles uniquement par la Function
 - Ils n'apparaissent jamais dans le code source ni dans le bundle Blazor WASM
+- Le compte de service n'a qu'un accès **Lecteur** sur le Sheet (partage explicite, pas d'accès projet GCP plus large)
 - En cas de rotation, la mise à jour se fait uniquement dans les App Settings sans redéploiement
 
 #### 5.2.2 Protection des endpoints Azure Functions
@@ -229,10 +234,11 @@ investment-dashboard/
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique de l'Api
 │       └── SPECS.md                 # Spécifications fonctionnelles de l'Api
-├── Scripts/                         # Google Apps Script (référence versionnée)
+├── Scripts/                         # Google Apps Script (référence versionnée) — ETL + rapport hebdo uniquement
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique des Scripts
 │       └── SPECS.md                 # Spécifications fonctionnelles des Scripts
+├── GoogleSheets/                    # Client API Google Sheets (C#, utilisé par l'Api)
 ├── Shared/                          # Modèles partagés Client + Api
 ├── Docs/                            # Documentation globale du projet
 │   └── SPECS.md                     # Spécifications globales
@@ -291,9 +297,9 @@ jobs:
 | Secret | Stockage | Accessible par |
 |---|---|---|
 | `AZURE_STATIC_WEB_APPS_API_TOKEN_WHITE_CLIFF_055F3F803` | GitHub Secrets | GitHub Actions uniquement |
-| `APPS_SCRIPT_URL` | Azure Function App Settings | Azure Function uniquement |
-| `APPS_SCRIPT_API_KEY` | Azure Function App Settings | Azure Function uniquement |
 | `GOOGLE_SHEET_ID` | Azure Function App Settings | Azure Function uniquement |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Azure Function App Settings | Azure Function uniquement |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Azure Function App Settings | Azure Function uniquement |
 
 ### 8.5 Domaine custom
 
@@ -353,58 +359,35 @@ Les composants sont à développer dans cet ordre :
 
 ### 11.1 Exécution et tests
 
-Les fichiers `.gs` s'exécutent exclusivement dans l'**éditeur Google Apps Script** (script.google.com). Il n'y a pas de commande de build ou de test locale.
+Les fichiers `.gs` s'exécutent exclusivement dans l'**éditeur Google Apps Script** (script.google.com). Il n'y a pas de commande de build ou de test locale, et plus de Web App à déployer — ces scripts ne sont plus jamais appelés depuis l'extérieur (l'Api lit le Sheet directement via l'API Google Sheets, voir `Api/Docs/CLAUDE.md`).
 
 - **Exécuter une fonction** : sélectionner la fonction dans le menu déroulant, cliquer Run.
 - **Exécuter un test** : sélectionner une fonction `test*` dans `Test.gs`, cliquer Run — résultats dans les Logs (`Ctrl+Entrée`).
-- **Déployer en Web App** : Deploy → New deployment → Web App (execute as me, access: anyone).
-- **Initialiser le token API** : exécuter `setApiToken()` une fois après chaque nouveau déploiement.
 - **Créer le déclencheur quotidien** : exécuter `creerDeclencheurSnapshot()` une fois — enregistre `snapshotQuotidien` à 06h00 chaque jour.
+- **Créer le déclencheur hebdomadaire** : exécuter `creerDeclencheurHebdomadaire()` une fois — enregistre `rapportHebdomadaire` chaque lundi à 08h00.
 
-### 11.2 Flux de requête
+### 11.2 Ce qui reste dans les `.gs`
 
-`doGet(e)` dans `Router.gs` est l'unique point d'entrée HTTP. Chaque requête doit passer un paramètre `apiKey` (token stocké dans Script Properties, jamais dans le code). Le routage se fait sur `?service=X&action=Y` :
+Deux responsabilités, toutes deux déclenchées par des triggers temporels :
 
-```
-GET ?apiKey=...&service=AssetClass&action=getAll
-         │
-    Router.gs → doGet(e)
-         ├── AssetClass   → AssetClasseService.gs
-         ├── AssetType    → AssetTypeService.gs
-         ├── SupportType  → SupportTypeService.gs
-         ├── Support      → SupportService.gs
-         ├── Asset        → AssetService.gs
-         ├── Sector       → SectorService.gs
-         └── Snapshot     → SnapshotService.gs
-```
+- **ETL quotidien** (`SnapshotService.gs`, `SyncData.gs`, `StockValueService.gs`) — écrit dans le Sheet, ne renvoie rien à personne.
+- **Rapport hebdomadaire** (`WeeklyReportService.gs`) — réutilise en interne (appel de fonction direct, pas HTTP) quatre handlers réduits à leur seule action utile : `handleSnapshot("getHistory", {})`, `handleAssetClass("getDistribution", {})`, `handleSupportType("getDistribution", {})`, `handleAsset("getDistributionByRisk", {})`.
 
-Les helpers partagés (`getAssetsData`, `getPortfolioTotal`, `buildAssetRow`, `aggregateGroup`, `groupBy`, `sumColumn`) sont tous dans `Router.gs`.
+Les helpers partagés (`getAssetsData`, `getPortfolioTotal`, `aggregateGroup`, `getReferenceIds`, `groupBy`, `sumColumn`) sont dans `Router.gs`.
 
-### 11.3 Pattern des services
+### 11.3 Pattern de test (Test.gs)
 
-Chaque fichier service suit le même schéma :
-
-| Fonction | Rôle |
-|---|---|
-| `handle*(action, params)` | Switch sur `action`, retourne les données ou `{ error: "..." }` |
-| `get*All()` | Agrège toutes les lignes groupées par la dimension du service |
-| `get*Distribution()` | Vue allégée `{ name, currentTotal, weightInPortfolio }` par groupe |
-| `getBy*()` | Drill-down : filtre par valeur de dimension, retourne actifs individuels ou sous-groupes |
-
-### 11.4 Pattern de test (Test.gs)
-
-Les tests simulent des requêtes HTTP en construisant un faux objet `e.parameter` et en appelant `doGet(e)` directement :
+Les tests appellent les handlers directement (plus de simulation HTTP via `doGet`) :
 
 ```js
-function testDoGetAllAssetClass() {
-  const e = { parameter: { apiKey: "token-zapto", service: "AssetClass", action: "getAll" } };
-  Logger.log(doGet(e).getContent());
+function testAssetClassGetDistribution() {
+  Logger.log(JSON.stringify(handleAssetClass("getDistribution", {})));
 }
 ```
 
-Ajouter une fonction de test pour chaque nouveau service ou action avant de déployer.
+Ajouter une fonction de test pour toute nouvelle action ajoutée à un handler.
 
-### 11.5 Enumerations (Config.gs)
+### 11.4 Enumerations (Config.gs)
 
 Toutes les valeurs de dimension sont définies comme constantes dans `Config.gs` (`ASSET_CLASS`, `ASSET_TYPE`, `SUPPORT_TYPE`, `SUPPORT`, `RISK`). Toujours utiliser ces constantes — ne jamais coder en dur des chaînes de caractères — pour rester cohérent avec ce qui est stocké dans la feuille.
 

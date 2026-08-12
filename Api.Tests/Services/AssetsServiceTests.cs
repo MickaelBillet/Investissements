@@ -1,4 +1,5 @@
 using InvestissementsDashboard.Api.Services;
+using InvestissementsDashboard.GoogleSheets;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -9,36 +10,60 @@ namespace InvestissementsDashboard.Api.Tests.Services;
 
 public class AssetsServiceTests
 {
-    private static AssetsService CreateService(Mock<IAppsScriptService> mock)
+    private static readonly IReadOnlyList<object> Header = ["Id", "Name"];
+
+    private static AssetsService CreateService(Mock<IGoogleSheetsClient> mock)
         => new(mock.Object, new MemoryCache(new MemoryCacheOptions()), NullLogger<AssetsService>.Instance);
 
-    [Fact]
-    public async Task GetAllAsync_WhenAppsScriptReturnsAssets_ReturnsThem()
+    private static Mock<IGoogleSheetsClient> MockAssetSheet(params IReadOnlyList<object>[] rows)
     {
-        var expected = new[]
-        {
-            new AssetDto(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 4,
-                5000m, 0m, 0m, 6000m, 1000m, 0m, 20m, 60m),
-            new AssetDto(2, "Livret A", "Cash", "Booklet", "Livret A", "Savings", "", "", "", 0,
-                3000m, 0m, 0m, 3000m, 0m, 0m, 0m, 40m)
-        };
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        var mock = new Mock<IGoogleSheetsClient>();
+        IReadOnlyList<IReadOnlyList<object>> sheet = [Header, .. rows];
+        mock.Setup(s => s.GetRangeAsync("Asset", It.IsAny<CancellationToken>())).ReturnsAsync(sheet);
+        return mock;
+    }
+
+    private static IReadOnlyList<object> AssetRow(
+        int id, string name, string assetClass, string supportType, string support, string assetType,
+        string sector, string information, string geography, int risk,
+        object totalPurchases, object totalSales, object dividends, object currentTotal)
+        => [id, name, assetClass, supportType, support, assetType, sector, information, geography, risk,
+            totalPurchases, totalSales, dividends, currentTotal];
+
+    [Fact]
+    public async Task GetAllAsync_WhenSheetHasAssets_ReturnsComputedDtos()
+    {
+        var mock = MockAssetSheet(
+            AssetRow(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 4, 5000d, 0d, 0d, 6000d),
+            AssetRow(2, "Livret A", "Cash", "Booklet", "Livret A", "Savings", "", "", "", 0, 3000d, 0d, 0d, 3000d));
 
         var result = await CreateService(mock).GetAllAsync();
 
         Assert.Equal(2, result.Count);
         Assert.Equal("MSCI World", result[0].Name);
+        Assert.Equal(20m, result[0].Roi);
+        Assert.Equal(66.67m, result[0].WeightInPortfolio);
         Assert.Equal("Livret A", result[1].Name);
+        Assert.Equal(33.33m, result[1].WeightInPortfolio);
     }
 
     [Fact]
-    public async Task GetAllAsync_WhenAppsScriptReturnsNull_ReturnsEmptyList()
+    public async Task GetAllAsync_SkipsNotDefinedRows()
     {
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyList<AssetDto>?)null);
+        var mock = MockAssetSheet(
+            AssetRow(1, "Not Defined", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 4, 5000d, 0d, 0d, 6000d),
+            AssetRow(2, "Livret A", "Cash", "Booklet", "Livret A", "Savings", "", "", "", 0, 3000d, 0d, 0d, 3000d));
+
+        var result = await CreateService(mock).GetAllAsync();
+
+        Assert.Single(result);
+        Assert.Equal("Livret A", result[0].Name);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_WhenSheetIsEmpty_ReturnsEmptyList()
+    {
+        var mock = MockAssetSheet();
 
         var result = await CreateService(mock).GetAllAsync();
 
@@ -46,97 +71,80 @@ public class AssetsServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_CalledTwiceWithinTtl_CallsAppsScriptOnce()
+    public async Task GetAllAsync_CalledTwiceWithinTtl_ReadsSheetOnce()
     {
-        var expected = new[]
-        {
-            new AssetDto(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 4,
-                5000m, 0m, 0m, 6000m, 1000m, 0m, 20m, 60m)
-        };
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        var mock = MockAssetSheet(
+            AssetRow(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 4, 5000d, 0d, 0d, 6000d));
 
         var service = CreateService(mock);
         await service.GetAllAsync();
         await service.GetAllAsync();
 
-        mock.Verify(s => s.CallAsync<IReadOnlyList<AssetDto>>("Asset", "getAll", It.IsAny<CancellationToken>()), Times.Once);
+        mock.Verify(s => s.GetRangeAsync("Asset", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task GetDistributionByDimensionAsync_WhenValidDimension_CallsCorrectService()
+    public async Task GetDistributionByDimensionAsync_WhenValidDimension_GroupsByAssetClass()
     {
-        var expected = new[] { new DistributionDto("Stocks", 10000m, 80m, 0) };
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<DistributionDto>>("AssetClass", "getDistribution", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        var mock = MockAssetSheet(
+            AssetRow(1, "A", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 4, 5000d, 0d, 0d, 6000d),
+            AssetRow(2, "B", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "", "", 4, 2000d, 0d, 0d, 2000d),
+            AssetRow(3, "C", "Cash", "Booklet", "Livret A", "Savings", "", "", "", 0, 3000d, 0d, 0d, 3000d));
 
         var result = await CreateService(mock).GetDistributionByDimensionAsync("assetClass");
 
-        Assert.Single(result);
-        Assert.Equal("Stocks", result[0].Name);
-        mock.Verify(s => s.CallAsync<IReadOnlyList<DistributionDto>>("AssetClass", "getDistribution", It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, d => d.Name == "Stocks" && d.CurrentTotal == 8000m);
+        Assert.Contains(result, d => d.Name == "Cash" && d.CurrentTotal == 3000m);
     }
 
     [Fact]
     public async Task GetDistributionByDimensionAsync_WhenUnknownDimension_ThrowsArgumentException()
     {
-        var mock = new Mock<IAppsScriptService>();
+        var mock = MockAssetSheet();
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             CreateService(mock).GetDistributionByDimensionAsync("unknown"));
 
-        mock.Verify(s => s.CallAsync<IReadOnlyList<DistributionDto>>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        mock.Verify(s => s.GetRangeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]
-    [InlineData("assetClass",  "AssetClass")]
-    [InlineData("assetType",   "AssetType")]
-    [InlineData("supportType", "SupportType")]
-    [InlineData("support",     "Support")]
-    public async Task GetDistributionByDimensionAsync_MapsAllDimensionsToCorrectService(string dimension, string expectedService)
+    [InlineData("assetClass",  "AC1")]
+    [InlineData("assetType",   "AT1")]
+    [InlineData("supportType", "ST1")]
+    [InlineData("support",     "S1")]
+    public async Task GetDistributionByDimensionAsync_MapsAllDimensionsToCorrectColumn(string dimension, string expectedGroup)
     {
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<DistributionDto>>(It.IsAny<string>(), "getDistribution", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+        var mock = MockAssetSheet(
+            AssetRow(1, "X", "AC1", "ST1", "S1", "AT1", "", "", "", 0, 100d, 0d, 0d, 100d));
 
-        await CreateService(mock).GetDistributionByDimensionAsync(dimension);
+        var result = await CreateService(mock).GetDistributionByDimensionAsync(dimension);
 
-        mock.Verify(s => s.CallAsync<IReadOnlyList<DistributionDto>>(expectedService, "getDistribution", It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Single(result);
+        Assert.Equal(expectedGroup, result[0].Name);
     }
 
     [Fact]
-    public async Task GetEtfStocksByInformationAsync_WhenAppsScriptReturnsGroups_ReturnsThem()
+    public async Task GetEtfStocksByInformationAsync_GroupsByInformation()
     {
-        var expected = new[]
-        {
-            new AggregateDto("World", 5000m, 0m, 0m, 6000m, false, 1000m, 0m, 20m, 60m, 50m),
-            new AggregateDto("Europe", 2000m, 0m, 0m, 2400m, false, 400m, 0m, 20m, 40m, 20m)
-        };
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AggregateDto>>(
-                "AssetType", "getEtfStocksByInformation",
-                It.IsAny<IReadOnlyDictionary<string, string>?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        var mock = MockAssetSheet(
+            AssetRow(1, "A", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "World", "", 4, 5000d, 0d, 0d, 6000d),
+            AssetRow(2, "B", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "Europe", "", 4, 2000d, 0d, 0d, 2400d),
+            AssetRow(3, "C", "Cash", "Booklet", "Livret A", "Savings", "", "", "", 0, 1000d, 0d, 0d, 1000d));
 
         var result = await CreateService(mock).GetEtfStocksByInformationAsync();
 
         Assert.Equal(2, result.Count);
-        Assert.Equal("World", result[0].Name);
-        Assert.Equal("Europe", result[1].Name);
+        Assert.Contains(result, g => g.Name == "World" && g.CurrentTotal == 6000m);
+        Assert.Contains(result, g => g.Name == "Europe" && g.CurrentTotal == 2400m);
     }
 
     [Fact]
-    public async Task GetEtfStocksByInformationAsync_WhenAppsScriptReturnsNull_ReturnsEmptyList()
+    public async Task GetEtfStocksByInformationAsync_WhenNoEtfStocks_ReturnsEmptyList()
     {
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AggregateDto>>(
-                "AssetType", "getEtfStocksByInformation",
-                It.IsAny<IReadOnlyDictionary<string, string>?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyList<AggregateDto>?)null);
+        var mock = MockAssetSheet(
+            AssetRow(1, "C", "Cash", "Booklet", "Livret A", "Savings", "", "", "", 0, 1000d, 0d, 0d, 1000d));
 
         var result = await CreateService(mock).GetEtfStocksByInformationAsync();
 
@@ -144,57 +152,48 @@ public class AssetsServiceTests
     }
 
     [Fact]
-    public async Task GetByAssetTypeAndInformationAsync_WhenAppsScriptReturnsAssets_ReturnsThem()
+    public async Task GetByAssetTypeAndInformationAsync_FiltersMatchingAssets()
     {
-        var expected = new[]
-        {
-            new AssetDto(1, "MSCI World ETF", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "World", "", 4,
-                5000m, 0m, 0m, 6000m, 1000m, 0m, 20m, 60m)
-        };
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetDto>>(
-                "AssetType", "getByAssetTypeAndInformation",
-                It.IsAny<IReadOnlyDictionary<string, string>?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        var mock = MockAssetSheet(
+            AssetRow(1, "MSCI World ETF", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "World", "", 4, 5000d, 0d, 0d, 6000d),
+            AssetRow(2, "Other", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "Europe", "", 4, 2000d, 0d, 0d, 2400d));
 
         var result = await CreateService(mock).GetByAssetTypeAndInformationAsync("ETF_Stocks", "World");
 
         Assert.Single(result);
         Assert.Equal("MSCI World ETF", result[0].Name);
-        mock.Verify(s => s.CallAsync<IReadOnlyList<AssetDto>>(
-            "AssetType", "getByAssetTypeAndInformation",
-            It.Is<IReadOnlyDictionary<string, string>?>(d =>
-                d != null && d["assetType"] == "ETF_Stocks" && d["information"] == "World"),
-            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task GetByAssetTypeAndInformationAsync_WhenAppsScriptReturnsNull_ReturnsEmptyList()
+    public async Task GetByAssetTypeAndInformationAsync_WhenNoMatch_ReturnsEmptyList()
     {
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetDto>>(
-                "AssetType", "getByAssetTypeAndInformation",
-                It.IsAny<IReadOnlyDictionary<string, string>?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyList<AssetDto>?)null);
+        var mock = MockAssetSheet(
+            AssetRow(1, "MSCI World ETF", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "", "World", "", 4, 5000d, 0d, 0d, 6000d));
 
-        var result = await CreateService(mock).GetByAssetTypeAndInformationAsync("ETF_Stocks", "World");
+        var result = await CreateService(mock).GetByAssetTypeAndInformationAsync("ETF_Stocks", "Europe");
 
         Assert.Empty(result);
     }
 
-    [Fact]
-    public async Task GetAssetTypeReferenceAsync_WhenAppsScriptReturnsMetadata_ReturnsThem()
+    // --- AssetType reference ---
+
+    private static Mock<IGoogleSheetsClient> MockAssetTypeSheet(params IReadOnlyList<object>[] rows)
     {
-        var expected = new[]
-        {
-            new AssetTypeReferenceDto(1, "Stock", "Action", true),
-            new AssetTypeReferenceDto(2, "Savings", "Épargne", false)
-        };
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        var mock = new Mock<IGoogleSheetsClient>();
+        IReadOnlyList<IReadOnlyList<object>> sheet = [Header, .. rows];
+        mock.Setup(s => s.GetRangeAsync("AssetType", It.IsAny<CancellationToken>())).ReturnsAsync(sheet);
+        return mock;
+    }
+
+    private static IReadOnlyList<object> AssetTypeRow(int id, string name, string assetClass, string labelFr, object geoSectorEligible)
+        => [id, name, assetClass, labelFr, geoSectorEligible];
+
+    [Fact]
+    public async Task GetAssetTypeReferenceAsync_WhenSheetHasRows_ReturnsMappedDtos()
+    {
+        var mock = MockAssetTypeSheet(
+            AssetTypeRow(1, "Stock", "Stocks", "Action", true),
+            AssetTypeRow(2, "Savings", "Cash", "Épargne", false));
 
         var result = await CreateService(mock).GetAssetTypeReferenceAsync();
 
@@ -205,11 +204,24 @@ public class AssetsServiceTests
     }
 
     [Fact]
-    public async Task GetAssetTypeReferenceAsync_WhenAppsScriptReturnsNull_ReturnsEmptyList()
+    public async Task GetAssetTypeReferenceAsync_ParsesTextualBooleans()
     {
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyList<AssetTypeReferenceDto>?)null);
+        var mock = MockAssetTypeSheet(
+            AssetTypeRow(1, "Stock", "Stocks", "Action", "TRUE"),
+            AssetTypeRow(2, "SCI_SCPI", "RealEstate", "SCPI", "OUI"),
+            AssetTypeRow(3, "Savings", "Cash", "Épargne", "FALSE"));
+
+        var result = await CreateService(mock).GetAssetTypeReferenceAsync();
+
+        Assert.True(result[0].GeoSectorEligible);
+        Assert.True(result[1].GeoSectorEligible);
+        Assert.False(result[2].GeoSectorEligible);
+    }
+
+    [Fact]
+    public async Task GetAssetTypeReferenceAsync_WhenSheetIsEmpty_ReturnsEmptyList()
+    {
+        var mock = MockAssetTypeSheet();
 
         var result = await CreateService(mock).GetAssetTypeReferenceAsync();
 
@@ -217,17 +229,14 @@ public class AssetsServiceTests
     }
 
     [Fact]
-    public async Task GetAssetTypeReferenceAsync_CalledTwiceWithinTtl_CallsAppsScriptOnce()
+    public async Task GetAssetTypeReferenceAsync_CalledTwiceWithinTtl_ReadsSheetOnce()
     {
-        var expected = new[] { new AssetTypeReferenceDto(1, "Stock", "Action", true) };
-        var mock = new Mock<IAppsScriptService>();
-        mock.Setup(s => s.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expected);
+        var mock = MockAssetTypeSheet(AssetTypeRow(1, "Stock", "Stocks", "Action", true));
 
         var service = CreateService(mock);
         await service.GetAssetTypeReferenceAsync();
         await service.GetAssetTypeReferenceAsync();
 
-        mock.Verify(s => s.CallAsync<IReadOnlyList<AssetTypeReferenceDto>>("AssetType", "getReference", It.IsAny<CancellationToken>()), Times.Once);
+        mock.Verify(s => s.GetRangeAsync("AssetType", It.IsAny<CancellationToken>()), Times.Once);
     }
 }
