@@ -10,6 +10,10 @@ internal sealed class SnapshotService : ISnapshotService
     private static readonly TimeSpan LastSnapshotCacheTtl = TimeSpan.FromSeconds(30);
     private static readonly SemaphoreSlim LastSnapshotCacheLock = new(1, 1);
 
+    private const string HistoryCacheKey = "snapshot:getHistory";
+    private static readonly TimeSpan HistoryCacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly SemaphoreSlim HistoryCacheLock = new(1, 1);
+
     private readonly IAppsScriptService _appsScript;
     private readonly IMemoryCache _cache;
     private readonly ILogger<SnapshotService> _logger;
@@ -44,9 +48,27 @@ internal sealed class SnapshotService : ISnapshotService
         }
     }
 
+    // Single-flight cache: the snapshot history only changes once a day (06:00 cron),
+    // so a generous TTL avoids re-hitting Apps Script on every page load.
     public async Task<IReadOnlyList<SnapshotDto>> GetHistoryAsync(CancellationToken ct = default)
     {
-        var result = await _appsScript.CallAsync<IReadOnlyList<SnapshotDto>>("Snapshot", "getHistory", ct);
-        return result ?? [];
+        if (_cache.TryGetValue(HistoryCacheKey, out IReadOnlyList<SnapshotDto>? cached) && cached is not null)
+            return cached;
+
+        await HistoryCacheLock.WaitAsync(ct);
+        try
+        {
+            if (_cache.TryGetValue(HistoryCacheKey, out cached) && cached is not null)
+                return cached;
+
+            var result = await _appsScript.CallAsync<IReadOnlyList<SnapshotDto>>("Snapshot", "getHistory", ct);
+            result ??= [];
+            _cache.Set(HistoryCacheKey, result, HistoryCacheTtl);
+            return result;
+        }
+        finally
+        {
+            HistoryCacheLock.Release();
+        }
     }
 }

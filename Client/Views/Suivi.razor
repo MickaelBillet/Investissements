@@ -10,23 +10,33 @@
         <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
     </MudStack>
 }
-else if (ViewModel.ErrorMessage is not null)
-{
-    <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.ErrorMessage</MudAlert>
-}
 else
 {
     <MudTabs Rounded="true" ApplyEffectsToContainer="true">
         <MudTabPanel Text="@L.Translate("Suivi_Tab_History")">
             <div style="height: calc(100vh - 230px);">
-                <HistoryChart ROIC_Series="@ViewModel.ROIC_Series"
-                              LifeStrategySeries="@ViewModel.LifeStrategySeries"
-                              MsciWorldSeries="@ViewModel.MsciWorldSeries" />
+                @if (ViewModel.HistoryError is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.HistoryError</MudAlert>
+                }
+                else
+                {
+                    <HistoryChart ROIC_Series="@ViewModel.ROIC_Series"
+                                  LifeStrategySeries="@ViewModel.LifeStrategySeries"
+                                  MsciWorldSeries="@ViewModel.MsciWorldSeries" />
+                }
             </div>
         </MudTabPanel>
         <MudTabPanel Text="@L.Translate("Suivi_Tab_BondSchedule")">
             <div style="height: calc(100vh - 230px);">
-                <BondScheduleChart Items="@ViewModel.BondSchedule" />
+                @if (ViewModel.BondScheduleError is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.BondScheduleError</MudAlert>
+                }
+                else
+                {
+                    <BondScheduleChart Items="@ViewModel.BondSchedule" />
+                }
             </div>
         </MudTabPanel>
     </MudTabs>

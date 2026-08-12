@@ -40,7 +40,8 @@ public class SuiviViewModelTests
         Assert.Equal(2, vm.ROIC_Series.Count);
         Assert.Equal(2, vm.LifeStrategySeries.Count);
         Assert.Equal(2, vm.MsciWorldSeries.Count);
-        Assert.Null(vm.ErrorMessage);
+        Assert.Null(vm.HistoryError);
+        Assert.Null(vm.BondScheduleError);
         Assert.False(vm.IsLoading);
     }
 
@@ -53,20 +54,39 @@ public class SuiviViewModelTests
         await vm.InitializeAsync();
 
         Assert.Empty(vm.ROIC_Series);
-        Assert.Null(vm.ErrorMessage);
+        Assert.Null(vm.HistoryError);
+        Assert.Null(vm.BondScheduleError);
     }
 
     [Fact]
-    public async Task InitializeAsync_WhenServiceThrows_SetsErrorMessageAndLoadingFalse()
+    public async Task InitializeAsync_WhenHistoryServiceThrows_SetsHistoryErrorAndLoadingFalse()
     {
         var mock = new Mock<IPortfolioService>();
         mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Service indisponible"));
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var vm = CreateVm(mock);
+
+        await vm.InitializeAsync();
+
+        Assert.NotNull(vm.HistoryError);
+        Assert.False(vm.IsLoading);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenBondScheduleServiceThrows_SetsBondScheduleErrorButHistoryStillLoads()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Service indisponible"));
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
 
-        Assert.NotNull(vm.ErrorMessage);
+        Assert.NotNull(vm.BondScheduleError);
+        Assert.Null(vm.HistoryError);
+        Assert.Single(vm.ROIC_Series);
         Assert.False(vm.IsLoading);
     }
 
@@ -154,6 +174,7 @@ public class SuiviViewModelTests
         await vm.InitializeAsync();
 
         Assert.Empty(vm.BondSchedule);
-        Assert.Null(vm.ErrorMessage);
+        Assert.Null(vm.HistoryError);
+        Assert.Null(vm.BondScheduleError);
     }
 }
