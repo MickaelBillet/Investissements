@@ -126,7 +126,7 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/assets/types/reference` | Sheet `AssetType` — `AssetTypeReferenceDto` (`labelFr`, `geoSectorEligible`) |
 | GET | `/api/portfolio/metrics` | Compose `AssetsService` + `SnapshotService` |
 | GET | `/api/portfolio/metrics/history` | `PortfolioMetricsService.GetIndexedHistoryAsync` — historique `Snapshot`, normalisé base 100 |
-| GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège les assets par année extraite du champ `information` |
+| GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège les assets par année extraite du champ `information`, avec le détail par actif (`bonds[]`) |
 | GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis les assets |
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
 

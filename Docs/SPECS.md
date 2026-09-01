@@ -80,3 +80,7 @@ SRS_11 Afficher un graphique en courbe représentant l’évolution de la perfor
 SRS_24 Afficher un graphique en barres représentant le capital obligataire à percevoir par année d’échéance (hors coupons), agrégé depuis les actifs dont le champ `information` contient une année d'échéance.
 
 SRS_25 La vue Suivi présente le graphique de performance (SRS_11) et l'échéancier obligataire (SRS_24) sous forme de 2 onglets, chacun occupant toute la hauteur disponible, plutôt qu'empilés verticalement avec défilement.
+
+SRS_26 Lorsque l'utilisateur clique sur une barre (année) de l'échéancier obligataire, un tableau affiche la liste des obligations de cette année avec leur nom et leur montant, ainsi qu'une ligne de total.
+
+SRS_27 Sur écran large, le tableau du détail par obligation (SRS_26) s'affiche à droite du graphique de l'échéancier, côte à côte, plutôt qu'empilé en dessous — sur écran étroit il reste empilé sous le graphique.

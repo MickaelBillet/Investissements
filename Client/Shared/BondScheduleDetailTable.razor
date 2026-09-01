@@ -1,0 +1,30 @@
+@using InvestissementsDashboard.Client.Extensions
+@inject ILocalizationService L
+
+<MudTable Items="@Bonds" Dense="true" Hover="true" Elevation="0"
+          Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:16px;">
+    <HeaderContent>
+        <MudTh Style="color:#787774;font-size:12px;">@L.Translate("Col_Name")</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_CurrentValue")</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L.Translate("Col_Name")" Style="font-weight:500;">@context.Name</MudTd>
+        <MudTd DataLabel="@L.Translate("Col_CurrentValue")" Style="text-align:right;">
+            @context.Amount.ToEurAmount()
+        </MudTd>
+    </RowTemplate>
+    <FooterContent>
+        <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
+        <MudTd Style="text-align:right;font-weight:600;">
+            @Total.ToEurAmount()
+        </MudTd>
+    </FooterContent>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Style="color:#787774;padding:16px;">@L.Translate("Empty_NoData")</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<BondScheduleItemDto> Bonds { get; set; } = [];
+    [Parameter, EditorRequired] public decimal Total { get; set; }
+}

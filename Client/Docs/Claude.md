@@ -34,7 +34,8 @@ Client/
 ├── Services/     → IPortfolioService.cs, PortfolioService.cs,
 │                   ILocalizationService.cs, LocalizationService.cs
 ├── Shared/       → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
-│                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor
+│                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
+│                   BondScheduleDetailTable.razor
 ├── ViewModels/   → DashboardViewModel.cs, SuiviViewModel.cs
 ├── Views/        → Dashboard.razor (/), Suivi.razor (/suivi)
 └── wwwroot/      → index.html, css/app.css, favicon
@@ -42,7 +43,8 @@ Client/
                      appsettings.Development.json  (ApiBaseUrl: http://localhost:7071/)
 
 Client.Tests/
-├── Components/   → KpiHeaderTests, AssetTableTests, DistributionTableTests, DrillDownDonutTests
+├── Components/   → KpiHeaderTests, AssetTableTests, DistributionTableTests, DrillDownDonutTests,
+│                   BondScheduleChartTests, BondScheduleDetailTableTests
 ├── Extensions/   → DecimalExtensionsTests
 ├── Helpers/      → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + AddLocalizationMock)
 ├── Models/       → PanelStateTests
@@ -56,7 +58,7 @@ Client.Tests/
 - Toujours `MudText`, `MudStack`, `MudPaper` plutôt que div/p/span bruts
 - Icônes : `Icons.Material.Outlined.*` (pas de FontAwesome ni autre lib)
 - Toujours qualifier `MudBlazor.Size.*` (jamais `Size.*` seul) — ambiguïté avec `ApexCharts.Size`
-- Onglets : `MudTabs`/`MudTabPanel` — utilisé sur la page Suivi (`/suivi`) pour que chaque graphique occupe toute la hauteur disponible sans scroll, plutôt qu'un empilement vertical
+- Onglets : `MudTabs`/`MudTabPanel` — utilisé sur la page Suivi (`/suivi`) pour que chaque graphique occupe toute la hauteur disponible, plutôt qu'un empilement vertical (l'onglet Échéancier a `overflow-y:auto` pour le drill-down, voir §7.5)
 
 ## 6. Palette de couleurs
 
@@ -142,6 +144,14 @@ ApexCharts for Blazor ne redessine pas le graphique sur simple mise à jour des 
 ### 7.4 Extensions décimales
 
 Toujours formater les montants et pourcentages via `DecimalExtensions` — voir `Client/Docs/SPECS.md` §5 pour les signatures et exemples de sortie.
+
+### 7.5 BondScheduleChart — drill-down au clic sur une barre
+
+Contrairement à `DrillDownDonut` (donut, `OnDataPointSelection` → nom de la tranche via `Items.FirstOrDefault()?.Name`), `BondScheduleChart` est un graphique en barres dont `TItem = BondScheduleDto` n'a pas de propriété `Name` : `data.DataPoint.Items.FirstOrDefault()` renvoie directement le `BondScheduleDto` complet du point cliqué (pas besoin de re-résoudre l'année depuis un label), remonté au parent via `EventCallback<BondScheduleDto> OnYearClicked`.
+
+`Suivi.razor` stocke l'entrée sélectionnée dans un champ code-behind (`_selectedYearEntry`, pas dans `SuiviViewModel` — état de sélection UI pure, même logique que `_activeHierarchy`/`_selectedZone` dans `Dashboard.razor`) et l'affiche via `BondScheduleDetailTable.razor` (même style que `DistributionTable.razor` : bordure `#E9E9E7`, `Dense`, `Hover`, colonnes `Col_Name`/`Col_CurrentValue`, ligne `Table_Total`, `NoRecordsContent` sur `Empty_NoData`).
+
+Layout responsive (`MudGrid`/`MudItem xs="12" md="X"`) : graphique en `md="12"` tant qu'aucune année n'est sélectionnée, puis `md="7"` dès le premier clic pour laisser la place au tableau en `md="5"` à droite. En dessous du breakpoint `md`, les deux blocs passent en `xs="12"` (empilés). Le `MudGrid` et le `MudItem` du graphique ont `Style="height:100%;"` — sans quoi le `height:100%` du `MudPaper` interne à `BondScheduleChart` se réduit à la hauteur du contenu (le `MudGrid` ne propage pas la hauteur de son conteneur par défaut).
 
 ## 8. Localisation
 

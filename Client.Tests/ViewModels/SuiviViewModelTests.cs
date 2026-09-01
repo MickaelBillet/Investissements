@@ -155,7 +155,7 @@ public class SuiviViewModelTests
     {
         var mock = MockWithHistory(TestData.PerformancePoint());
         mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new BondScheduleDto(2027, 1000m), new BondScheduleDto(2030, 500m)]);
+            .ReturnsAsync([new BondScheduleDto(2027, 1000m, []), new BondScheduleDto(2030, 500m, [])]);
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
@@ -163,6 +163,20 @@ public class SuiviViewModelTests
         Assert.Equal(2, vm.BondSchedule.Count);
         Assert.Equal(2027, vm.BondSchedule[0].Year);
         Assert.Equal(1000m, vm.BondSchedule[0].Amount);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_BondScheduleEntryHasBonds_PropagatesBondsList()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new BondScheduleDto(2027, 1000m, [new BondScheduleItemDto("Renault 2027", 1000m)])]);
+        var vm = CreateVm(mock);
+
+        await vm.InitializeAsync();
+
+        Assert.Single(vm.BondSchedule[0].Bonds);
+        Assert.Equal("Renault 2027", vm.BondSchedule[0].Bonds[0].Name);
     }
 
     [Fact]
