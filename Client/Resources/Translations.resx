@@ -119,6 +119,7 @@
   <data name="Chart_Series_MsciWorld"    xml:space="preserve"><value>MSCI World</value></data>
   <data name="Chart_BondSchedule"        xml:space="preserve"><value>Échéancier de remboursement du capital obligataire (hors coupons)</value></data>
   <data name="Chart_Series_BondSchedule" xml:space="preserve"><value>Montant à rembourser</value></data>
+  <data name="BondSchedule_DetailTitle" xml:space="preserve"><value>Obligations — échéance {0}</value></data>
   <data name="Suivi_Tab_History"         xml:space="preserve"><value>Performance</value></data>
   <data name="Suivi_Tab_BondSchedule"    xml:space="preserve"><value>Échéancier</value></data>
 

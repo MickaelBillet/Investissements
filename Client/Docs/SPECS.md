@@ -137,7 +137,7 @@ Graphique en barres (ApexCharts, `BondScheduleChart.razor`) représentant le cap
 
 Les données sont fournies par `GET /api/assets/bondschedule` (`BondScheduleDto[]`), déjà agrégées par année par l'Api, avec le détail par obligation (`bonds[]`) — voir `Api/Docs/SPECS.md` §2.5 pour la logique de calcul.
 
-**Drill-down au clic** : cliquer sur une barre (année) affiche un tableau (`BondScheduleDetailTable.razor`) listant les obligations de cette année (nom, montant) avec une ligne de total. Sur écran large (`MudItem md="7"`/`md="5"`), le tableau apparaît à droite du graphique, côte à côte — le graphique passant de `md="12"` (pleine largeur, aucune année sélectionnée) à `md="7"` dès qu'une année est cliquée. Sur écran étroit (`xs="12"` sur les deux blocs), le tableau reste empilé sous le graphique.
+**Drill-down au clic** : cliquer sur une barre (année) affiche un tableau (`BondScheduleDetailTable.razor`) précédé d'un en-tête rappelant l'année sélectionnée (clé `BondSchedule_DetailTitle`), listant les obligations de cette année (nom, montant) avec une ligne de total. Sur écran large (`MudItem md="7"`/`md="5"`), le tableau apparaît à droite du graphique, côte à côte — le graphique passant de `md="12"` (pleine largeur, aucune année sélectionnée) à `md="7"` dès qu'une année est cliquée. Sur écran étroit (`xs="12"` sur les deux blocs), le tableau reste empilé sous le graphique.
 
 ---
 
