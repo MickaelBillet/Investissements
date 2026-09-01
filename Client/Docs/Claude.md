@@ -153,6 +153,8 @@ Contrairement à `DrillDownDonut` (donut, `OnDataPointSelection` → nom de la t
 
 Layout responsive (`MudGrid`/`MudItem xs="12" md="X"`) : graphique en `md="12"` tant qu'aucune année n'est sélectionnée, puis `md="7"` dès le premier clic pour laisser la place au tableau en `md="5"` à droite. En dessous du breakpoint `md`, les deux blocs passent en `xs="12"` (empilés). Le `MudGrid` et le `MudItem` du graphique ont `Style="height:100%;"` — sans quoi le `height:100%` du `MudPaper` interne à `BondScheduleChart` se réduit à la hauteur du contenu (le `MudGrid` ne propage pas la hauteur de son conteneur par défaut).
 
+`<BondScheduleChart>` a un `@key="@(_selectedYearEntry is null)"` — sans lui, un clic changeant `md="12"` en `md="7"` (ou l'inverse) ne recrée pas l'instance ApexCharts JS sous-jacente : elle continue de se redessiner à l'ancienne largeur pendant que `MudTable` apparaît déjà dans son propre `MudItem`, ce qui provoque un chevauchement visuel du tableau sur le graphique en cas de clics rapides successifs. Même règle que `@key` sur `DrillDownDonut` (§7.3) : forcer la recréation du composant chaque fois qu'un changement de layout doit être suivi d'un redessin ApexCharts.
+
 ## 8. Localisation
 
 Toutes les chaînes UI sont externalisées dans `Client/Resources/Translations.resx`.  

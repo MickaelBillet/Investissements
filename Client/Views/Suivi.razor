@@ -37,7 +37,8 @@ else
                 {
                     <MudGrid Spacing="4" Style="height:100%;">
                         <MudItem xs="12" md="@(_selectedYearEntry is null ? 12 : 7)" Style="height:100%;">
-                            <BondScheduleChart Items="@ViewModel.BondSchedule"
+                            <BondScheduleChart @key="@(_selectedYearEntry is null)"
+                                               Items="@ViewModel.BondSchedule"
                                                OnYearClicked="@(entry => _selectedYearEntry = entry)" />
                         </MudItem>
                         @if (_selectedYearEntry is not null)
