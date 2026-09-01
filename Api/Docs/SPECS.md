@@ -141,14 +141,21 @@ Retourne le capital obligataire à percevoir par année d'échéance (hors coupo
 
 ```json
 [
-  { "year": 2027, "amount": 3941.00 },
-  { "year": 2029, "amount": 5200.00 }
+  {
+    "year": 2027,
+    "amount": 3941.00,
+    "bonds": [
+      { "name": "Obligation Renault 2027", "amount": 2941.00 },
+      { "name": "Obligation Orange 2027",  "amount": 1000.00 }
+    ]
+  },
+  { "year": 2029, "amount": 5200.00, "bonds": [ { "name": "Obligation EDF 2029", "amount": 5200.00 } ] }
 ]
 ```
 
 **Logique de calcul (`BondScheduleService`) :**
 - Pour chaque actif, extrait une année à 4 chiffres isolée (`20\d{2}`) dans le champ `information` (ex. "Obligation Renault, échéance 2027")
-- Additionne `currentTotal` des actifs partageant la même année
+- Regroupe les actifs partageant la même année dans `bonds` (`name` + `currentTotal` de chaque actif), et `amount` est la somme de `bonds[].amount` pour cette année
 - **Aucun filtre par `assetClass`** — tout actif dont `information` contient une année isolée est inclus, pas seulement `AssetClass = Bonds`
 - Actifs sans année détectée ou sans `currentTotal` exclus
 - Résultats triés par année croissante
@@ -400,7 +407,8 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, netCapital, lifeStrategy?, msciWorld?, totalPurchases, totalReturns, totalSales? |
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnCapitalEngaged?, averageRisk? |
 | `PerformancePointDto` | `Shared/Models/PerformancePointDto.cs` | date, roic, lifeStrategy?, msciWorld? |
-| `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, amount |
+| `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, amount, bonds (`BondScheduleItemDto[]`) |
+| `BondScheduleItemDto` | `Shared/Models/BondScheduleDto.cs` | name, amount |
 | `AssetTypeReferenceDto` | `Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
 
 > Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.

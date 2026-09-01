@@ -9,7 +9,7 @@ internal sealed partial class BondScheduleService(IAssetsService assetsService) 
     {
         var assets = await assetsService.GetAllAsync(ct);
 
-        var yearMap = new Dictionary<int, decimal>();
+        var yearMap = new Dictionary<int, List<BondScheduleItemDto>>();
 
         foreach (var asset in assets)
         {
@@ -19,12 +19,16 @@ internal sealed partial class BondScheduleService(IAssetsService assetsService) 
             var amount = asset.CurrentTotal;
             if (amount is null) continue;
 
-            yearMap.TryAdd(year.Value, 0m);
-            yearMap[year.Value] += amount.Value;
+            if (!yearMap.TryGetValue(year.Value, out var items))
+            {
+                items = [];
+                yearMap[year.Value] = items;
+            }
+            items.Add(new BondScheduleItemDto(asset.Name, amount.Value));
         }
 
         return yearMap
-            .Select(kv => new BondScheduleDto(kv.Key, kv.Value))
+            .Select(kv => new BondScheduleDto(kv.Key, kv.Value.Sum(i => i.Amount), kv.Value))
             .OrderBy(d => d.Year)
             .ToArray();
     }

@@ -14,7 +14,7 @@
     else
     {
         <div style="flex:1;min-height:0;">
-        <ApexChart TItem="BondScheduleDto" Options="_options">
+        <ApexChart TItem="BondScheduleDto" Options="_options" @ref="_chart" OnDataPointSelection="HandleBarClick">
             <ApexPointSeries TItem="BondScheduleDto"
                              Items="@Items"
                              Name="@L.Translate("Chart_Series_BondSchedule")"
@@ -28,6 +28,9 @@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<BondScheduleDto> Items { get; set; } = [];
+    [Parameter] public EventCallback<BondScheduleDto> OnYearClicked { get; set; }
+
+    private ApexChart<BondScheduleDto>? _chart;
 
     private readonly ApexChartOptions<BondScheduleDto> _options = new()
     {
@@ -62,4 +65,10 @@
         Grid       = new Grid { BorderColor = "#E9E9E7" },
         DataLabels = new DataLabels { Enabled = false }
     };
+
+    private Task HandleBarClick(SelectedData<BondScheduleDto> data)
+    {
+        var match = data.DataPoint.Items.FirstOrDefault();
+        return match is not null ? OnYearClicked.InvokeAsync(match) : Task.CompletedTask;
+    }
 }

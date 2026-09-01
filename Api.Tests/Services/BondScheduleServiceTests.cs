@@ -16,8 +16,8 @@ public class BondScheduleServiceTests
         return mock;
     }
 
-    private static AssetDto Asset(string information, decimal? totalPurchases) =>
-        new(1, "Test", "Bonds", "CTO", "CTO TR", "MarketBonds", "", information, "", 2,
+    private static AssetDto Asset(string information, decimal? totalPurchases, string name = "Test") =>
+        new(1, name, "Bonds", "CTO", "CTO TR", "MarketBonds", "", information, "", 2,
             totalPurchases, null, null, totalPurchases, null, null, null, 0m);
 
     // ── ExtractYear ────────────────────────────────────────────────────────────
@@ -75,6 +75,32 @@ public class BondScheduleServiceTests
 
         Assert.Single(result);
         Assert.Equal(1500m, result[0].Amount);
+    }
+
+    [Fact]
+    public async Task GetScheduleAsync_AssetWithYear_BondsContainsAssetNameAndAmount()
+    {
+        var svc = CreateService(MockAssets(Asset("échéance 2027", 1000m, "Renault 2027")));
+
+        var result = await svc.GetScheduleAsync();
+
+        Assert.Single(result[0].Bonds);
+        Assert.Equal("Renault 2027", result[0].Bonds[0].Name);
+        Assert.Equal(1000m, result[0].Bonds[0].Amount);
+    }
+
+    [Fact]
+    public async Task GetScheduleAsync_TwoBondsSameYear_BondsListsBothWithIndividualAmounts()
+    {
+        var svc = CreateService(MockAssets(
+            Asset("échéance 2027", 1000m, "Renault 2027"),
+            Asset("échéance 2027", 500m, "Orange 2027")));
+
+        var result = await svc.GetScheduleAsync();
+
+        Assert.Equal(2, result[0].Bonds.Count);
+        Assert.Contains(result[0].Bonds, b => b.Name == "Renault 2027" && b.Amount == 1000m);
+        Assert.Contains(result[0].Bonds, b => b.Name == "Orange 2027" && b.Amount == 500m);
     }
 
     [Fact]

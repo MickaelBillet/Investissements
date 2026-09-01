@@ -28,14 +28,25 @@ else
             </div>
         </MudTabPanel>
         <MudTabPanel Text="@L.Translate("Suivi_Tab_BondSchedule")">
-            <div style="height: calc(100vh - 230px);">
+            <div style="height: calc(100vh - 230px);overflow-y:auto;">
                 @if (ViewModel.BondScheduleError is not null)
                 {
                     <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.BondScheduleError</MudAlert>
                 }
                 else
                 {
-                    <BondScheduleChart Items="@ViewModel.BondSchedule" />
+                    <MudGrid Spacing="4" Style="height:100%;">
+                        <MudItem xs="12" md="@(_selectedYearEntry is null ? 12 : 7)" Style="height:100%;">
+                            <BondScheduleChart Items="@ViewModel.BondSchedule"
+                                               OnYearClicked="@(entry => _selectedYearEntry = entry)" />
+                        </MudItem>
+                        @if (_selectedYearEntry is not null)
+                        {
+                            <MudItem xs="12" md="5">
+                                <BondScheduleDetailTable Bonds="@_selectedYearEntry.Bonds" Total="@_selectedYearEntry.Amount" />
+                            </MudItem>
+                        }
+                    </MudGrid>
                 }
             </div>
         </MudTabPanel>
@@ -43,6 +54,8 @@ else
 }
 
 @code {
+    private BondScheduleDto? _selectedYearEntry;
+
     protected override async Task OnInitializedAsync()
     {
         await ViewModel.InitializeAsync();
