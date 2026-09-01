@@ -1,8 +1,12 @@
 @using InvestissementsDashboard.Client.Extensions
 @inject ILocalizationService L
 
+<MudText Style="font-size:16px;font-weight:600;color:#37352F;margin-top:16px;">
+    @string.Format(L.Translate("BondSchedule_DetailTitle"), Year)
+</MudText>
+
 <MudTable Items="@Bonds" Dense="true" Hover="true" Elevation="0"
-          Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:16px;">
+          Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:8px;">
     <HeaderContent>
         <MudTh Style="color:#787774;font-size:12px;">@L.Translate("Col_Name")</MudTh>
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_CurrentValue")</MudTh>
@@ -25,6 +29,7 @@
 </MudTable>
 
 @code {
+    [Parameter, EditorRequired] public int Year { get; set; }
     [Parameter, EditorRequired] public IReadOnlyList<BondScheduleItemDto> Bonds { get; set; } = [];
     [Parameter, EditorRequired] public decimal Total { get; set; }
 }

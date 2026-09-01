@@ -44,7 +44,7 @@ else
                         @if (_selectedYearEntry is not null)
                         {
                             <MudItem xs="12" md="5">
-                                <BondScheduleDetailTable Bonds="@_selectedYearEntry.Bonds" Total="@_selectedYearEntry.Amount" />
+                                <BondScheduleDetailTable Year="@_selectedYearEntry.Year" Bonds="@_selectedYearEntry.Bonds" Total="@_selectedYearEntry.Amount" />
                             </MudItem>
                         }
                     </MudGrid>
