@@ -138,9 +138,17 @@ Voir SECURITY.MD
 
 #### 5.2.4 Authentification du dashboard (accès restreint au propriétaire)
 - Le dashboard entier est protégé par l'authentification intégrée d'**Azure Static Web Apps** (Microsoft Entra ID) — configurée dans `Client/wwwroot/staticwebapp.config.json` (`routes` : `/*` restreint au rôle `owner`, `401` redirige vers `/.auth/login/aad`)
-- Le rôle `owner` est attribué dynamiquement par `GetRolesFunction` (`rolesSource`), qui compare l'identité connectée à l'App Setting `OWNER_IDENTITY` (email du compte Microsoft du propriétaire) — jamais d'accès accordé par défaut si cette variable n'est pas configurée
 - **Exception explicite** : la route `/api/mcp` reste `anonymous` (protégée par sa propre clé `MCP_API_KEY`, voir `Api/Docs/CLAUDE.md` §6) — Claude Code, client de cet endpoint, ne peut pas effectuer de connexion interactive Microsoft
 - Le bouton de masquage des montants (barre de menu) n'est plus une frontière de sécurité depuis cette authentification — il reste un confort pour le propriétaire lui-même (ex. partage d'écran)
+
+**Attribution du rôle `owner` — via Invitations, pas via une Function.** Une première version utilisait `rolesSource` (une Azure Function calculant le rôle à la connexion) : cette approche a été abandonnée car elle nécessite l'authentification personnalisée, réservée au plan **Standard** — sur le plan **Free** (contrainte budget zéro, §2), elle est silencieusement ignorée et n'attribue jamais aucun rôle (403 permanent). Le plan Free supporte les rôles personnalisés uniquement via le mécanisme **Invitations** du portail Azure (jusqu'à 25 utilisateurs, sans code) :
+
+1. Portail Azure → ressource Static Web App → **Paramètres → Role Management → Invite**
+2. *Authorization provider* : **Microsoft Entra ID**
+3. *Invitee details* : l'email du compte Microsoft du propriétaire
+4. *Domain* : `invest.zapto.fr`
+5. *Role* : `owner` (doit correspondre exactement au nom utilisé dans `staticwebapp.config.json`)
+6. Durée de validité (max 168h) → **Generate**, puis ouvrir soi-même le lien généré et se connecter — le rôle est alors attribué durablement à cette identité (l'expiration ne concerne que le lien d'invitation, pas l'attribution résultante)
 
 ---
 
