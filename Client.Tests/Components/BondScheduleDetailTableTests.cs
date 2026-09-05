@@ -13,6 +13,7 @@ public class BondScheduleDetailTableTests : BunitContext
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
         Services.AddLocalizationMock();
+        Services.AddPrivacyModeMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -71,5 +72,20 @@ public class BondScheduleDetailTableTests : BunitContext
             .Add(c => c.Total, 1000m));
 
         Assert.Contains("2027", cut.Markup);
+    }
+
+    [Fact]
+    public void BondScheduleDetailTable_WhenPrivacyModeIsHidden_MasksAmounts()
+    {
+        Services.AddPrivacyModeMock(isHidden: true);
+        var bonds = new[] { new BondScheduleItemDto("Renault 2027", 1000m) };
+
+        var cut = Render<BondScheduleDetailTable>(p => p
+            .Add(c => c.Year, 2027)
+            .Add(c => c.Bonds, bonds)
+            .Add(c => c.Total, 1000m));
+
+        Assert.Contains("*****", cut.Markup);
+        Assert.DoesNotContain("1 000", cut.Markup);
     }
 }

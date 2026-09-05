@@ -1,4 +1,6 @@
+@implements IDisposable
 @inject ILocalizationService L
+@inject IPrivacyModeService Privacy
 
 <MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:16px 20px;height:100%;">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
@@ -90,16 +92,19 @@
             Height     = 140,
             ItemMargin = new LegendItemMargin { Horizontal = 4, Vertical = 1 }
         },
-        Tooltip = new Tooltip
-        {
-            Y = new TooltipY
-            {
-                Formatter = "function(val) { return '€ ' + val.toLocaleString('fr-FR', {minimumFractionDigits:0}); }"
-            }
-        }
+        Tooltip = new Tooltip { Y = new TooltipY() }
     };
 
+    private const string VisibleTooltipFormatter = "function(val) { return '€ ' + val.toLocaleString('fr-FR', {minimumFractionDigits:0}); }";
+    private const string HiddenTooltipFormatter  = "function(val) { return '*****'; }";
+
     private IReadOnlyList<DistributionItem> _renderedItems = [];
+
+    protected override void OnInitialized()
+    {
+        ApplyPrivacyFormatter();
+        Privacy.OnChange += HandlePrivacyChanged;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -112,6 +117,19 @@
             await _chart.UpdateSeriesAsync();
         }
     }
+
+    private void ApplyPrivacyFormatter() =>
+        _options.Tooltip!.Y!.Formatter = Privacy.IsHidden ? HiddenTooltipFormatter : VisibleTooltipFormatter;
+
+    private async void HandlePrivacyChanged()
+    {
+        ApplyPrivacyFormatter();
+        if (_chart is not null)
+            await _chart.UpdateOptionsAsync(false, false, false);
+        StateHasChanged();
+    }
+
+    public void Dispose() => Privacy.OnChange -= HandlePrivacyChanged;
 
     private Task HandleSliceClick(SelectedData<DistributionItem> data)
     {

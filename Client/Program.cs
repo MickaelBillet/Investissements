@@ -15,6 +15,7 @@ builder.Services.AddMudServices();
 builder.Services.AddApexCharts();
 builder.Services.AddLocalization();
 builder.Services.AddSingleton<ILocalizationService, LocalizationService>();
+builder.Services.AddSingleton<IPrivacyModeService, PrivacyModeService>();
 
 CultureInfo.DefaultThreadCurrentCulture   = new CultureInfo("fr-FR");
 CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("fr-FR");

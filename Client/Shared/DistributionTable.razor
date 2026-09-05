@@ -1,5 +1,7 @@
 @using InvestissementsDashboard.Client.Extensions
+@implements IDisposable
 @inject ILocalizationService L
+@inject IPrivacyModeService Privacy
 
 <MudTable Items="@Items" Dense="true" Hover="true" Elevation="0"
           Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:16px;">
@@ -11,7 +13,7 @@
     <RowTemplate>
         <MudTd DataLabel="@L.Translate("Col_Name")" Style="font-weight:500;">@context.Label</MudTd>
         <MudTd DataLabel="@L.Translate("Col_CurrentValue")" Style="text-align:right;">
-            @context.CurrentTotal.ToEurAmount()
+            @context.CurrentTotal.ToEurAmount(Privacy.IsHidden)
         </MudTd>
         <MudTd DataLabel="@L.Translate("Col_Weight")" Style="text-align:right;">
             @context.Weight.ToPercentage(1)
@@ -20,7 +22,7 @@
     <FooterContent>
         <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
         <MudTd Style="text-align:right;font-weight:600;">
-            @Items.Sum(i => i.CurrentTotal).ToEurAmount()
+            @Items.Sum(i => i.CurrentTotal).ToEurAmount(Privacy.IsHidden)
         </MudTd>
         <MudTd />
     </FooterContent>
@@ -31,4 +33,8 @@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<DistributionItem> Items { get; set; } = [];
+
+    protected override void OnInitialized() => Privacy.OnChange += StateHasChanged;
+
+    public void Dispose() => Privacy.OnChange -= StateHasChanged;
 }

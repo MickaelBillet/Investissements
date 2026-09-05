@@ -1,4 +1,6 @@
+@implements IDisposable
 @inject ILocalizationService L
+@inject IPrivacyModeService Privacy
 
 <MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:16px 20px;height:100%;display:flex;flex-direction:column;">
     <MudText Style="font-size:18px;font-weight:600;color:#37352F;margin-bottom:16px;">
@@ -54,17 +56,33 @@
                 Style = new AxisLabelStyle { Colors = "#787774", FontSize = "12px" }
             }
         },
-        Yaxis = [new YAxis
-        {
-            Labels = new YAxisLabels
-            {
-                Formatter = "function(val) { return val.toLocaleString('fr-FR') + ' €'; }"
-            }
-        }],
+        Yaxis = [new YAxis { Labels = new YAxisLabels() }],
         Legend     = new Legend { Show = false },
         Grid       = new Grid { BorderColor = "#E9E9E7" },
         DataLabels = new DataLabels { Enabled = false }
     };
+
+    private const string VisibleYAxisFormatter = "function(val) { return val.toLocaleString('fr-FR') + ' €'; }";
+    private const string HiddenYAxisFormatter  = "function(val) { return '*****'; }";
+
+    protected override void OnInitialized()
+    {
+        ApplyPrivacyFormatter();
+        Privacy.OnChange += HandlePrivacyChanged;
+    }
+
+    private void ApplyPrivacyFormatter() =>
+        _options.Yaxis![0].Labels!.Formatter = Privacy.IsHidden ? HiddenYAxisFormatter : VisibleYAxisFormatter;
+
+    private async void HandlePrivacyChanged()
+    {
+        ApplyPrivacyFormatter();
+        if (_chart is not null)
+            await _chart.UpdateOptionsAsync(false, false, false);
+        StateHasChanged();
+    }
+
+    public void Dispose() => Privacy.OnChange -= HandlePrivacyChanged;
 
     private Task HandleBarClick(SelectedData<BondScheduleDto> data)
     {

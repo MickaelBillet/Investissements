@@ -32,7 +32,8 @@ Client/
 ├── Model/        → DistributionItem.cs, IndexedPoint.cs, PanelState.cs
 ├── Resources/    → Translations.cs (classe marqueur), Translations.resx (toutes les chaînes UI)
 ├── Services/     → IPortfolioService.cs, PortfolioService.cs,
-│                   ILocalizationService.cs, LocalizationService.cs
+│                   ILocalizationService.cs, LocalizationService.cs,
+│                   IPrivacyModeService.cs, PrivacyModeService.cs
 ├── Shared/       → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
 │                   BondScheduleDetailTable.razor
@@ -145,6 +146,27 @@ ApexCharts for Blazor ne redessine pas le graphique sur simple mise à jour des 
 
 Toujours formater les montants et pourcentages via `DecimalExtensions` — voir `Client/Docs/SPECS.md` §5 pour les signatures et exemples de sortie.
 
+`ToEurAmount(hidden: bool = false)` masque le montant (`"*****"`) quand le mode confidentialité est actif — voir §7.6.
+
+### 7.6 IPrivacyModeService — mode confidentialité (masquage des montants)
+
+Premier service transverse du Client avec état partagé + notification de changement (pattern réutilisable pour une future feature similaire, ex. dark mode) et premier usage de JS interop (`IJSRuntime` → `localStorage`) dans le projet.
+
+```csharp
+public interface IPrivacyModeService
+{
+    bool IsHidden { get; }
+    event Action? OnChange;
+    Task InitializeAsync();
+    Task ToggleAsync();
+}
+```
+
+- Singleton (`Program.cs`), état persisté dans `localStorage` (clé `investissements.hideAmounts`).
+- `MainLayout.razor` appelle `InitializeAsync()` une fois (`OnInitializedAsync`) et affiche le bouton de bascule (`MudIconButton`, icône `Visibility`/`VisibilityOff`) dans le `MudAppBar`.
+- Tout composant affichant un montant € injecte `IPrivacyModeService`, s'abonne à `OnChange += StateHasChanged` dans `OnInitialized` et se désabonne via `IDisposable` — puis passe `Privacy.IsHidden` à `ToEurAmount(hidden)`.
+- Pour les graphiques ApexCharts (formatters JS en chaîne statique dans `ApexChartOptions`, ex. tooltip de `DrillDownDonut`, axe Y de `BondScheduleChart`) : régénérer la chaîne du `Formatter` selon `Privacy.IsHidden` dans un handler `OnChange`, puis appeler `await _chart.UpdateOptionsAsync(false, false, false)` pour forcer le redraw JS (la simple mutation de `_options` ne suffit pas, contrairement au cas `@key` du §7.3 — ici le composant n'est pas recréé, juste rafraîchi).
+
 ### 7.5 BondScheduleChart — drill-down au clic sur une barre
 
 Contrairement à `DrillDownDonut` (donut, `OnDataPointSelection` → nom de la tranche via `Items.FirstOrDefault()?.Name`), `BondScheduleChart` est un graphique en barres dont `TItem = BondScheduleDto` n'a pas de propriété `Name` : `data.DataPoint.Items.FirstOrDefault()` renvoie directement le `BondScheduleDto` complet du point cliqué (pas besoin de re-résoudre l'année depuis un label), remonté au parent via `EventCallback<BondScheduleDto> OnYearClicked`.
@@ -183,6 +205,7 @@ Framework : xUnit + bUnit. Nommage : `[MethodName]_[Scenario]_[ExpectedResult]`.
 
 - `TestData` dans `Client.Tests/Helpers/` fournit les factories `Asset(...)`, `Snapshot(...)` et `PerformancePoint(...)`
 - `TestData.AddLocalizationMock(this IServiceCollection services)` — extension à appeler dans le constructeur de tout test de composant qui rend un composant injectant `ILocalizationService`. Le mock utilise `ResourceManager` sur les vraies ressources compilées → les assertions peuvent vérifier les chaînes françaises.
+- `TestData.AddPrivacyModeMock(this IServiceCollection services, bool isHidden = false)` — extension à appeler dans le constructeur de tout test de composant qui affiche un montant € (injecte `IPrivacyModeService`). Rappeler avec `isHidden: true` dans un test dédié pour vérifier le masquage.
 - `DashboardViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>` (setup `Translate(key) → key`)
 - `SuiviViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
 - Les tests de composants héritent de `BunitContext` et appellent `Services.AddMudServices(...)` + `Services.AddLocalizationMock()`

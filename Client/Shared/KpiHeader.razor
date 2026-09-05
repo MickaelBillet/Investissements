@@ -1,8 +1,10 @@
 @using InvestissementsDashboard.Client.Extensions
+@implements IDisposable
 @inject ILocalizationService L
+@inject IPrivacyModeService Privacy
 
 <MudGrid Spacing="4">
-    <KpiCard Label="@L.Translate("Kpi_NetCapital")" Value="@(Snapshot?.NetCapital.ToEurAmount() ?? "—")">
+    <KpiCard Label="@L.Translate("Kpi_NetCapital")" Value="@(Snapshot?.NetCapital.ToEurAmount(Privacy.IsHidden) ?? "—")">
         <SubContent>
             @VariationChips(
                 ("Kpi_DailyPrefix",   DailyVariationPercent),
@@ -43,6 +45,10 @@
     [Parameter]                 public decimal?     MonthlyROICapitalEngagedVariation  { get; set; }
     [Parameter]                 public decimal?     YtdROICapitalEngagedVariation      { get; set; }
     [Parameter]                 public decimal?     YearlyROICapitalEngagedVariation   { get; set; }
+
+    protected override void OnInitialized() => Privacy.OnChange += StateHasChanged;
+
+    public void Dispose() => Privacy.OnChange -= StateHasChanged;
 
     // Renders one small signed-percentage chip per period that has a value.
     private RenderFragment VariationChips(params (string Prefix, decimal? Value)[] variations) => @<text>

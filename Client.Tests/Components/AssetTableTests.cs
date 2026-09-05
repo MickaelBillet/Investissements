@@ -1,4 +1,5 @@
 using Bunit;
+using InvestissementsDashboard.Client.Extensions;
 using InvestissementsDashboard.Client.Shared;
 using InvestissementsDashboard.Client.Tests.Helpers;
 using InvestissementsDashboard.Shared.Models;
@@ -13,6 +14,7 @@ public class AssetTableTests : BunitContext
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
         Services.AddLocalizationMock();
+        Services.AddPrivacyModeMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -85,5 +87,18 @@ public class AssetTableTests : BunitContext
         Assert.Contains("Total", cut.Markup);
         Assert.Contains("8",     cut.Markup); // 8 000
         Assert.Contains("€",     cut.Markup);
+    }
+
+    [Fact]
+    public void AssetTable_WhenPrivacyModeIsHidden_MasksAmounts()
+    {
+        Services.AddPrivacyModeMock(isHidden: true);
+        var assets = new[] { TestData.Asset(name: "MSCI World", currentTotal: 5_000m, unrealizedGain: 100m) };
+
+        var cut = Render<AssetTable>(p => p.Add(c => c.Assets, assets));
+
+        Assert.Contains("*****", cut.Markup);
+        Assert.DoesNotContain((5_000m).ToEurAmount(), cut.Markup);
+        Assert.DoesNotContain((100m).ToEurAmount(), cut.Markup);
     }
 }

@@ -4,11 +4,11 @@ namespace InvestissementsDashboard.Client.Extensions;
 
 public static class DecimalExtensions
 {
-    public static string ToEurAmount(this decimal? value) =>
-        value.HasValue ? value.Value.ToEurAmount() : "—";
+    public static string ToEurAmount(this decimal? value, bool hidden = false) =>
+        hidden ? "*****" : value.HasValue ? value.Value.ToEurAmount() : "—";
 
-    public static string ToEurAmount(this decimal value) =>
-        $"€ {value.ToString("N2", CultureInfo.GetCultureInfo("fr-FR"))}";
+    public static string ToEurAmount(this decimal value, bool hidden = false) =>
+        hidden ? "*****" : $"€ {value.ToString("N2", CultureInfo.GetCultureInfo("fr-FR"))}";
 
     public static string ToPercentage(this decimal? value, int decimals = 2) =>
         value.HasValue ? value.Value.ToPercentage(decimals) : "—";
