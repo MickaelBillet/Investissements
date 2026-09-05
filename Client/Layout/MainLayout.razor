@@ -4,10 +4,6 @@
 @inject IPrivacyModeService Privacy
 @inject ISessionService Session
 
-<MudThemeProvider Theme="_theme" />
-<MudSnackbarProvider />
-<MudDialogProvider />
-
 <MudLayout>
     <MudAppBar Elevation="0" Dense="false" Color="MudBlazor.Color.Surface"
                Style="border-bottom:1px solid #E9E9E7;">
@@ -26,16 +22,15 @@
                    StartIcon="@Icons.Material.Outlined.Timeline">
             @L.Translate("Nav_Suivi")
         </MudButton>
-        <MudTooltip Text="@(Privacy.IsHidden ? L.Translate("Nav_ShowAmounts") : L.Translate("Nav_HideAmounts"))">
-            <MudIconButton Icon="@(Privacy.IsHidden ? Icons.Material.Outlined.VisibilityOff : Icons.Material.Outlined.Visibility)"
-                           Color="MudBlazor.Color.Default"
-                           OnClick="@(() => Privacy.ToggleAsync())" />
-        </MudTooltip>
-        <MudTooltip Text="@L.Translate("Nav_Logout")">
-            <MudIconButton Icon="@Icons.Material.Outlined.Logout"
-                           Color="MudBlazor.Color.Default"
-                           OnClick="@(() => Session.LogoutAsync())" />
-        </MudTooltip>
+        <MudMenu Icon="@Icons.Material.Outlined.MoreVert" Color="MudBlazor.Color.Default" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <MudMenuItem Icon="@(Privacy.IsHidden ? Icons.Material.Outlined.VisibilityOff : Icons.Material.Outlined.Visibility)"
+                         OnClick="@(() => Privacy.ToggleAsync())">
+                @(Privacy.IsHidden ? L.Translate("Nav_ShowAmounts") : L.Translate("Nav_HideAmounts"))
+            </MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Outlined.Logout" OnClick="@(() => Session.LogoutAsync())">
+                @L.Translate("Nav_Logout")
+            </MudMenuItem>
+        </MudMenu>
     </MudAppBar>
 
     <MudMainContent>
@@ -54,36 +49,4 @@
     }
 
     public void Dispose() => Privacy.OnChange -= StateHasChanged;
-
-    private readonly MudTheme _theme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Background       = "#FFFFFF",
-            Surface          = "#FAFAFA",
-            TextPrimary      = "#37352F",
-            TextSecondary    = "#787774",
-            Primary          = "#2383E2",
-            PrimaryContrastText = "#FFFFFF",
-            AppbarBackground = "#FFFFFF",
-            AppbarText       = "#37352F",
-            TableLines       = "#E9E9E7",
-            TableStriped     = "#FAFAFA",
-            TableHover       = "#FAFAFA",
-            Divider          = "#E9E9E7",
-        },
-        Typography = new Typography
-        {
-            Default = new DefaultTypography
-            {
-                FontFamily = ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Helvetica", "Arial", "sans-serif"],
-                FontSize   = "14px",
-                FontWeight = "400"
-            },
-            H1 = new H1Typography { FontSize = "40px", FontWeight = "700" },
-            H2 = new H2Typography { FontSize = "24px", FontWeight = "600" },
-            H3 = new H3Typography { FontSize = "18px", FontWeight = "600" },
-        },
-        LayoutProperties = new LayoutProperties { DefaultBorderRadius = "6px" }
-    };
 }
