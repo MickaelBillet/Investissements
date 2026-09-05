@@ -1,4 +1,5 @@
 using Bunit;
+using InvestissementsDashboard.Client.Extensions;
 using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Shared;
 using InvestissementsDashboard.Client.Tests.Helpers;
@@ -13,6 +14,7 @@ public class DistributionTableTests : BunitContext
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
         Services.AddLocalizationMock();
+        Services.AddPrivacyModeMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -80,5 +82,18 @@ public class DistributionTableTests : BunitContext
         // Total = 16 000 → formatted as "16 000,00" or similar
         Assert.Contains("16", cut.Markup);
         Assert.Contains("Total", cut.Markup);
+    }
+
+    [Fact]
+    public void DistributionTable_WhenPrivacyModeIsHidden_MasksAmounts()
+    {
+        Services.AddPrivacyModeMock(isHidden: true);
+        var items = new[] { new DistributionItem("Stocks", "Stocks", 12_345.67m, 100m) };
+
+        var cut = Render<DistributionTable>(p => p
+            .Add(c => c.Items, items));
+
+        Assert.Contains("*****", cut.Markup);
+        Assert.DoesNotContain((12_345.67m).ToEurAmount(), cut.Markup);
     }
 }

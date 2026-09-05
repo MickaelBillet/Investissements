@@ -1,5 +1,7 @@
 @using InvestissementsDashboard.Client.Extensions
+@implements IDisposable
 @inject ILocalizationService L
+@inject IPrivacyModeService Privacy
 
 <MudText Style="font-size:16px;font-weight:600;color:#37352F;margin-top:16px;">
     @string.Format(L.Translate("BondSchedule_DetailTitle"), Year)
@@ -14,13 +16,13 @@
     <RowTemplate>
         <MudTd DataLabel="@L.Translate("Col_Name")" Style="font-weight:500;">@context.Name</MudTd>
         <MudTd DataLabel="@L.Translate("Col_CurrentValue")" Style="text-align:right;">
-            @context.Amount.ToEurAmount()
+            @context.Amount.ToEurAmount(Privacy.IsHidden)
         </MudTd>
     </RowTemplate>
     <FooterContent>
         <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
         <MudTd Style="text-align:right;font-weight:600;">
-            @Total.ToEurAmount()
+            @Total.ToEurAmount(Privacy.IsHidden)
         </MudTd>
     </FooterContent>
     <NoRecordsContent>
@@ -32,4 +34,8 @@
     [Parameter, EditorRequired] public int Year { get; set; }
     [Parameter, EditorRequired] public IReadOnlyList<BondScheduleItemDto> Bonds { get; set; } = [];
     [Parameter, EditorRequired] public decimal Total { get; set; }
+
+    protected override void OnInitialized() => Privacy.OnChange += StateHasChanged;
+
+    public void Dispose() => Privacy.OnChange -= StateHasChanged;
 }

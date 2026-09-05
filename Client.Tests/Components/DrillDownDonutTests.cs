@@ -14,6 +14,7 @@ public class DrillDownDonutTests : BunitContext
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
         Services.AddLocalizationMock();
+        Services.AddPrivacyModeMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -113,5 +114,18 @@ public class DrillDownDonutTests : BunitContext
 
         // Default render should not throw and title must be present
         Assert.Contains("ETF Stocks", cut.Markup);
+    }
+
+    [Fact]
+    public void DrillDownDonut_WhenPrivacyModeIsHidden_RendersWithoutError()
+    {
+        Services.AddPrivacyModeMock(isHidden: true);
+        var items = new[] { new DistributionItem("Stocks", "Actions", 10_000m, 60m) };
+
+        var cut = Render<DrillDownDonut>(p => p
+            .Add(c => c.Title, "Classes d'actifs")
+            .Add(c => c.Items, items));
+
+        Assert.DoesNotContain("Aucune donnée", cut.Markup);
     }
 }

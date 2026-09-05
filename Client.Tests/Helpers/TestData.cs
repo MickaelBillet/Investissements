@@ -20,6 +20,13 @@ internal static class TestData
         services.AddSingleton(mock.Object);
     }
 
+    public static void AddPrivacyModeMock(this IServiceCollection services, bool isHidden = false)
+    {
+        var mock = new Mock<IPrivacyModeService>();
+        mock.SetupGet(p => p.IsHidden).Returns(isHidden);
+        services.AddSingleton(mock.Object);
+    }
+
     public static AssetDto Asset(
         string  name         = "Test",
         string  assetClass   = "Stocks",

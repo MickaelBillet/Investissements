@@ -1,8 +1,8 @@
 # SPECS.md — Client (Blazor WASM)
 
 **Statut :** Implémenté  
-**Version :** 1.5  
-**Date :** 2026-08-04
+**Version :** 1.6  
+**Date :** 2026-09-05
 
 ---
 
@@ -156,6 +156,17 @@ Overlay plein écran (`position: fixed`, `z-index: 9999`) — couvre la barre de
 | Méthode | Exemple de sortie |
 |---|---|
 | `value.ToEurAmount()` | `€ 12 345,67` |
+| `value.ToEurAmount(hidden: true)` | `*****` |
 | `value.ToPercentage()` | `15,50 %` |
 | `value.CssRoiClass()` | `"roi-positive"` / `"roi-negative"` / `""` |
 | `value.ToSignedPercentage()` | `"+1,23 %"` / `"-0,45 %"` |
+
+---
+
+## 7. Mode confidentialité (masquage des montants)
+
+Bouton dans la barre de menu (icône `Visibility`/`VisibilityOff`, `MudAppBar`, à gauche des liens de navigation) qui masque tous les montants en euros affichés dans l'application (KPIs, tableaux d'actifs/répartition/échéancier, tooltips et axes des graphiques ApexCharts) — utile pour un partage d'écran.
+
+- Masquage : chaîne fixe `*****` à la place du montant formaté.
+- État persisté dans `localStorage` du navigateur — retrouvé au rechargement de la page.
+- Voir `Client/Docs/CLAUDE.md` §7.6 pour le détail d'implémentation (`IPrivacyModeService`).

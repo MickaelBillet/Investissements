@@ -13,6 +13,7 @@ public class BondScheduleChartTests : BunitContext
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
         Services.AddLocalizationMock();
+        Services.AddPrivacyModeMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -28,6 +29,18 @@ public class BondScheduleChartTests : BunitContext
     [Fact]
     public void BondScheduleChart_WhenItemsProvided_DoesNotShowNoDataMessage()
     {
+        var items = new[] { new BondScheduleDto(2027, 1000m, []) };
+
+        var cut = Render<BondScheduleChart>(p => p
+            .Add(c => c.Items, items));
+
+        Assert.DoesNotContain("Aucune donnée", cut.Markup);
+    }
+
+    [Fact]
+    public void BondScheduleChart_WhenPrivacyModeIsHidden_RendersWithoutError()
+    {
+        Services.AddPrivacyModeMock(isHidden: true);
         var items = new[] { new BondScheduleDto(2027, 1000m, []) };
 
         var cut = Render<BondScheduleChart>(p => p

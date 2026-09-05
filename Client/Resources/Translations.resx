@@ -73,6 +73,8 @@
   <data name="Nav_AppTitle"      xml:space="preserve"><value>Suivi des Investissements</value></data>
   <data name="Nav_Portfolio"     xml:space="preserve"><value>Portefeuille</value></data>
   <data name="Nav_Suivi"         xml:space="preserve"><value>Suivi</value></data>
+  <data name="Nav_HideAmounts"   xml:space="preserve"><value>Masquer les montants</value></data>
+  <data name="Nav_ShowAmounts"   xml:space="preserve"><value>Afficher les montants</value></data>
 
   <!-- Panels (titres donuts) -->
   <data name="Panel_AssetClass"  xml:space="preserve"><value>Classes d'actifs</value></data>

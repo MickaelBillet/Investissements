@@ -1,4 +1,5 @@
 using Bunit;
+using InvestissementsDashboard.Client.Extensions;
 using InvestissementsDashboard.Client.Shared;
 using InvestissementsDashboard.Client.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,7 @@ public class KpiHeaderTests : BunitContext
     {
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
         Services.AddLocalizationMock();
+        Services.AddPrivacyModeMock();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -55,5 +57,18 @@ public class KpiHeaderTests : BunitContext
             .Add(c => c.AssetCount, 12));
 
         Assert.Contains("12", cut.Markup);
+    }
+
+    [Fact]
+    public void KpiHeader_WhenPrivacyModeIsHidden_MasksNetCapital()
+    {
+        Services.AddPrivacyModeMock(isHidden: true);
+
+        var cut = Render<KpiHeader>(p => p
+            .Add(c => c.Snapshot,   TestData.Snapshot(netCapital: 12_345m))
+            .Add(c => c.AssetCount, 5));
+
+        Assert.Contains("*****", cut.Markup);
+        Assert.DoesNotContain((12_345m).ToEurAmount(), cut.Markup);
     }
 }

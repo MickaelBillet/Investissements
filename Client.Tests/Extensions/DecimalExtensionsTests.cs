@@ -30,6 +30,28 @@ public class DecimalExtensionsTests
     }
 
     [Fact]
+    public void ToEurAmount_WhenDecimalAndHidden_ReturnsMaskedValue()
+    {
+        Assert.Equal("*****", (1_500m).ToEurAmount(hidden: true));
+    }
+
+    [Fact]
+    public void ToEurAmount_WhenNullableDecimalAndHidden_ReturnsMaskedValue()
+    {
+        decimal? value = 1_500m;
+
+        Assert.Equal("*****", value.ToEurAmount(hidden: true));
+    }
+
+    [Fact]
+    public void ToEurAmount_WhenNullDecimalAndHidden_ReturnsMaskedValue()
+    {
+        decimal? value = null;
+
+        Assert.Equal("*****", value.ToEurAmount(hidden: true));
+    }
+
+    [Fact]
     public void ToPercentage_WhenNullDecimal_ReturnsDash()
     {
         decimal? value = null;
