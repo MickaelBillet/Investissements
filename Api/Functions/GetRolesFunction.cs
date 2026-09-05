@@ -37,9 +37,17 @@ public sealed class GetRolesFunction
 
         var ownerIdentity = _configuration["OWNER_IDENTITY"];
         if (string.IsNullOrEmpty(ownerIdentity) || principal?.UserDetails is null)
+        {
+            _logger.LogInformation(
+                "GetRoles: no role granted (identityProvider={IdentityProvider}, userDetails={UserDetails}, ownerIdentityConfigured={OwnerIdentityConfigured}).",
+                principal?.IdentityProvider, principal?.UserDetails, !string.IsNullOrEmpty(ownerIdentity));
             return new OkObjectResult(new RolesResponse([]));
+        }
 
         var isOwner = string.Equals(principal.UserDetails, ownerIdentity, StringComparison.OrdinalIgnoreCase);
+        _logger.LogInformation(
+            "GetRoles: identityProvider={IdentityProvider}, userDetails={UserDetails}, ownerGranted={OwnerGranted}.",
+            principal.IdentityProvider, principal.UserDetails, isOwner);
         return new OkObjectResult(new RolesResponse(isOwner ? ["owner"] : []));
     }
 

@@ -1,6 +1,7 @@
 {
   "routes": [
     { "route": "/api/mcp", "allowedRoles": ["anonymous"] },
+    { "route": "/api/GetRoles", "allowedRoles": ["anonymous"] },
     { "route": "/*", "allowedRoles": ["owner"] }
   ],
   "responseOverrides": {

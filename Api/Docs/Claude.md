@@ -142,6 +142,8 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`
 
 `POST /api/GetRoles` est appelé automatiquement par Azure Static Web Apps après connexion (`rolesSource` déclaré dans `Client/wwwroot/staticwebapp.config.json`), avec un corps JSON `{identityProvider, userId, userDetails, claims}`. `GetRolesFunction` compare `userDetails` (email du compte Microsoft Entra ID connecté) à l'App Setting `OWNER_IDENTITY` et retourne `{"roles": ["owner"]}` en cas de correspondance, `{"roles": []}` sinon (jamais d'accès par défaut si `OWNER_IDENTITY` n'est pas configuré). La route `/*` du dashboard est restreinte au rôle `owner` ; la route `/api/mcp` reste explicitement `anonymous` (protégée par sa propre clé `MCP_API_KEY`) car Claude Code ne peut pas faire de connexion interactive.
 
+**Piège à ne pas reproduire** : la route `/api/GetRoles` elle-même doit **aussi** être déclarée `anonymous` dans `staticwebapp.config.json`. SWA appelle cet endpoint pendant le flux de connexion, *avant* que le rôle `owner` ne soit attribué — si cette route hérite de la restriction générique `/*` → `owner`, l'appel interne est bloqué, aucun rôle n'est jamais calculé, et l'utilisateur reste bloqué en 403 même avec la bonne identité. En cas de 403 après connexion réussie, vérifier en premier cette route, puis les logs de `GetRolesFunction` (identityProvider/userDetails reçus vs `OWNER_IDENTITY` configuré).
+
 ### Endpoint MCP
 
 `POST /api/mcp` reçoit des requêtes JSON-RPC 2.0. Méthodes supportées :
