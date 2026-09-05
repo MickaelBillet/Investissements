@@ -17,11 +17,6 @@
             </MudText>
         </MudStack>
         <MudSpacer />
-        <MudTooltip Text="@(Privacy.IsHidden ? L.Translate("Nav_ShowAmounts") : L.Translate("Nav_HideAmounts"))">
-            <MudIconButton Icon="@(Privacy.IsHidden ? Icons.Material.Outlined.VisibilityOff : Icons.Material.Outlined.Visibility)"
-                           Color="MudBlazor.Color.Default"
-                           OnClick="@(() => Privacy.ToggleAsync())" />
-        </MudTooltip>
         <MudButton Href="/" Color="MudBlazor.Color.Default" Variant="Variant.Text"
                    StartIcon="@Icons.Material.Outlined.PieChart">
             @L.Translate("Nav_Portfolio")
@@ -30,6 +25,11 @@
                    StartIcon="@Icons.Material.Outlined.Timeline">
             @L.Translate("Nav_Suivi")
         </MudButton>
+        <MudTooltip Text="@(Privacy.IsHidden ? L.Translate("Nav_ShowAmounts") : L.Translate("Nav_HideAmounts"))">
+            <MudIconButton Icon="@(Privacy.IsHidden ? Icons.Material.Outlined.VisibilityOff : Icons.Material.Outlined.Visibility)"
+                           Color="MudBlazor.Color.Default"
+                           OnClick="@(() => Privacy.ToggleAsync())" />
+        </MudTooltip>
     </MudAppBar>
 
     <MudMainContent>
