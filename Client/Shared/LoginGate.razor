@@ -1,0 +1,40 @@
+@inject ILocalizationService L
+@inject ISessionService Session
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Style="height:100vh;display:flex;align-items:center;">
+    <MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:32px;width:100%;">
+        <MudText Typo="Typo.h3" Class="mb-4">@L.Translate("Login_Title")</MudText>
+        <MudTextField T="string"
+                      Label="@L.Translate("Login_PasswordLabel")"
+                      @bind-Value="_password"
+                      InputType="InputType.Password"
+                      Required="true"
+                      OnKeyDown="@(e => { if (e.Key == "Enter") _ = SubmitAsync(); })" />
+        @if (_showError)
+        {
+            <MudText Typo="Typo.body2" Style="color:#E06D6D;margin-top:8px;">
+                @L.Translate("Login_InvalidPassword")
+            </MudText>
+        }
+        <MudButton OnClick="SubmitAsync"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Class="mt-4"
+                   Disabled="_isSubmitting">
+            @L.Translate("Login_SubmitButton")
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string _password = string.Empty;
+    private bool _showError;
+    private bool _isSubmitting;
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _showError = !await Session.LoginAsync(_password);
+        _isSubmitting = false;
+    }
+}

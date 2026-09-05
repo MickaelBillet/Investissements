@@ -1,13 +1,39 @@
+@implements IDisposable
 @inject ILocalizationService L
+@inject ISessionService Session
 
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <MudText Typo="Typo.h3" Class="pa-8">@L.Translate("Error_PageNotFound")</MudText>
-        </LayoutView>
-    </NotFound>
-</Router>
+@if (!_initialized)
+{
+    <MudProgressCircular Indeterminate="true" Style="margin:48px auto;display:block;" />
+}
+else if (!Session.IsAuthenticated)
+{
+    <LoginGate />
+}
+else
+{
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <MudText Typo="Typo.h3" Class="pa-8">@L.Translate("Error_PageNotFound")</MudText>
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+
+@code {
+    private bool _initialized;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Session.OnChange += StateHasChanged;
+        await Session.InitializeAsync();
+        _initialized = true;
+    }
+
+    public void Dispose() => Session.OnChange -= StateHasChanged;
+}

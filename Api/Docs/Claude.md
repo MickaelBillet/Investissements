@@ -30,11 +30,14 @@ Api/
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
 │   ├── AssetsFunction.cs
+│   ├── AuthFunction.cs            # GET /api/auth/verify — teste le mot de passe du dashboard
 │   ├── BondScheduleFunction.cs
 │   ├── GeographyFunction.cs
 │   ├── McpFunction.cs             # Endpoint MCP POST /api/mcp
 │   ├── PortfolioMetricsFunction.cs
 │   └── SnapshotFunction.cs
+├── Middleware/
+│   └── DashboardAuthMiddleware.cs # Vérifie x-dashboard-password sur toutes les routes (sauf mcp/auth/verify)
 ├── Interfaces/                 # Interfaces des services
 │   ├── IAssetsService.cs
 │   ├── IBondScheduleService.cs
@@ -109,6 +112,7 @@ Les variables d'environnement sont injectées via `IConfiguration` (App Settings
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email du compte de service Google (accès Lecteur sur le Sheet) |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Clé privée du compte de service (format PEM, `\n` littéraux) |
 | `MCP_API_KEY` | Clé d'authentification de l'endpoint MCP (`x-mcp-api-key` ou `?key=`) |
+| `DASHBOARD_PASSWORD` | Mot de passe protégeant tout le dashboard (header `x-dashboard-password`, vérifié par `DashboardAuthMiddleware`) — non configuré = accès refusé par défaut |
 
 Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 
@@ -130,6 +134,7 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège les assets par année extraite du champ `information`, avec le détail par actif (`bonds[]`) |
 | GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis les assets |
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
+| GET | `/api/auth/verify` | Teste le mot de passe du dashboard — `AuthFunction` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
 
@@ -137,9 +142,9 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`
 
 ### Authentification du dashboard
 
-Le dashboard entier est restreint au rôle `owner` (`Client/wwwroot/staticwebapp.config.json`, route `/*`) ; la route `/api/mcp` reste explicitement `anonymous` (protégée par sa propre clé `MCP_API_KEY`) car Claude Code ne peut pas faire de connexion interactive.
+`DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP, comparé à l'App Setting `DASHBOARD_PASSWORD` (fail-safe : non configuré = accès refusé). Deux exceptions, identifiées par le nom de la Function (`context.FunctionDefinition.Name`) : `McpFunction.McpEndpoint` (protégée par sa propre clé `MCP_API_KEY`, Claude Code ne peut pas saisir de mot de passe interactif) et `AuthFunction.Verify` (doit rester accessible pour tester un mot de passe candidat depuis l'écran de connexion du Client). Toute nouvelle Function HTTP est protégée par défaut — l'ajouter à la liste `ExemptFunctions` du middleware est le seul moyen de l'exclure.
 
-**Le rôle `owner` est attribué via le mécanisme d'Invitations du portail Azure — pas via une Azure Function.** Une attribution de rôle par Function (`rolesSource`) a été tentée puis abandonnée : elle nécessite l'authentification personnalisée, elle-même réservée au plan **Standard** d'Azure Static Web Apps — sur le plan **Free** utilisé par ce projet, elle est silencieusement ignorée (aucune erreur, mais aucun rôle jamais attribué → 403 permanent). Voir `CLAUDE.md` (racine) §5.2.4 pour la procédure d'invitation.
+Voir `CLAUDE.md` (racine) §5.2.4 pour le détail côté Client (écran de connexion) et l'historique des approches abandonnées (rôles Azure Static Web Apps).
 
 ### Endpoint MCP
 
