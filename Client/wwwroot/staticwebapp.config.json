@@ -1,7 +1,6 @@
 {
   "routes": [
     { "route": "/api/mcp", "allowedRoles": ["anonymous"] },
-    { "route": "/api/GetRoles", "allowedRoles": ["anonymous"] },
     { "route": "/*", "allowedRoles": ["owner"] }
   ],
   "responseOverrides": {
@@ -10,7 +9,6 @@
       "statusCode": 302
     }
   },
-  "rolesSource": "/api/GetRoles",
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/api/*", "/_framework/*", "/css/*", "/*.{ico,png,svg,webp,woff,woff2,js}"]
