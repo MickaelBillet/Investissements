@@ -47,6 +47,5 @@ function syncCurrentTotal() {
   }
 
   const cashPEA = resultSheet.getRange(CASH_PEA).getValue(); // Cash PEA
-  const tradeRepublicAccount = resultSheet.getRange(TRADE_REPUBLIC_ACCOUNT).getValue(); // Account Trade Republic  
   const smartCashMintos = resultSheet.getRange(SMART_CASH_MINTOS).getValue(); // Smart Cash Mintos  
 }
