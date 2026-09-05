@@ -1,3 +1,4 @@
+@using System.Globalization
 @inject ILocalizationService L
 
 <MudPaper Elevation="0" Style="border:1px solid #E9E9E7;border-radius:6px;padding:16px 20px;height:100%;display:flex;flex-direction:column;">
@@ -17,19 +18,19 @@
         <ApexChart TItem="IndexedPoint" Options="_options">
             <ApexPointSeries TItem="IndexedPoint"
                              Items="@ROIC_Series"
-                             Name="@L.Translate("Chart_Series_ROIC")"
+                             Name="@FormatSeriesName(L.Translate("Chart_Series_ROIC"), ROIC_Series)"
                              SeriesType="SeriesType.Line"
                              XValue="@(e => e.Date.ToDateTime(TimeOnly.MinValue))"
                              YValue="@(e => (decimal)e.Value)" />
             <ApexPointSeries TItem="IndexedPoint"
                              Items="@LifeStrategySeries"
-                             Name="@L.Translate("Chart_Series_LifeStrategy")"
+                             Name="@FormatSeriesName(L.Translate("Chart_Series_LifeStrategy"), LifeStrategySeries)"
                              SeriesType="SeriesType.Line"
                              XValue="@(e => e.Date.ToDateTime(TimeOnly.MinValue))"
                              YValue="@(e => (decimal)e.Value)" />
             <ApexPointSeries TItem="IndexedPoint"
                              Items="@MsciWorldSeries"
-                             Name="@L.Translate("Chart_Series_MsciWorld")"
+                             Name="@FormatSeriesName(L.Translate("Chart_Series_MsciWorld"), MsciWorldSeries)"
                              SeriesType="SeriesType.Line"
                              XValue="@(e => e.Date.ToDateTime(TimeOnly.MinValue))"
                              YValue="@(e => (decimal)e.Value)" />
@@ -42,6 +43,9 @@
     [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> ROIC_Series { get; set; } = [];
     [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> LifeStrategySeries { get; set; } = [];
     [Parameter, EditorRequired] public IReadOnlyList<IndexedPoint> MsciWorldSeries    { get; set; } = [];
+
+    public static string FormatSeriesName(string label, IReadOnlyList<IndexedPoint> series) =>
+        series.Count == 0 ? label : $"{label} — {series[^1].Value.ToString("0.0", CultureInfo.InvariantCulture)}";
 
     protected override void OnParametersSet()
     {
