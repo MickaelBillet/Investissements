@@ -137,18 +137,15 @@ Voir SECURITY.MD
 - Le compte de service Azure ne peut donc jamais modifier les données, uniquement les lire
 
 #### 5.2.4 Authentification du dashboard (accès restreint au propriétaire)
-- Le dashboard entier est protégé par l'authentification intégrée d'**Azure Static Web Apps** (Microsoft Entra ID) — configurée dans `Client/wwwroot/staticwebapp.config.json` (`routes` : `/*` restreint au rôle `owner`, `401` redirige vers `/.auth/login/aad`)
-- **Exception explicite** : la route `/api/mcp` reste `anonymous` (protégée par sa propre clé `MCP_API_KEY`, voir `Api/Docs/CLAUDE.md` §6) — Claude Code, client de cet endpoint, ne peut pas effectuer de connexion interactive Microsoft
-- Le bouton de masquage des montants (barre de menu) n'est plus une frontière de sécurité depuis cette authentification — il reste un confort pour le propriétaire lui-même (ex. partage d'écran)
 
-**Attribution du rôle `owner` — via Invitations, pas via une Function.** Une première version utilisait `rolesSource` (une Azure Function calculant le rôle à la connexion) : cette approche a été abandonnée car elle nécessite l'authentification personnalisée, réservée au plan **Standard** — sur le plan **Free** (contrainte budget zéro, §2), elle est silencieusement ignorée et n'attribue jamais aucun rôle (403 permanent). Le plan Free supporte les rôles personnalisés uniquement via le mécanisme **Invitations** du portail Azure (jusqu'à 25 utilisateurs, sans code) :
+Le dashboard entier est protégé par un **mot de passe unique géré par notre propre code** — pas par l'authentification d'Azure Static Web Apps (voir historique ci-dessous).
 
-1. Portail Azure → ressource Static Web App → **Paramètres → Role Management → Invite**
-2. *Authorization provider* : **Microsoft Entra ID**
-3. *Invitee details* : l'email du compte Microsoft du propriétaire
-4. *Domain* : `invest.zapto.fr`
-5. *Role* : `owner` (doit correspondre exactement au nom utilisé dans `staticwebapp.config.json`)
-6. Durée de validité (max 168h) → **Generate**, puis ouvrir soi-même le lien généré et se connecter — le rôle est alors attribué durablement à cette identité (l'expiration ne concerne que le lien d'invitation, pas l'attribution résultante)
+- `DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP de l'Api, comparé à l'App Setting `DASHBOARD_PASSWORD` — sauf `/api/mcp` (protégée par sa propre clé `MCP_API_KEY`) et `/api/auth/verify` (doit rester accessible pour que l'écran de connexion puisse tester un mot de passe)
+- Fail-safe : si `DASHBOARD_PASSWORD` n'est pas configuré, l'accès est refusé par défaut (jamais d'accès ouvert par omission)
+- Côté Client, `App.razor` affiche un écran de connexion (`Client/Shared/LoginGate.razor`) tant que `ISessionService.IsAuthenticated` est faux — le mot de passe saisi est mémorisé dans le `localStorage` du navigateur et renvoyé automatiquement sur chaque appel Api (`DashboardPasswordHandler`)
+- Le bouton de masquage des montants (barre de menu) reste un confort indépendant (ex. partage d'écran par le propriétaire une fois connecté), pas une frontière de sécurité
+
+**Historique — pourquoi pas l'authentification native Azure Static Web Apps.** Une première version utilisait les rôles personnalisés d'Azure Static Web Apps (Microsoft Entra ID + rôle `owner`, via `rolesSource` puis via Invitations). Les deux mécanismes se sont révélés peu fiables en pratique sur le plan **Free** (contrainte budget zéro, §2) : `rolesSource` nécessite l'authentification personnalisée, réservée au plan Standard, et le mécanisme d'Invitations a montré un comportement incohérent (rôle attribué puis perdu entre sessions, 403 sur des ressources statiques). Le mot de passe interne ci-dessus, entièrement sous notre contrôle, remplace ces deux approches.
 
 ---
 

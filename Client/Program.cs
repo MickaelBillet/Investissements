@@ -6,6 +6,7 @@ using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.ViewModels;
 using MudBlazor.Services;
 using ApexCharts;
+using Microsoft.JSInterop;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -25,8 +26,13 @@ var apiBase = !string.IsNullOrEmpty(apiBaseUrl)
     ? new Uri(apiBaseUrl)
     : new Uri(builder.HostEnvironment.BaseAddress);
 
+builder.Services.AddSingleton<ISessionService>(sp =>
+    new SessionService(new HttpClient { BaseAddress = apiBase }, sp.GetRequiredService<IJSRuntime>()));
+builder.Services.AddTransient<DashboardPasswordHandler>();
+
 builder.Services.AddHttpClient<IPortfolioService, PortfolioService>(client =>
-    client.BaseAddress = apiBase);
+        client.BaseAddress = apiBase)
+    .AddHttpMessageHandler<DashboardPasswordHandler>();
 
 builder.Services.AddScoped<DashboardViewModel>();
 builder.Services.AddScoped<SuiviViewModel>();

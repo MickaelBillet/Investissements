@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject ILocalizationService L
 @inject IPrivacyModeService Privacy
+@inject ISessionService Session
 
 <MudThemeProvider Theme="_theme" />
 <MudSnackbarProvider />
@@ -33,7 +34,7 @@
         <MudTooltip Text="@L.Translate("Nav_Logout")">
             <MudIconButton Icon="@Icons.Material.Outlined.Logout"
                            Color="MudBlazor.Color.Default"
-                           Href="/.auth/logout" />
+                           OnClick="@(() => Session.LogoutAsync())" />
         </MudTooltip>
     </MudAppBar>
 

@@ -1,14 +1,4 @@
 {
-  "routes": [
-    { "route": "/api/mcp", "allowedRoles": ["anonymous"] },
-    { "route": "/*", "allowedRoles": ["owner"] }
-  ],
-  "responseOverrides": {
-    "401": {
-      "redirect": "/.auth/login/aad?post_login_redirect_uri=.referrer",
-      "statusCode": 302
-    }
-  },
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/api/*", "/_framework/*", "/css/*", "/*.{ico,png,svg,webp,woff,woff2,js}"]

@@ -33,10 +33,11 @@ Client/
 ├── Resources/    → Translations.cs (classe marqueur), Translations.resx (toutes les chaînes UI)
 ├── Services/     → IPortfolioService.cs, PortfolioService.cs,
 │                   ILocalizationService.cs, LocalizationService.cs,
-│                   IPrivacyModeService.cs, PrivacyModeService.cs
+│                   IPrivacyModeService.cs, PrivacyModeService.cs,
+│                   ISessionService.cs, SessionService.cs, DashboardPasswordHandler.cs
 ├── Shared/       → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                   KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
-│                   BondScheduleDetailTable.razor
+│                   BondScheduleDetailTable.razor, LoginGate.razor
 ├── ViewModels/   → DashboardViewModel.cs, SuiviViewModel.cs
 ├── Views/        → Dashboard.razor (/), Suivi.razor (/suivi)
 └── wwwroot/      → index.html, css/app.css, favicon
@@ -176,6 +177,15 @@ Contrairement à `DrillDownDonut` (donut, `OnDataPointSelection` → nom de la t
 Layout responsive (`MudGrid`/`MudItem xs="12" md="X"`) : graphique en `md="12"` tant qu'aucune année n'est sélectionnée, puis `md="7"` dès le premier clic pour laisser la place au tableau en `md="5"` à droite. En dessous du breakpoint `md`, les deux blocs passent en `xs="12"` (empilés). Le `MudGrid` et le `MudItem` du graphique ont `Style="height:100%;"` — sans quoi le `height:100%` du `MudPaper` interne à `BondScheduleChart` se réduit à la hauteur du contenu (le `MudGrid` ne propage pas la hauteur de son conteneur par défaut).
 
 `<BondScheduleChart>` a un `@key="@(_selectedYearEntry is null)"` — sans lui, un clic changeant `md="12"` en `md="7"` (ou l'inverse) ne recrée pas l'instance ApexCharts JS sous-jacente : elle continue de se redessiner à l'ancienne largeur pendant que `MudTable` apparaît déjà dans son propre `MudItem`, ce qui provoque un chevauchement visuel du tableau sur le graphique en cas de clics rapides successifs. Même règle que `@key` sur `DrillDownDonut` (§7.3) : forcer la recréation du composant chaque fois qu'un changement de layout doit être suivi d'un redessin ApexCharts.
+
+### 7.7 ISessionService — écran de connexion (mot de passe du dashboard)
+
+`App.razor` est le point de garde unique : tant que `ISessionService.IsAuthenticated` est faux, il affiche `Client/Shared/LoginGate.razor` à la place du `<Router>` — aucune route du dashboard n'est jamais montée sans authentification préalable.
+
+- `SessionService` (singleton, pattern similaire à `IPrivacyModeService`) stocke le mot de passe validé dans `localStorage` et le revérifie au démarrage via `GET /api/auth/verify`
+- `DashboardPasswordHandler` (`DelegatingHandler`) ajoute automatiquement le header `x-dashboard-password` sur chaque requête du `HttpClient` typé `IPortfolioService` (enregistré via `.AddHttpMessageHandler<DashboardPasswordHandler>()` dans `Program.cs`) — aucun appel manuel requis dans les ViewModels
+- Vérification côté serveur : `Api/Middleware/DashboardAuthMiddleware.cs` (voir `Api/Docs/CLAUDE.md`)
+- Remplace l'authentification native Azure Static Web Apps (rôles/Invitations), abandonnée pour manque de fiabilité sur le plan Free — voir `CLAUDE.md` (racine) §5.2.4
 
 ## 8. Localisation
 
