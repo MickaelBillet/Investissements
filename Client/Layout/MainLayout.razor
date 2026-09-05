@@ -30,6 +30,11 @@
                            Color="MudBlazor.Color.Default"
                            OnClick="@(() => Privacy.ToggleAsync())" />
         </MudTooltip>
+        <MudTooltip Text="@L.Translate("Nav_Logout")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Logout"
+                           Color="MudBlazor.Color.Default"
+                           Href="/.auth/logout" />
+        </MudTooltip>
     </MudAppBar>
 
     <MudMainContent>

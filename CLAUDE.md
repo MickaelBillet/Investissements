@@ -136,6 +136,12 @@ Voir SECURITY.MD
 - Écriture : seul l'Apps Script (authentifié via le compte Google propriétaire) écrit sur les feuilles — ETL quotidien et rapport hebdomadaire
 - Le compte de service Azure ne peut donc jamais modifier les données, uniquement les lire
 
+#### 5.2.4 Authentification du dashboard (accès restreint au propriétaire)
+- Le dashboard entier est protégé par l'authentification intégrée d'**Azure Static Web Apps** (Microsoft Entra ID) — configurée dans `Client/wwwroot/staticwebapp.config.json` (`routes` : `/*` restreint au rôle `owner`, `401` redirige vers `/.auth/login/aad`)
+- Le rôle `owner` est attribué dynamiquement par `GetRolesFunction` (`rolesSource`), qui compare l'identité connectée à l'App Setting `OWNER_IDENTITY` (email du compte Microsoft du propriétaire) — jamais d'accès accordé par défaut si cette variable n'est pas configurée
+- **Exception explicite** : la route `/api/mcp` reste `anonymous` (protégée par sa propre clé `MCP_API_KEY`, voir `Api/Docs/CLAUDE.md` §6) — Claude Code, client de cet endpoint, ne peut pas effectuer de connexion interactive Microsoft
+- Le bouton de masquage des montants (barre de menu) n'est plus une frontière de sécurité depuis cette authentification — il reste un confort pour le propriétaire lui-même (ex. partage d'écran)
+
 ---
 
 ## 6. Structure du Google Sheets
