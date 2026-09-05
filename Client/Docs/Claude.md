@@ -182,10 +182,12 @@ Layout responsive (`MudGrid`/`MudItem xs="12" md="X"`) : graphique en `md="12"` 
 
 `App.razor` est le point de garde unique : tant que `ISessionService.IsAuthenticated` est faux, il affiche `Client/Shared/LoginGate.razor` à la place du `<Router>` — aucune route du dashboard n'est jamais montée sans authentification préalable.
 
-- `SessionService` (singleton, pattern similaire à `IPrivacyModeService`) stocke le mot de passe validé dans `localStorage` et le revérifie au démarrage via `GET /api/auth/verify`
+- `SessionService` (singleton, pattern similaire à `IPrivacyModeService`) stocke `{password, expiresAt}` (JSON) dans `localStorage` et revérifie le mot de passe au démarrage via `GET /api/auth/verify`
+- **Expiration glissante d'1h** : `DashboardPasswordHandler` appelle `ExtendSessionAsync()` après chaque requête réussie (repousse `expiresAt` à +1h) et court-circuite (`LogoutAsync()`, 401 local sans appeler l'Api) si `IsSessionExpired` avant d'envoyer quoi que ce soit — après 1h sans aucun appel réussi, l'utilisateur retombe sur `LoginGate` au prochain appel ou rechargement
 - `DashboardPasswordHandler` (`DelegatingHandler`) ajoute automatiquement le header `x-dashboard-password` sur chaque requête du `HttpClient` typé `IPortfolioService` (enregistré via `.AddHttpMessageHandler<DashboardPasswordHandler>()` dans `Program.cs`) — aucun appel manuel requis dans les ViewModels
-- Vérification côté serveur : `Api/Middleware/DashboardAuthMiddleware.cs` (voir `Api/Docs/CLAUDE.md`)
+- Vérification côté serveur : `Api/Middleware/DashboardAuthMiddleware.cs` (voir `Api/Docs/CLAUDE.md`) — cette vérification reste stateless (pas de notion d'expiration côté Api, uniquement côté Client)
 - Remplace l'authentification native Azure Static Web Apps (rôles/Invitations), abandonnée pour manque de fiabilité sur le plan Free — voir `CLAUDE.md` (racine) §5.2.4
+- **Limite connue** : le mot de passe et l'expiration sont stockés en clair dans `localStorage`, visibles via les DevTools (Application/Network) — protection suffisante contre un visiteur lambda, pas contre un accès physique à la session du navigateur
 
 ## 8. Localisation
 
