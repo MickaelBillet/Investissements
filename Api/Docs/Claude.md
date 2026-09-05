@@ -32,6 +32,7 @@ Api/
 │   ├── AssetsFunction.cs
 │   ├── BondScheduleFunction.cs
 │   ├── GeographyFunction.cs
+│   ├── GetRolesFunction.cs        # rolesSource SWA POST /api/GetRoles — attribue le rôle "owner"
 │   ├── McpFunction.cs             # Endpoint MCP POST /api/mcp
 │   ├── PortfolioMetricsFunction.cs
 │   └── SnapshotFunction.cs
@@ -108,6 +109,8 @@ Les variables d'environnement sont injectées via `IConfiguration` (App Settings
 | `GOOGLE_SHEET_ID` | ID du Google Sheet `InvestData` (`DEST_ID`) |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email du compte de service Google (accès Lecteur sur le Sheet) |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Clé privée du compte de service (format PEM, `\n` littéraux) |
+| `MCP_API_KEY` | Clé d'authentification de l'endpoint MCP (`x-mcp-api-key` ou `?key=`) |
+| `OWNER_IDENTITY` | Identité (email du compte Microsoft Entra ID) du propriétaire — seule identité à laquelle `GetRolesFunction` attribue le rôle `owner` |
 
 Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 
@@ -129,10 +132,15 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège les assets par année extraite du champ `information`, avec le détail par actif (`bonds[]`) |
 | GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis les assets |
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
+| POST | `/api/GetRoles` | `rolesSource` Azure Static Web Apps — `GetRolesFunction` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
 
 Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`.
+
+### Endpoint GetRoles — authentification du dashboard
+
+`POST /api/GetRoles` est appelé automatiquement par Azure Static Web Apps après connexion (`rolesSource` déclaré dans `Client/wwwroot/staticwebapp.config.json`), avec un corps JSON `{identityProvider, userId, userDetails, claims}`. `GetRolesFunction` compare `userDetails` (email du compte Microsoft Entra ID connecté) à l'App Setting `OWNER_IDENTITY` et retourne `{"roles": ["owner"]}` en cas de correspondance, `{"roles": []}` sinon (jamais d'accès par défaut si `OWNER_IDENTITY` n'est pas configuré). La route `/*` du dashboard est restreinte au rôle `owner` ; la route `/api/mcp` reste explicitement `anonymous` (protégée par sa propre clé `MCP_API_KEY`) car Claude Code ne peut pas faire de connexion interactive.
 
 ### Endpoint MCP
 
