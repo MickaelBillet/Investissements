@@ -4,5 +4,20 @@
       "type": "http",
       "url": "http://localhost:7071/api/mcp"
     }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/generate_presentation_pdf.py\" 2>&1 || true",
+            "shell": "bash",
+            "statusMessage": "Régénération de presentation.pdf..."
+          }
+        ]
+      }
+    ]
   }
 }
