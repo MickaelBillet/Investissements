@@ -27,6 +27,9 @@
                          OnClick="@(() => Privacy.ToggleAsync())">
                 @(Privacy.IsHidden ? L.Translate("Nav_ShowAmounts") : L.Translate("Nav_HideAmounts"))
             </MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Outlined.PictureAsPdf" Href="docs/presentation.pdf" Target="_blank">
+                @L.Translate("Nav_Documentation")
+            </MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Outlined.Logout" OnClick="@(() => Session.LogoutAsync())">
                 @L.Translate("Nav_Logout")
             </MudMenuItem>
