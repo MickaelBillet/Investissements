@@ -11,33 +11,34 @@
 
     <MudPaper Elevation="0"
               Style="border:1px solid #E9E9E7;border-radius:6px;padding:20px;width:100%;max-width:308px;background:#FFFFFF;">
-        <MudText Typo="Typo.body2" Style="font-size:13px;font-weight:600;color:#37352F;margin-bottom:6px;">
-            @L.Translate("Login_PasswordLabel")
-        </MudText>
-        <MudTextField T="string"
-                      @bind-Value="_password"
-                      InputType="InputType.Password"
-                      Variant="Variant.Outlined"
-                      FullWidth="true"
-                      Margin="Margin.Dense"
-                      Required="true"
-                      OnKeyDown="@(e => { if (e.Key == "Enter") _ = SubmitAsync(); })" />
-        @if (_showError)
-        {
-            <MudText Typo="Typo.body2" Style="font-size:13px;color:#E06D6D;margin-top:8px;">
-                @L.Translate("Login_InvalidPassword")
+        <form @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+            <MudText Typo="Typo.body2" Style="font-size:13px;font-weight:600;color:#37352F;margin-bottom:6px;">
+                @L.Translate("Login_PasswordLabel")
             </MudText>
-        }
+            <MudTextField T="string"
+                          @bind-Value="_password"
+                          InputType="InputType.Password"
+                          Variant="Variant.Outlined"
+                          FullWidth="true"
+                          Margin="Margin.Dense"
+                          Required="true" />
+            @if (_showError)
+            {
+                <MudText Typo="Typo.body2" Style="font-size:13px;color:#E06D6D;margin-top:8px;">
+                    @L.Translate("Login_InvalidPassword")
+                </MudText>
+            }
 
-        <MudButton OnClick="SubmitAsync"
-                   Variant="Variant.Filled"
-                   Color="MudBlazor.Color.Primary"
-                   FullWidth="true"
-                   Class="mt-4"
-                   Style="border-radius:4px;text-transform:none;font-weight:500;"
-                   Disabled="_isSubmitting">
-            @L.Translate("Login_SubmitButton")
-        </MudButton>
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       FullWidth="true"
+                       Class="mt-4"
+                       Style="border-radius:4px;text-transform:none;font-weight:500;"
+                       Disabled="_isSubmitting">
+                @L.Translate("Login_SubmitButton")
+            </MudButton>
+        </form>
     </MudPaper>
 </div>
 
