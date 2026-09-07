@@ -1,0 +1,3 @@
+Déposer ici le fichier presentation.pdf (converti depuis Docs/Presentation.md à la racine du repo).
+Le lien "Documentation" du menu pointe vers /docs/presentation.pdf.
+Ce fichier PLACEHOLDER.txt peut être supprimé une fois le PDF ajouté.
