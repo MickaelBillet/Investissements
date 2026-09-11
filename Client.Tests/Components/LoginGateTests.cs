@@ -2,6 +2,7 @@ using Bunit;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.Shared;
 using InvestissementsDashboard.Client.Tests.Helpers;
+using InvestissementsDashboard.Client.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using MudBlazor.Services;
@@ -23,6 +24,7 @@ public class LoginGateTests : BunitContext
         var session = new Mock<ISessionService>();
         session.Setup(s => s.LoginAsync(It.IsAny<string>())).ReturnsAsync(false);
         Services.AddSingleton(session.Object);
+        Services.AddScoped<LoginGateViewModel>();
 
         var cut = Render<LoginGate>();
         cut.Find("input").Change("wrong-password");
@@ -37,6 +39,7 @@ public class LoginGateTests : BunitContext
         var session = new Mock<ISessionService>();
         session.Setup(s => s.LoginAsync("correct")).ReturnsAsync(true);
         Services.AddSingleton(session.Object);
+        Services.AddScoped<LoginGateViewModel>();
 
         var cut = Render<LoginGate>();
         cut.Find("input").Change("correct");

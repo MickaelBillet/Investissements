@@ -36,5 +36,6 @@ builder.Services.AddHttpClient<IPortfolioService, PortfolioService>(client =>
 
 builder.Services.AddScoped<DashboardViewModel>();
 builder.Services.AddScoped<SuiviViewModel>();
+builder.Services.AddScoped<LoginGateViewModel>();
 
 await builder.Build().RunAsync();
