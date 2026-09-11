@@ -8,10 +8,8 @@
 
 Visualiser un portefeuille d'investissement multi-supports (actions, obligations, épargne, immobilier, cryptomonnaies, prêts participatifs...) selon deux niveaux de lecture :
 
-- **Vue instantanée** — état du portefeuille au jour le jour : allocations par support, par type d'actif, par actif, par zone géographique.
-- **Vue historique** — évolution de ces mêmes indicateurs dans le temps, constituée progressivement par un snapshot quotidien.
-
-Application strictement personnelle et privée, développée avec une contrainte de **budget zéro** (hors nom de domaine déjà possédé) : tous les services utilisés reposent sur leurs tiers gratuits.
+- **Portefeuille** — état du portefeuille au jour le jour : allocations par support, par type d'actif, par actif, par zone géographique.
+- **Suivi** — évolution de la performance du portefeuille dans le temps, comparée aux références LifeStrategy 40 et MSCI World et échéancier obligataire
 
 ---
 
@@ -26,14 +24,14 @@ Application strictement personnelle et privée, développée avec une contrainte
 ```
 Google Sheets (SOURCE) — saisie manuelle quotidienne, onglet « Bilan »
         │
-        ▼  Google Apps Script (ETL, déclenché chaque jour à 06h00)
+        ▼  Google Apps Script (ETL, déclenché chaque jour à 06h00) (snapshotQuotidien dans SnapshotService.gs)
         │  1. synchronise les colonnes Asset depuis le Bilan
         │  2. calcule et appende une ligne dans l'onglet Snapshot
         ▼
 Google Sheets (DEST) — onglets « Asset » et « Snapshot », structurés comme une base de données
 ```
 
-Un rapport hebdomadaire (email HTML) est envoyé chaque lundi à 08h00, généré par le même Apps Script.
+Un rapport hebdomadaire (email HTML) est envoyé chaque lundi à 08h00, généré par le même Apps Script. (rapportHebdomadaire dans WeeklyReportService.gs)
 
 **Lecture (dashboard et intégration IA)**
 
