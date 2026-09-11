@@ -1,0 +1,69 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Architecture" id="architecture-investissements">
+    <mxGraphModel dx="2204" dy="991" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1480" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#1a1a1a;align=center;verticalAlign=middle;" value="Suivi des Investissements — Architecture technique" vertex="1">
+          <mxGeometry height="50" width="1360" x="60" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="claude" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fbdada;strokeColor=#e05a5a;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="Claude Code / Claude&#xa;(client MCP)&#xa;&#xa;Interroge le portefeuille&#xa;en temps reel" vertex="1">
+          <mxGeometry height="140" width="290" x="750" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="navigateur" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#888888;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="Navigateur&#xa;utilisateur&#xa;&#xa;Dashboard prive&#xa;(usage personnel)" vertex="1">
+          <mxGeometry height="140" width="290" x="1120" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="source" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#1f9d73;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="Google Sheets&#xa;(SOURCE)&#xa;&#xa;Onglet «Bilan»&#xa;saisie manuelle quotidienne" vertex="1">
+          <mxGeometry height="140" width="280" x="60" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="appsscript" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe9c7;strokeColor=#d9a441;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="Google Apps Script&lt;br&gt;&lt;br&gt;ETL quotidien 06h00&lt;br&gt;Rapport hebdo lundi 08h00 envoyer par mail&lt;br&gt;(triggers temporels, pas de Web App)" vertex="1">
+          <mxGeometry height="180" width="290" x="470" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="dest" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#1f9d73;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="Google Sheets&#xa;(DEST)&#xa;&#xa;Onglets Asset / Snapshot&#xa;structure type BDD" vertex="1">
+          <mxGeometry height="150" width="280" x="60" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="api" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cfe2f3;strokeColor=#3b78c2;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="Azure Functions (Api)&#xa;&#xa;.NET 9 — Managed Functions&#xa;Endpoints REST + endpoint MCP" vertex="1">
+          <mxGeometry height="180" width="290" x="750" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="blazor" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6defa;strokeColor=#8a6fce;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="Blazor WASM (Client)&#xa;&#xa;.NET 10 — MudBlazor&#xa;ApexCharts" vertex="1">
+          <mxGeometry height="180" width="290" x="1120" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="githubactions" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#888888;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="GitHub Actions (CI/CD)&#xa;&#xa;Build a chaque push sur main&#xa;Deploy vers Azure Static Web Apps" vertex="1">
+          <mxGeometry height="160" width="560" x="60" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="swa" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fbe4ea;strokeColor=#c2607e;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" value="Azure Static Web Apps (Free)&#xa;&#xa;Heberge Client (statique) + Api (Managed Functions, inclut /api/mcp)&#xa;Domaine custom invest.zapto.fr (TLS auto)" vertex="1">
+          <mxGeometry height="160" width="660" x="750" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="e-source-appsscript" edge="1" parent="1" source="source" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=13;fontStyle=1;strokeColor=#1a1a1a;endArrow=block;" target="appsscript" value="lit&#xa;(saisie)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-appsscript-dest" edge="1" parent="1" source="appsscript" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=13;fontStyle=1;strokeColor=#1a1a1a;endArrow=block;exitX=0;exitY=0.75;entryX=1;entryY=0.25;" target="dest" value="ecrit&#xa;snapshot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-dest-api" edge="1" parent="1" source="dest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=13;fontStyle=1;strokeColor=#1a73e8;fontColor=#1a73e8;endArrow=block;" target="api" value="API Google Sheets officielle&#xa;(compte de service, lecture seule)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-claude-api" edge="1" parent="1" source="claude" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=13;fontStyle=1;strokeColor=#e05a5a;fontColor=#e05a5a;endArrow=block;" target="api" value="POST /api/mcp&#xa;(JSON-RPC, cle API)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-navigateur-blazor" edge="1" parent="1" source="navigateur" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=13;fontStyle=1;strokeColor=#1a1a1a;endArrow=block;" target="blazor" value="HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-api-blazor" edge="1" parent="1" source="api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=13;fontStyle=1;strokeColor=#1a1a1a;endArrow=block;" target="blazor" value="API REST&#xa;interne">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-api-swa" edge="1" parent="1" source="api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=13;fontStyle=1;strokeColor=#1a1a1a;endArrow=block;" target="swa" value="heberger&lt;div&gt;sur&lt;/div&gt;">
+          <mxGeometry relative="1" x="0.5872" as="geometry">
+            <mxPoint y="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-blazor-swa" edge="1" parent="1" source="blazor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#1a1a1a;endArrow=block;" target="swa">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-github-swa" edge="1" parent="1" source="githubactions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=13;fontStyle=1;strokeColor=#1a1a1a;endArrow=block;" target="swa" value="deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

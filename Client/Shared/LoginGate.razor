@@ -1,5 +1,5 @@
 @inject ILocalizationService L
-@inject ISessionService Session
+@inject LoginGateViewModel ViewModel
 
 <div style="height:100vh;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#FAFAFA;">
     <MudStack AlignItems="AlignItems.Center" Spacing="0" Class="mb-4">
@@ -11,18 +11,18 @@
 
     <MudPaper Elevation="0"
               Style="border:1px solid #E9E9E7;border-radius:6px;padding:20px;width:100%;max-width:308px;background:#FFFFFF;">
-        <form @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+        <form @onsubmit="ViewModel.SubmitAsync" @onsubmit:preventDefault="true">
             <MudText Typo="Typo.body2" Style="font-size:13px;font-weight:600;color:#37352F;margin-bottom:6px;">
                 @L.Translate("Login_PasswordLabel")
             </MudText>
             <MudTextField T="string"
-                          @bind-Value="_password"
+                          @bind-Value="ViewModel.Password"
                           InputType="InputType.Password"
                           Variant="Variant.Outlined"
                           FullWidth="true"
                           Margin="Margin.Dense"
                           Required="true" />
-            @if (_showError)
+            @if (ViewModel.ShowError)
             {
                 <MudText Typo="Typo.body2" Style="font-size:13px;color:#E06D6D;margin-top:8px;">
                     @L.Translate("Login_InvalidPassword")
@@ -35,22 +35,9 @@
                        FullWidth="true"
                        Class="mt-4"
                        Style="border-radius:4px;text-transform:none;font-weight:500;"
-                       Disabled="_isSubmitting">
+                       Disabled="ViewModel.IsSubmitting">
                 @L.Translate("Login_SubmitButton")
             </MudButton>
         </form>
     </MudPaper>
 </div>
-
-@code {
-    private string _password = string.Empty;
-    private bool _showError;
-    private bool _isSubmitting;
-
-    private async Task SubmitAsync()
-    {
-        _isSubmitting = true;
-        _showError = !await Session.LoginAsync(_password);
-        _isSubmitting = false;
-    }
-}
