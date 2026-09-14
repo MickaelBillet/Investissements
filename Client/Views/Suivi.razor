@@ -35,16 +35,20 @@ else
                 }
                 else
                 {
+                    <MudSwitch T="bool" Value="@ViewModel.BondScheduleQuarterlyView"
+                               ValueChanged="@OnGranularityChanged"
+                               Label="@L.Translate("BondSchedule_QuarterlyToggle")"
+                               Color="MudBlazor.Color.Primary" Class="mb-2" />
                     <MudGrid Spacing="4" Style="height:100%;">
-                        <MudItem xs="12" md="@(_selectedYearEntry is null ? 12 : 7)" Style="height:100%;">
-                            <BondScheduleChart @key="@(_selectedYearEntry is null)"
-                                               Items="@ViewModel.BondSchedule"
-                                               OnYearClicked="@(entry => _selectedYearEntry = entry)" />
+                        <MudItem xs="12" md="@(_selectedPeriodEntry is null ? 12 : 7)" Style="height:100%;">
+                            <BondScheduleChart @key="@($"{ViewModel.BondScheduleQuarterlyView}:{_selectedPeriodEntry is null}")"
+                                               Items="@ViewModel.BondScheduleDisplayed"
+                                               OnPeriodClicked="@(entry => _selectedPeriodEntry = entry)" />
                         </MudItem>
-                        @if (_selectedYearEntry is not null)
+                        @if (_selectedPeriodEntry is not null)
                         {
                             <MudItem xs="12" md="5">
-                                <BondScheduleDetailTable Year="@_selectedYearEntry.Year" Bonds="@_selectedYearEntry.Bonds" Total="@_selectedYearEntry.Amount" />
+                                <BondScheduleDetailTable PeriodLabel="@_selectedPeriodEntry.Label" Bonds="@_selectedPeriodEntry.Bonds" Total="@_selectedPeriodEntry.Amount" />
                             </MudItem>
                         }
                     </MudGrid>
@@ -55,10 +59,16 @@ else
 }
 
 @code {
-    private BondScheduleDto? _selectedYearEntry;
+    private BondSchedulePeriodDto? _selectedPeriodEntry;
 
     protected override async Task OnInitializedAsync()
     {
         await ViewModel.InitializeAsync();
+    }
+
+    private void OnGranularityChanged(bool value)
+    {
+        ViewModel.BondScheduleQuarterlyView = value;
+        _selectedPeriodEntry = null;
     }
 }

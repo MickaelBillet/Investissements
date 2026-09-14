@@ -1,7 +1,7 @@
 using Bunit;
+using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Shared;
 using InvestissementsDashboard.Client.Tests.Helpers;
-using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
 
@@ -29,7 +29,7 @@ public class BondScheduleChartTests : BunitContext
     [Fact]
     public void BondScheduleChart_WhenItemsProvided_DoesNotShowNoDataMessage()
     {
-        var items = new[] { new BondScheduleDto(2027, 1000m, []) };
+        var items = new[] { new BondSchedulePeriodDto(2027, null, 1000m, []) };
 
         var cut = Render<BondScheduleChart>(p => p
             .Add(c => c.Items, items));
@@ -41,7 +41,7 @@ public class BondScheduleChartTests : BunitContext
     public void BondScheduleChart_WhenPrivacyModeIsHidden_RendersWithoutError()
     {
         Services.AddPrivacyModeMock(isHidden: true);
-        var items = new[] { new BondScheduleDto(2027, 1000m, []) };
+        var items = new[] { new BondSchedulePeriodDto(2027, null, 1000m, []) };
 
         var cut = Render<BondScheduleChart>(p => p
             .Add(c => c.Items, items));

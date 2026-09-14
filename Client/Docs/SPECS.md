@@ -133,11 +133,13 @@ Les données sont fournies par `GET /api/portfolio/metrics/history` (`Performanc
 
 ### 4.2 Onglet "Échéancier"
 
-Graphique en barres (ApexCharts, `BondScheduleChart.razor`) représentant le capital obligataire à percevoir par année d'échéance (hors coupons).
+Graphique en barres (ApexCharts, `BondScheduleChart.razor`) représentant le capital obligataire à percevoir par période d'échéance (hors coupons).
 
-Les données sont fournies par `GET /api/assets/bondschedule` (`BondScheduleDto[]`), déjà agrégées par année par l'Api, avec le détail par obligation (`bonds[]`) — voir `Api/Docs/SPECS.md` §2.5 pour la logique de calcul.
+Les données sont fournies par `GET /api/assets/bondschedule` (`BondScheduleDto[]`), agrégées **par mois** par l'Api (granularité la plus fine), avec le détail par obligation (`bonds[]`) — voir `Api/Docs/SPECS.md` §2.5 pour la logique de calcul. C'est le Client qui ré-agrège ensuite ces données mensuelles en trimestre ou en année pour l'affichage (`SuiviViewModel.BondScheduleDisplayed`), sans nouvel appel réseau.
 
-**Drill-down au clic** : cliquer sur une barre (année) affiche un tableau (`BondScheduleDetailTable.razor`) précédé d'un en-tête rappelant l'année sélectionnée (clé `BondSchedule_DetailTitle`), listant les obligations de cette année (nom, montant) avec une ligne de total. Sur écran large (`MudItem md="7"`/`md="5"`), le tableau apparaît à droite du graphique, côte à côte — le graphique passant de `md="12"` (pleine largeur, aucune année sélectionnée) à `md="7"` dès qu'une année est cliquée. Sur écran étroit (`xs="12"` sur les deux blocs), le tableau reste empilé sous le graphique.
+**Bascule trimestre/année** : un `MudSwitch` (`BondScheduleQuarterlyView`, clé `BondSchedule_QuarterlyToggle`) au-dessus du graphique permet de choisir la granularité d'affichage. Par défaut, la vue est annuelle. Chaque bascule réinitialise la période sélectionnée pour le drill-down.
+
+**Drill-down au clic** : cliquer sur une barre (période — année ou trimestre selon le mode actif) affiche un tableau (`BondScheduleDetailTable.razor`) précédé d'un en-tête rappelant la période sélectionnée (clé `BondSchedule_DetailTitle`, ex. "2027" ou "T2 2027"), listant les obligations de cette période (nom, montant) avec une ligne de total. Sur écran large (`MudItem md="7"`/`md="5"`), le tableau apparaît à droite du graphique, côte à côte — le graphique passant de `md="12"` (pleine largeur, aucune période sélectionnée) à `md="7"` dès qu'une période est cliquée. Sur écran étroit (`xs="12"` sur les deux blocs), le tableau reste empilé sous le graphique.
 
 ---
 
