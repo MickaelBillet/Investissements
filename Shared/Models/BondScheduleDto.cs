@@ -2,6 +2,7 @@ namespace InvestissementsDashboard.Shared.Models;
 
 public record BondScheduleDto(
     int Year,
+    int Month,
     decimal Amount,
     IReadOnlyList<BondScheduleItemDto> Bonds
 );

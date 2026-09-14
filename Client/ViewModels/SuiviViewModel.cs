@@ -14,6 +14,20 @@ public class SuiviViewModel(IPortfolioService portfolioService, ILocalizationSer
     public IReadOnlyList<IndexedPoint> LifeStrategySeries { get; private set; } = [];
     public IReadOnlyList<IndexedPoint> MsciWorldSeries    { get; private set; } = [];
     public IReadOnlyList<BondScheduleDto> BondSchedule     { get; private set; } = [];
+    public bool BondScheduleQuarterlyView { get; set; }
+
+    public IReadOnlyList<BondSchedulePeriodDto> BondScheduleDisplayed =>
+        BondScheduleQuarterlyView
+            ? BondSchedule
+                .GroupBy(s => (s.Year, Quarter: (s.Month - 1) / 3 + 1))
+                .Select(g => new BondSchedulePeriodDto(g.Key.Year, g.Key.Quarter, g.Sum(s => s.Amount), [.. g.SelectMany(s => s.Bonds)]))
+                .OrderBy(p => p.Year).ThenBy(p => p.Quarter)
+                .ToArray()
+            : BondSchedule
+                .GroupBy(s => s.Year)
+                .Select(g => new BondSchedulePeriodDto(g.Key, null, g.Sum(s => s.Amount), [.. g.SelectMany(s => s.Bonds)]))
+                .OrderBy(p => p.Year)
+                .ToArray();
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {

@@ -4,7 +4,7 @@
 @inject IPrivacyModeService Privacy
 
 <MudText Style="font-size:16px;font-weight:600;color:#37352F;margin-top:16px;">
-    @string.Format(L.Translate("BondSchedule_DetailTitle"), Year)
+    @string.Format(L.Translate("BondSchedule_DetailTitle"), PeriodLabel)
 </MudText>
 
 <MudTable Items="@Bonds" Dense="true" Hover="true" Elevation="0"
@@ -31,7 +31,7 @@
 </MudTable>
 
 @code {
-    [Parameter, EditorRequired] public int Year { get; set; }
+    [Parameter, EditorRequired] public string PeriodLabel { get; set; } = string.Empty;
     [Parameter, EditorRequired] public IReadOnlyList<BondScheduleItemDto> Bonds { get; set; } = [];
     [Parameter, EditorRequired] public decimal Total { get; set; }
 

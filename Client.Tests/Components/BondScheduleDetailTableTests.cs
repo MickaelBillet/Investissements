@@ -21,7 +21,7 @@ public class BondScheduleDetailTableTests : BunitContext
     public void BondScheduleDetailTable_WhenBondsIsEmpty_DisplaysNoDataMessage()
     {
         var cut = Render<BondScheduleDetailTable>(p => p
-            .Add(c => c.Year, 2027)
+            .Add(c => c.PeriodLabel, "2027")
             .Add(c => c.Bonds, [])
             .Add(c => c.Total, 0m));
 
@@ -38,7 +38,7 @@ public class BondScheduleDetailTableTests : BunitContext
         };
 
         var cut = Render<BondScheduleDetailTable>(p => p
-            .Add(c => c.Year, 2027)
+            .Add(c => c.PeriodLabel, "2027")
             .Add(c => c.Bonds, bonds)
             .Add(c => c.Total, 1500m));
 
@@ -52,7 +52,7 @@ public class BondScheduleDetailTableTests : BunitContext
         var bonds = new[] { new BondScheduleItemDto("Renault 2027", 1000m) };
 
         var cut = Render<BondScheduleDetailTable>(p => p
-            .Add(c => c.Year, 2027)
+            .Add(c => c.PeriodLabel, "2027")
             .Add(c => c.Bonds, bonds)
             .Add(c => c.Total, 1000m));
 
@@ -62,16 +62,29 @@ public class BondScheduleDetailTableTests : BunitContext
     }
 
     [Fact]
-    public void BondScheduleDetailTable_DisplaysYearInHeader()
+    public void BondScheduleDetailTable_DisplaysPeriodLabelInHeader()
     {
         var bonds = new[] { new BondScheduleItemDto("Renault 2027", 1000m) };
 
         var cut = Render<BondScheduleDetailTable>(p => p
-            .Add(c => c.Year, 2027)
+            .Add(c => c.PeriodLabel, "2027")
             .Add(c => c.Bonds, bonds)
             .Add(c => c.Total, 1000m));
 
         Assert.Contains("2027", cut.Markup);
+    }
+
+    [Fact]
+    public void BondScheduleDetailTable_DisplaysQuarterlyPeriodLabelInHeader()
+    {
+        var bonds = new[] { new BondScheduleItemDto("Renault 2027", 1000m) };
+
+        var cut = Render<BondScheduleDetailTable>(p => p
+            .Add(c => c.PeriodLabel, "T2 2027")
+            .Add(c => c.Bonds, bonds)
+            .Add(c => c.Total, 1000m));
+
+        Assert.Contains("T2 2027", cut.Markup);
     }
 
     [Fact]
@@ -81,7 +94,7 @@ public class BondScheduleDetailTableTests : BunitContext
         var bonds = new[] { new BondScheduleItemDto("Renault 2027", 1000m) };
 
         var cut = Render<BondScheduleDetailTable>(p => p
-            .Add(c => c.Year, 2027)
+            .Add(c => c.PeriodLabel, "2027")
             .Add(c => c.Bonds, bonds)
             .Add(c => c.Total, 1000m));
 

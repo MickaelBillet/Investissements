@@ -155,7 +155,7 @@ public class SuiviViewModelTests
     {
         var mock = MockWithHistory(TestData.PerformancePoint());
         mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new BondScheduleDto(2027, 1000m, []), new BondScheduleDto(2030, 500m, [])]);
+            .ReturnsAsync([new BondScheduleDto(2027, 5, 1000m, []), new BondScheduleDto(2030, 1, 500m, [])]);
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
@@ -170,7 +170,7 @@ public class SuiviViewModelTests
     {
         var mock = MockWithHistory(TestData.PerformancePoint());
         mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new BondScheduleDto(2027, 1000m, [new BondScheduleItemDto("Renault 2027", 1000m)])]);
+            .ReturnsAsync([new BondScheduleDto(2027, 5, 1000m, [new BondScheduleItemDto("Renault 2027", 1000m)])]);
         var vm = CreateVm(mock);
 
         await vm.InitializeAsync();
@@ -190,5 +190,55 @@ public class SuiviViewModelTests
         Assert.Empty(vm.BondSchedule);
         Assert.Null(vm.HistoryError);
         Assert.Null(vm.BondScheduleError);
+    }
+
+    // ── BondScheduleDisplayed (agrégation trimestre/année) ──────────────────────
+
+    [Fact]
+    public async Task BondScheduleDisplayed_ByDefault_GroupsByYear()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new BondScheduleDto(2027, 2, 1000m, [new BondScheduleItemDto("Renault 2027", 1000m)]),
+                new BondScheduleDto(2027, 9, 500m,  [new BondScheduleItemDto("Orange 2027", 500m)])
+            ]);
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var displayed = vm.BondScheduleDisplayed;
+
+        Assert.Single(displayed);
+        Assert.Equal(2027, displayed[0].Year);
+        Assert.Null(displayed[0].Quarter);
+        Assert.Equal(1500m, displayed[0].Amount);
+        Assert.Equal(2, displayed[0].Bonds.Count);
+        Assert.Equal("2027", displayed[0].Label);
+    }
+
+    [Fact]
+    public async Task BondScheduleDisplayed_WhenQuarterlyView_MergesSameQuarterKeepsOthersSeparate()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new BondScheduleDto(2027, 2, 1000m, [new BondScheduleItemDto("Renault 2027", 1000m)]),
+                new BondScheduleDto(2027, 3, 500m,  [new BondScheduleItemDto("Orange 2027", 500m)]),
+                new BondScheduleDto(2027, 7, 300m,  [new BondScheduleItemDto("Total 2027", 300m)])
+            ]);
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        vm.BondScheduleQuarterlyView = true;
+
+        var displayed = vm.BondScheduleDisplayed;
+
+        Assert.Equal(2, displayed.Count);
+        Assert.Equal(1, displayed[0].Quarter);
+        Assert.Equal(1500m, displayed[0].Amount);
+        Assert.Equal(2, displayed[0].Bonds.Count);
+        Assert.Equal("T1 2027", displayed[0].Label);
+        Assert.Equal(3, displayed[1].Quarter);
+        Assert.Equal(300m, displayed[1].Amount);
+        Assert.Equal("T3 2027", displayed[1].Label);
     }
 }

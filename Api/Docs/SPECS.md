@@ -135,7 +135,7 @@ Retourne les métadonnées brutes de l'onglet `AssetType` (id, libellé FR, éli
 
 ### 2.5 `GET /api/assets/bondschedule`
 
-Retourne le capital obligataire à percevoir par année d'échéance (hors coupons), agrégé depuis tous les actifs.
+Retourne le capital obligataire à percevoir par mois d'échéance (hors coupons), agrégé depuis tous les actifs. C'est la granularité la plus fine (mois) qui est renvoyée — l'agrégation par trimestre ou par année pour l'affichage est faite côté Client (voir `Client/Docs/SPECS.md` §4.2).
 
 **Réponse** : `BondScheduleDto[]`
 
@@ -143,22 +143,23 @@ Retourne le capital obligataire à percevoir par année d'échéance (hors coupo
 [
   {
     "year": 2027,
+    "month": 5,
     "amount": 3941.00,
     "bonds": [
       { "name": "Obligation Renault 2027", "amount": 2941.00 },
       { "name": "Obligation Orange 2027",  "amount": 1000.00 }
     ]
   },
-  { "year": 2029, "amount": 5200.00, "bonds": [ { "name": "Obligation EDF 2029", "amount": 5200.00 } ] }
+  { "year": 2029, "month": 1, "amount": 5200.00, "bonds": [ { "name": "Obligation EDF 2029", "amount": 5200.00 } ] }
 ]
 ```
 
 **Logique de calcul (`BondScheduleService`) :**
-- Pour chaque actif, extrait une année à 4 chiffres isolée (`20\d{2}`) dans le champ `information` (ex. "Obligation Renault, échéance 2027")
-- Regroupe les actifs partageant la même année dans `bonds` (`name` + `currentTotal` de chaque actif), et `amount` est la somme de `bonds[].amount` pour cette année
-- **Aucun filtre par `assetClass`** — tout actif dont `information` contient une année isolée est inclus, pas seulement `AssetClass = Bonds`
-- Actifs sans année détectée ou sans `currentTotal` exclus
-- Résultats triés par année croissante
+- Pour chaque actif, extrait une échéance au format `MM/YYYY` isolée dans le champ `information` (ex. "Obligation Renault, échéance 05/2027") — une année seule (sans mois) n'est plus reconnue
+- Regroupe les actifs partageant le même mois et la même année dans `bonds` (`name` + `currentTotal` de chaque actif), et `amount` est la somme de `bonds[].amount` pour cette période
+- **Aucun filtre par `assetClass`** — tout actif dont `information` contient une échéance `MM/YYYY` isolée est inclus, pas seulement `AssetClass = Bonds`
+- Actifs sans échéance détectée ou sans `currentTotal` exclus
+- Résultats triés par année puis par mois croissants
 
 ---
 
@@ -407,7 +408,7 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, netCapital, lifeStrategy?, msciWorld?, totalPurchases, totalReturns, totalSales? |
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnCapitalEngaged?, averageRisk? |
 | `PerformancePointDto` | `Shared/Models/PerformancePointDto.cs` | date, roic, lifeStrategy?, msciWorld? |
-| `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, amount, bonds (`BondScheduleItemDto[]`) |
+| `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, month, amount, bonds (`BondScheduleItemDto[]`) |
 | `BondScheduleItemDto` | `Shared/Models/BondScheduleDto.cs` | name, amount |
 | `AssetTypeReferenceDto` | `Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
 

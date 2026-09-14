@@ -9,39 +9,41 @@ internal sealed partial class BondScheduleService(IAssetsService assetsService) 
     {
         var assets = await assetsService.GetAllAsync(ct);
 
-        var yearMap = new Dictionary<int, List<BondScheduleItemDto>>();
+        var periodMap = new Dictionary<(int Year, int Month), List<BondScheduleItemDto>>();
 
         foreach (var asset in assets)
         {
-            var year = ExtractYear(asset.Information);
-            if (year is null) continue;
+            var maturity = ExtractMaturity(asset.Information);
+            if (maturity is null) continue;
 
             var amount = asset.CurrentTotal;
             if (amount is null) continue;
 
-            if (!yearMap.TryGetValue(year.Value, out var items))
+            if (!periodMap.TryGetValue(maturity.Value, out var items))
             {
                 items = [];
-                yearMap[year.Value] = items;
+                periodMap[maturity.Value] = items;
             }
             items.Add(new BondScheduleItemDto(asset.Name, amount.Value));
         }
 
-        return yearMap
-            .Select(kv => new BondScheduleDto(kv.Key, kv.Value.Sum(i => i.Amount), kv.Value))
-            .OrderBy(d => d.Year)
+        return periodMap
+            .Select(kv => new BondScheduleDto(kv.Key.Year, kv.Key.Month, kv.Value.Sum(i => i.Amount), kv.Value))
+            .OrderBy(d => d.Year).ThenBy(d => d.Month)
             .ToArray();
     }
 
-    // Extract a 4-digit year (2000-2099) isolated in the free-text Information field
-    internal static int? ExtractYear(string information)
+    // Extract a MM/YYYY maturity date isolated in the free-text Information field
+    internal static (int Year, int Month)? ExtractMaturity(string information)
     {
         if (string.IsNullOrWhiteSpace(information)) return null;
 
-        var match = YearRegex().Match(information);
-        return match.Success ? int.Parse(match.Groups[1].Value) : null;
+        var match = MaturityRegex().Match(information);
+        if (!match.Success) return null;
+
+        return (int.Parse(match.Groups[2].Value), int.Parse(match.Groups[1].Value));
     }
 
-    [GeneratedRegex(@"\b(20\d{2})\b")]
-    private static partial Regex YearRegex();
+    [GeneratedRegex(@"\b(0[1-9]|1[0-2])/(20\d{2})\b")]
+    private static partial Regex MaturityRegex();
 }
