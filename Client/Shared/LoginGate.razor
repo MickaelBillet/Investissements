@@ -36,7 +36,14 @@
                        Class="mt-4"
                        Style="border-radius:4px;text-transform:none;font-weight:500;"
                        Disabled="ViewModel.IsSubmitting">
-                @L.Translate("Login_SubmitButton")
+                @if (ViewModel.IsSubmitting)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Color="MudBlazor.Color.Inherit" />
+                }
+                else
+                {
+                    @L.Translate("Login_SubmitButton")
+                }
             </MudButton>
         </form>
     </MudPaper>
