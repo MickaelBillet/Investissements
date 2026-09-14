@@ -48,4 +48,25 @@ public class LoginGateTests : BunitContext
         session.Verify(s => s.LoginAsync("correct"), Times.Once);
         Assert.DoesNotContain("Mot de passe incorrect", cut.Markup);
     }
+
+    [Fact]
+    public void LoginGate_WhileSubmitting_ShowsLoadingSpinner()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        var session = new Mock<ISessionService>();
+        session.Setup(s => s.LoginAsync(It.IsAny<string>())).Returns(tcs.Task);
+        Services.AddSingleton(session.Object);
+        Services.AddScoped<LoginGateViewModel>();
+
+        var cut = Render<LoginGate>();
+        cut.Find("input").Change("correct");
+        cut.Find("button").Click();
+
+        cut.Find(".mud-progress-circular");
+        Assert.DoesNotContain("Se connecter", cut.Markup);
+
+        tcs.SetResult(true);
+
+        cut.WaitForState(() => !cut.Markup.Contains("mud-progress-circular"));
+    }
 }
