@@ -4,6 +4,7 @@ using InvestissementsDashboard.Api.Services;
 using InvestissementsDashboard.GoogleSheets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication(builder =>
@@ -20,6 +21,7 @@ var host = new HostBuilder()
         services.AddScoped<IGeographyService, GeographyService>();
         services.AddScoped<IBondScheduleService, BondScheduleService>();
         services.AddScoped<IMcpService, McpService>();
+        services.AddHttpClient<ISyncService, SyncService>(c => c.Timeout = TimeSpan.FromSeconds(100));
     })
     .Build();
 

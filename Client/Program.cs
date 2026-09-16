@@ -34,8 +34,13 @@ builder.Services.AddHttpClient<IPortfolioService, PortfolioService>(client =>
         client.BaseAddress = apiBase)
     .AddHttpMessageHandler<DashboardPasswordHandler>();
 
+builder.Services.AddHttpClient<ISyncService, SyncService>(client =>
+        client.BaseAddress = apiBase)
+    .AddHttpMessageHandler<DashboardPasswordHandler>();
+
 builder.Services.AddScoped<DashboardViewModel>();
 builder.Services.AddScoped<SuiviViewModel>();
 builder.Services.AddScoped<LoginGateViewModel>();
+builder.Services.AddScoped<SyncViewModel>();
 
 await builder.Build().RunAsync();
