@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+using System.Text.Json;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -33,7 +33,19 @@ internal sealed class SyncService : ISyncService
         {
             var url = $"{baseUrl}?key={Uri.EscapeDataString(key)}";
             var response = await _httpClient.GetAsync(url, ct);
-            var payload = await response.Content.ReadFromJsonAsync<AppsScriptSyncResponse>(cancellationToken: ct);
+            var body = await response.Content.ReadAsStringAsync(ct);
+
+            AppsScriptSyncResponse? payload;
+            try
+            {
+                payload = JsonSerializer.Deserialize<AppsScriptSyncResponse>(body, JsonOptions);
+            }
+            catch (JsonException)
+            {
+                _logger.LogError("Apps Script sync returned a non-JSON response ({StatusCode}): {Body}",
+                    (int)response.StatusCode, Truncate(body));
+                return new SyncResultDto(false, 0, "Réponse invalide de Google Apps Script — vérifie le déploiement du Web App.");
+            }
 
             if (!response.IsSuccessStatusCode || payload is null || !payload.Success)
             {
@@ -49,6 +61,11 @@ internal sealed class SyncService : ISyncService
             return new SyncResultDto(false, 0, "Impossible de contacter Google Apps Script.");
         }
     }
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private static string Truncate(string value, int maxLength = 500)
+        => value.Length <= maxLength ? value : value[..maxLength] + "…";
 
     private sealed record AppsScriptSyncResponse(bool Success, int AddedCount, string? Error);
 }

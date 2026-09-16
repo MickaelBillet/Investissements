@@ -78,7 +78,10 @@
         }
         else
         {
-            Snackbar.Add(L.Translate("Sync_Error"), MudBlazor.Severity.Error);
+            var message = string.IsNullOrEmpty(result.ErrorMessage)
+                ? L.Translate("Sync_Error")
+                : $"{L.Translate("Sync_Error")} — {result.ErrorMessage}";
+            Snackbar.Add(message, MudBlazor.Severity.Error);
         }
     }
 }
