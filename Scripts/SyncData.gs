@@ -74,12 +74,15 @@ function getExistingAssetNames(assetData) {
   return names;
 }
 
-// --- Next COL_ID to assign, based on the current max in the Asset sheet ---
+// --- Next COL_ID to assign, based on the current max in the Asset sheet.
+//     Some IDs may be stored as text (manual entry) rather than a number —
+//     coerce with Number() instead of a strict typeof check, otherwise a
+//     text-typed max ID is silently skipped and the next ID collides with it.
 function getNextAssetId(assetData) {
   let maxId = 0;
   for (let i = 1; i < assetData.length; i++) {
-    const id = assetData[i][COL_ID];
-    if (typeof id === "number" && id > maxId) maxId = id;
+    const id = Number(assetData[i][COL_ID]);
+    if (!isNaN(id) && id > maxId) maxId = id;
   }
   return maxId + 1;
 }

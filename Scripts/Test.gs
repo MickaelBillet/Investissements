@@ -27,6 +27,27 @@ function testRapportHebdomadaire() {
   rapportHebdomadaire(); // Sends real email — check Gmail inbox
 }
 
+function testGetNextAssetId() {
+  // Mixed number/text-typed IDs — the text-typed max (103) must still be found,
+  // otherwise the next ID (should be 104) collides with the existing row 103.
+  const assetData = [
+    [], // header
+    buildAssetRow(0, "Novo Nordisk"),
+    buildAssetRow(102, "Melvan Horizon"),
+    buildAssetRow("103", "Melvan Horizon T3") // text-typed ID
+  ];
+
+  const nextId = getNextAssetId(assetData);
+  Logger.log(nextId); // Expected: 104
+}
+
+function buildAssetRow(id, name) {
+  const row = [];
+  row[COL_ID]   = id;
+  row[COL_NAME] = name;
+  return row;
+}
+
 function testFindNewAssetsToAdd() {
   // Header row + 4 source rows:
   // - "ETF World"    → already in destination, must be excluded
