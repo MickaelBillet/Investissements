@@ -76,7 +76,11 @@
   <data name="Nav_HideAmounts"   xml:space="preserve"><value>Masquer les montants</value></data>
   <data name="Nav_ShowAmounts"   xml:space="preserve"><value>Afficher les montants</value></data>
   <data name="Nav_Documentation"  xml:space="preserve"><value>Documentation</value></data>
+  <data name="Nav_Sync"          xml:space="preserve"><value>Synchroniser</value></data>
   <data name="Nav_Logout"        xml:space="preserve"><value>Se déconnecter</value></data>
+  <data name="Sync_Success_NoAdded"  xml:space="preserve"><value>Synchronisation terminée</value></data>
+  <data name="Sync_Success_WithAdded" xml:space="preserve"><value>Synchronisation terminée — {0} nouvel(aux) actif(s) ajouté(s)</value></data>
+  <data name="Sync_Error"        xml:space="preserve"><value>Échec de la synchronisation</value></data>
 
   <!-- Panels (titres donuts) -->
   <data name="Panel_AssetClass"  xml:space="preserve"><value>Classes d'actifs</value></data>

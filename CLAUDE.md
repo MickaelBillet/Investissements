@@ -91,7 +91,7 @@ Apps Script n'expose plus de Web App HTTP — il ne fait plus qu'écrire (ETL qu
 - Lit les données du jour depuis les onglets snapshot
 - Calcule les agrégats (valeur totale, % par catégorie, etc.)
 - Appende une ligne dans les onglets historiques
-- N'expose plus de Web App HTTP — aucune intervention manuelle requise
+- Expose un unique Web App HTTP minimal et protégé par clé secrète (`Scripts/SyncWebApp.gs`), dédié au déclenchement manuel de `syncCurrentTotal()` depuis le bouton "Synchroniser" du dashboard — voir §5.2.5. Aucun autre point d'entrée HTTP.
 
 ### 4.3 Azure Functions (backend C#)
 - Détient les identifiants du compte de service Google (email + clé privée, stockés dans App Settings)
@@ -133,8 +133,17 @@ Voir SECURITY.MD
 
 #### 5.2.3 Protection des données Google Sheets
 - Lecture : l'Azure Function lit directement le Sheet `DEST_ID` via l'API Google Sheets, authentifiée par un compte de service dédié avec accès **Lecteur uniquement** (partagé explicitement sur ce Sheet, pas d'accès projet GCP plus large)
-- Écriture : seul l'Apps Script (authentifié via le compte Google propriétaire) écrit sur les feuilles — ETL quotidien et rapport hebdomadaire
+- Écriture : seul l'Apps Script (authentifié via le compte Google propriétaire) écrit sur les feuilles — ETL quotidien, rapport hebdomadaire, et synchro manuelle déclenchée depuis le dashboard (voir §5.2.5)
 - Le compte de service Azure ne peut donc jamais modifier les données, uniquement les lire
+
+#### 5.2.5 Synchronisation manuelle (bouton dashboard)
+
+Le bouton "Synchroniser" du Client déclenche `syncCurrentTotal()` sans attendre le trigger quotidien de 06h00. Comme l'Api ne peut pas écrire (§5.2.3), l'écriture reste effectuée par Apps Script, exposé cette fois via un Web App HTTP minimal et dédié à cette seule action (`Scripts/SyncWebApp.gs`, `doGet`) — réintroduction ciblée du mécanisme retiré en §4.2, motivée par ce nouveau besoin.
+
+- Protection par clé partagée : `doGet` compare `?key=` à la Script Property `SYNC_SECRET_KEY` (jamais commitée dans `Scripts/`, contrairement à `Config.gs`) — pas de protection Google (déploiement "Anyone")
+- Flux : `Client` → `POST /api/sync` (protégé par `DashboardAuthMiddleware`, mot de passe dashboard) → `SyncFunction`/`SyncService` (Api) → `GET .../exec?key=...` (Apps Script) → `syncCurrentTotal()`
+- Le compte de service Azure reste lecteur uniquement — aucun changement de son périmètre ; seul Apps Script écrit, comme avant
+- Config Api (App Settings, jamais commitées) : `APPS_SCRIPT_SYNC_URL`, `APPS_SCRIPT_SYNC_KEY` — voir `Api/Docs/CLAUDE.md` §5
 
 #### 5.2.4 Authentification du dashboard (accès restreint au propriétaire)
 

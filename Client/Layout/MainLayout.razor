@@ -3,6 +3,8 @@
 @inject ILocalizationService L
 @inject IPrivacyModeService Privacy
 @inject ISessionService Session
+@inject SyncViewModel SyncViewModel
+@inject ISnackbar Snackbar
 
 <MudLayout>
     <MudAppBar Elevation="0" Dense="false" Color="MudBlazor.Color.Surface"
@@ -26,6 +28,16 @@
             <MudMenuItem Icon="@(Privacy.IsHidden ? Icons.Material.Outlined.VisibilityOff : Icons.Material.Outlined.Visibility)"
                          OnClick="@(() => Privacy.ToggleAsync())">
                 @(Privacy.IsHidden ? L.Translate("Nav_ShowAmounts") : L.Translate("Nav_HideAmounts"))
+            </MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Outlined.Sync" OnClick="@OnSyncClicked" Disabled="@SyncViewModel.IsSyncing">
+                @if (SyncViewModel.IsSyncing)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" />
+                }
+                else
+                {
+                    @L.Translate("Nav_Sync")
+                }
             </MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Outlined.PictureAsPdf" Href="docs/presentation.pdf" Target="_blank">
                 @L.Translate("Nav_Documentation")
@@ -52,4 +64,21 @@
     }
 
     public void Dispose() => Privacy.OnChange -= StateHasChanged;
+
+    private async Task OnSyncClicked()
+    {
+        var result = await SyncViewModel.TriggerAsync();
+
+        if (result.Success)
+        {
+            var message = result.AddedCount > 0
+                ? string.Format(L.Translate("Sync_Success_WithAdded"), result.AddedCount)
+                : L.Translate("Sync_Success_NoAdded");
+            Snackbar.Add(message, MudBlazor.Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(L.Translate("Sync_Error"), MudBlazor.Severity.Error);
+        }
+    }
 }
