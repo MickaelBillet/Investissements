@@ -131,7 +131,6 @@ function buildNewAssetRow(id, asset) {
   row[COL_TOTAL_SALES]     = asset.totalSales;
   row[COL_DIVIDENDS]       = asset.dividends;
   row[COL_CURRENT_TOTAL]   = asset.current;
-  row[COL_FACE_VALUE]      = "Not Defined";
   return row;
 }
 
@@ -147,7 +146,7 @@ function sendNewAssetsAlertEmail(newAssets) {
   const htmlBody = `
     <p>${newAssets.length} nouvel(aux) actif(s) ont été ajoutés automatiquement dans l'onglet <b>Asset</b> :</p>
     <ul>${items}</ul>
-    <p>Merci de compléter manuellement, pour chacun, les colonnes AssetClass, SupportType, Support, AssetType, Sector, Geography et FaceValue (actuellement à "Not Defined").</p>
+    <p>Merci de compléter manuellement, pour chacun, les colonnes AssetClass, SupportType, Support, AssetType, Sector et Geography (actuellement à "Not Defined").</p>
   `;
 
   MailApp.sendEmail(REPORT_EMAIL, subject, "", { htmlBody });

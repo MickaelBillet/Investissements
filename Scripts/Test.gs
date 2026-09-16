@@ -64,7 +64,7 @@ function testBuildNewAssetRow() {
 
   Logger.log(JSON.stringify(row));
   // Expected: row[COL_ID] === 42, row[COL_NAME] === "Crypto Kraken",
-  // classification columns (AssetClass, SupportType, Support, AssetType, Sector, Geography, FaceValue) === "Not Defined",
+  // classification columns (AssetClass, SupportType, Support, AssetType, Sector, Geography) === "Not Defined",
   // row[COL_CURRENT_TOTAL] === 350
 }
 
