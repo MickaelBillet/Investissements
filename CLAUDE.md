@@ -91,6 +91,7 @@ Apps Script n'expose plus de Web App HTTP — il ne fait plus qu'écrire (ETL qu
 - Lit les données du jour depuis les onglets snapshot
 - Calcule les agrégats (valeur totale, % par catégorie, etc.)
 - Appende une ligne dans les onglets historiques
+- Crée automatiquement dans l'onglet `Asset` toute nouvelle ligne trouvée dans le `Bilan` mais absente du sheet DEST (dès que sa valeur actuelle est strictement positive) — les colonnes de classification (AssetClass, SupportType, Support, AssetType, Sector, Geography) sont posées à `"Not Defined"` et un email d'alerte est envoyé pour rappeler de les compléter manuellement
 - Expose un unique Web App HTTP minimal et protégé par clé secrète (`Scripts/SyncWebApp.gs`), dédié au déclenchement manuel de `syncCurrentTotal()` depuis le bouton "Synchroniser" du dashboard — voir §5.2.5. Aucun autre point d'entrée HTTP.
 
 ### 4.3 Azure Functions (backend C#)
