@@ -57,7 +57,10 @@ function syncCurrentTotal() {
     let nextId = getNextAssetId(assetData);
     const newRows = newAssets.map(asset => buildNewAssetRow(nextId++, asset));
 
-    assetSheet.getRange(assetSheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+    const startRow = assetSheet.getLastRow() + 1;
+    assetSheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);
+    // Match the existing ID column's alignment (left, as most existing IDs are text-formatted)
+    assetSheet.getRange(startRow, COL_ID + 1, newRows.length, 1).setHorizontalAlignment("left");
     newAssets.forEach(asset => Logger.log("➕ Added: " + asset.name));
 
     sendNewAssetsAlertEmail(newAssets);
