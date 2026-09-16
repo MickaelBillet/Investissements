@@ -58,9 +58,12 @@ function syncCurrentTotal() {
     const newRows = newAssets.map(asset => buildNewAssetRow(nextId++, asset));
 
     const startRow = assetSheet.getLastRow() + 1;
+    // Force the ID column to plain-text format *before* writing — otherwise Sheets
+    // silently re-parses a numeric-looking string ("42") back into a number, undoing
+    // buildNewAssetRow's String(id) and breaking the left-alignment match with the
+    // existing (text-typed) IDs.
+    assetSheet.getRange(startRow, COL_ID + 1, newRows.length, 1).setNumberFormat("@");
     assetSheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);
-    // Match the existing ID column's alignment (left, as most existing IDs are text-formatted)
-    assetSheet.getRange(startRow, COL_ID + 1, newRows.length, 1).setHorizontalAlignment("left");
     newAssets.forEach(asset => Logger.log("➕ Added: " + asset.name));
 
     sendNewAssetsAlertEmail(newAssets);
@@ -123,7 +126,9 @@ function findNewAssetsToAdd(resultData, existingNames) {
 // until the user completes them manually in the destination sheet.
 function buildNewAssetRow(id, asset) {
   const row = [];
-  row[COL_ID]              = id;
+  // Written as text, not a number: most existing IDs in the sheet are text-typed
+  // (manual entry) — matching that keeps the new row's alignment/format consistent.
+  row[COL_ID]              = String(id);
   row[COL_NAME]            = asset.name;
   row[COL_ASSET_CLASS]     = "Not Defined";
   row[COL_SUPPORT_TYPE]    = "Not Defined";

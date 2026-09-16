@@ -84,7 +84,7 @@ function testBuildNewAssetRow() {
   const row   = buildNewAssetRow(42, asset);
 
   Logger.log(JSON.stringify(row));
-  // Expected: row[COL_ID] === 42, row[COL_NAME] === "Crypto Kraken",
+  // Expected: row[COL_ID] === "42" (text, not a number), row[COL_NAME] === "Crypto Kraken",
   // classification columns (AssetClass, SupportType, Support, AssetType, Sector, Geography) === "Not Defined",
   // row[COL_CURRENT_TOTAL] === 350
 }
