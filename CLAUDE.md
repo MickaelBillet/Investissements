@@ -92,7 +92,7 @@ Apps Script n'expose plus de Web App HTTP — il ne fait plus qu'écrire (ETL qu
 - Calcule les agrégats (valeur totale, % par catégorie, etc.)
 - Appende une ligne dans les onglets historiques
 - Crée automatiquement dans l'onglet `Asset` toute nouvelle ligne trouvée dans le `Bilan` mais absente du sheet DEST (dès que sa valeur actuelle est strictement positive) — les colonnes de classification (AssetClass, SupportType, Support, AssetType, Sector, Geography) sont posées à `"Not Defined"` et un email d'alerte est envoyé pour rappeler de les compléter manuellement
-- Expose un unique Web App HTTP minimal et protégé par clé secrète (`Scripts/SyncWebApp.gs`), dédié au déclenchement manuel de `syncCurrentTotal()` depuis le bouton "Synchroniser" du dashboard — voir §5.2.5. Aucun autre point d'entrée HTTP.
+- Expose un unique Web App HTTP minimal et protégé par clé secrète (`Scripts/SyncWebApp.gs`), dédié au déclenchement manuel de `snapshotQuotidien()` depuis le bouton "Synchroniser" du dashboard — voir §5.2.5. Aucun autre point d'entrée HTTP.
 
 ### 4.3 Azure Functions (backend C#)
 - Détient les identifiants du compte de service Google (email + clé privée, stockés dans App Settings)
@@ -139,10 +139,11 @@ Voir SECURITY.MD
 
 #### 5.2.5 Synchronisation manuelle (bouton dashboard)
 
-Le bouton "Synchroniser" du Client déclenche `syncCurrentTotal()` sans attendre le trigger quotidien de 06h00. Comme l'Api ne peut pas écrire (§5.2.3), l'écriture reste effectuée par Apps Script, exposé cette fois via un Web App HTTP minimal et dédié à cette seule action (`Scripts/SyncWebApp.gs`, `doGet`) — réintroduction ciblée du mécanisme retiré en §4.2, motivée par ce nouveau besoin.
+Le bouton "Synchroniser" du Client déclenche `snapshotQuotidien()` (le même ETL complet que le trigger quotidien de 06h00 — sync des actifs *et* recalcul de la ligne `Snapshot` du jour) sans attendre ce trigger. Comme l'Api ne peut pas écrire (§5.2.3), l'écriture reste effectuée par Apps Script, exposé cette fois via un Web App HTTP minimal et dédié à cette seule action (`Scripts/SyncWebApp.gs`, `doGet`) — réintroduction ciblée du mécanisme retiré en §4.2, motivée par ce nouveau besoin.
 
 - Protection par clé partagée : `doGet` compare `?key=` à la Script Property `SYNC_SECRET_KEY` (jamais commitée dans `Scripts/`, contrairement à `Config.gs`) — pas de protection Google (déploiement "Anyone")
-- Flux : `Client` → `POST /api/sync` (protégé par `DashboardAuthMiddleware`, mot de passe dashboard) → `SyncFunction`/`SyncService` (Api) → `GET .../exec?key=...` (Apps Script) → `syncCurrentTotal()`
+- Flux : `Client` → `POST /api/sync` (protégé par `DashboardAuthMiddleware`, mot de passe dashboard) → `SyncFunction`/`SyncService` (Api) → `GET .../exec?key=...` (Apps Script) → `snapshotQuotidien()`
+- Le recalcul immédiat de la ligne `Snapshot` du jour met à jour le KPI "Capital net engagé" sans attendre le lendemain 06h00
 - Le compte de service Azure reste lecteur uniquement — aucun changement de son périmètre ; seul Apps Script écrit, comme avant
 - Config Api (App Settings, jamais commitées) : `APPS_SCRIPT_SYNC_URL`, `APPS_SCRIPT_SYNC_KEY` — voir `Api/Docs/CLAUDE.md` §5
 
