@@ -109,7 +109,7 @@ SyncFunction → SyncService
     │ HttpClient GET https://script.google.com/.../exec?key=...
     ▼
 Apps Script Web App (Scripts/SyncWebApp.gs, doGet) — vérifie la clé
-    │ appelle syncCurrentTotal() (même fonction que le trigger 06h00)
+    │ appelle snapshotQuotidien() (même fonction que le trigger 06h00)
     ▼
 { success, addedCount } → SyncResultDto
 ```
@@ -128,7 +128,7 @@ Les variables d'environnement sont injectées via `IConfiguration` (App Settings
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Clé privée du compte de service (format PEM, `\n` littéraux) |
 | `MCP_API_KEY` | Clé d'authentification de l'endpoint MCP (`x-mcp-api-key` ou `?key=`) |
 | `DASHBOARD_PASSWORD` | Mot de passe protégeant tout le dashboard (header `x-dashboard-password`, vérifié par `DashboardAuthMiddleware`) — non configuré = accès refusé par défaut |
-| `APPS_SCRIPT_SYNC_URL` | URL `.../exec` du Web App Apps Script (`Scripts/SyncWebApp.gs`) qui exécute `syncCurrentTotal()` |
+| `APPS_SCRIPT_SYNC_URL` | URL `.../exec` du Web App Apps Script (`Scripts/SyncWebApp.gs`) qui exécute `snapshotQuotidien()` |
 | `APPS_SCRIPT_SYNC_KEY` | Clé partagée envoyée en `?key=` à ce Web App — doit correspondre à la Script Property `SYNC_SECRET_KEY` côté Apps Script |
 
 Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
@@ -152,7 +152,7 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis les assets |
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
 | GET | `/api/auth/verify` | Teste le mot de passe du dashboard — `AuthFunction` |
-| POST | `/api/sync` | Déclenche `syncCurrentTotal()` via le Web App Apps Script protégé — `SyncFunction` / `SyncService` |
+| POST | `/api/sync` | Déclenche `snapshotQuotidien()` via le Web App Apps Script protégé — `SyncFunction` / `SyncService` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
 
