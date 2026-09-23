@@ -11,26 +11,26 @@
           Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:16px;">
     <HeaderContent>
         <MudTh Style="color:#787774;font-size:12px;">@L.Translate("Col_Name")</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_CurrentValue")</MudTh>
         @if (Coefficients is not null)
         {
             <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_GeoCoefficient")</MudTh>
         }
-        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_CurrentValue")</MudTh>
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_UnrealizedGain")</MudTh>
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_ROI")</MudTh>
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_Yield")</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="@L.Translate("Col_Name")" Style="font-weight:500;">@context.Name</MudTd>
+        <MudTd DataLabel="@L.Translate("Col_CurrentValue")" Style="text-align:right;">
+            @context.CurrentTotal.ToEurAmount(Privacy.IsHidden)
+        </MudTd>
         @if (Coefficients is not null)
         {
             <MudTd DataLabel="@L.Translate("Col_GeoCoefficient")" Style="text-align:right;">
                 @(Coefficients.TryGetValue(context.Id, out var coefficient) ? (coefficient * 100m).ToPercentage(1) : "—")
             </MudTd>
         }
-        <MudTd DataLabel="@L.Translate("Col_CurrentValue")" Style="text-align:right;">
-            @context.CurrentTotal.ToEurAmount(Privacy.IsHidden)
-        </MudTd>
         <MudTd DataLabel="@L.Translate("Col_UnrealizedGain")" Style="text-align:right;"
                Class="@context.UnrealizedGain.CssRoiClass()">
             @context.UnrealizedGain.ToEurAmount(Privacy.IsHidden)
@@ -45,13 +45,13 @@
     </RowTemplate>
     <FooterContent>
         <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
+        <MudTd Style="text-align:right;font-weight:600;">
+            @WeightedTotal().ToEurAmount(Privacy.IsHidden)
+        </MudTd>
         @if (Coefficients is not null)
         {
             <MudTd />
         }
-        <MudTd Style="text-align:right;font-weight:600;">
-            @WeightedTotal().ToEurAmount(Privacy.IsHidden)
-        </MudTd>
         <MudTd /><MudTd /><MudTd />
     </FooterContent>
     <NoRecordsContent>
