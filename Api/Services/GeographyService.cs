@@ -1,4 +1,4 @@
-using System.Globalization;
+using InvestissementsDashboard.Shared;
 using InvestissementsDashboard.Shared.Models;
 
 namespace InvestissementsDashboard.Api.Services;
@@ -47,24 +47,8 @@ internal sealed class GeographyService(IAssetsService assetsService) : IGeograph
             .ToArray();
     }
 
-    // Parse "Zone1 : X% - Zone2 : Y%" → (zone, pct) pairs
-    internal static IEnumerable<(string Zone, decimal Pct)> ParseGeography(string geography)
-    {
-        if (string.IsNullOrWhiteSpace(geography)) yield break;
-
-        var parts = geography.Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-        foreach (var part in parts)
-        {
-            var sepIdx = part.LastIndexOf(":");
-            if (sepIdx == -1) continue;
-
-            var zone   = part[..sepIdx].Trim();
-            var pctStr = part[(sepIdx + 1)..].Replace("%", "").Trim();
-
-            if (!string.IsNullOrEmpty(zone)
-                && decimal.TryParse(pctStr, NumberStyles.Number, CultureInfo.InvariantCulture, out var pct))
-                yield return (zone, pct / 100m);
-        }
-    }
+    // Kept as a thin relay so existing tests (GeographyService.ParseGeography(...)) still compile —
+    // actual parsing lives in Shared.GeographyParser, reused by the Client for the zone drill-down.
+    internal static IEnumerable<(string Zone, decimal Pct)> ParseGeography(string geography) =>
+        GeographyParser.Parse(geography);
 }
