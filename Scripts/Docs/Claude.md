@@ -52,7 +52,7 @@ Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheu
 ```
 1. syncCurrentTotal()    → met à jour les colonnes I–L de l'onglet Asset (DEST)
 2. getAssetsData()       → lit toutes les lignes valides de l'onglet Asset
-3. resultSheet C42 (NET_PURCHASES)   → netCapital     (capital net réellement engagé, lu depuis le Bilan)
+3. resultSheet C48 (NET_PURCHASES)   → netCapital     (capital net réellement engagé, lu depuis le Bilan)
 4. resultSheet F66 (TOTAL_PURCHASES) → totalPurchases (lu directement depuis le Bilan)
 5. resultSheet F58 (TOTAL_RETURNS)   → totalReturns   (lu directement depuis le Bilan)
 6. resultSheet F68 (TOTAL_SALES)     → totalSales     (lu directement depuis le Bilan)
