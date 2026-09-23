@@ -90,6 +90,53 @@ public class AssetTableTests : BunitContext
     }
 
     [Fact]
+    public void AssetTable_WhenCoefficientsProvided_DisplaysCoefficientColumn()
+    {
+        var assets = new[] { TestData.Asset(id: 1, name: "MSCI World", currentTotal: 1_000m) };
+        var coefficients = new Dictionary<int, decimal> { [1] = 0.41m };
+
+        var cut = Render<AssetTable>(p => p
+            .Add(c => c.Assets, assets)
+            .Add(c => c.Coefficients, coefficients));
+
+        Assert.Contains("Coefficient zone", cut.Markup);
+        Assert.Contains("41", cut.Markup);
+    }
+
+    [Fact]
+    public void AssetTable_WhenCoefficientsProvided_FooterUsesWeightedTotal()
+    {
+        var assets = new[]
+        {
+            TestData.Asset(id: 1, name: "A", currentTotal: 1_000m), // 41% → 410
+            TestData.Asset(id: 2, name: "B", currentTotal: 2_000m)  // 24% → 480
+        };
+        var coefficients = new Dictionary<int, decimal> { [1] = 0.41m, [2] = 0.24m };
+
+        var cut = Render<AssetTable>(p => p
+            .Add(c => c.Assets, assets)
+            .Add(c => c.Coefficients, coefficients));
+
+        Assert.Contains((890m).ToEurAmount(), cut.Markup);
+        Assert.DoesNotContain((3_000m).ToEurAmount(), cut.Markup);
+    }
+
+    [Fact]
+    public void AssetTable_WhenCoefficientsNull_FooterUsesRawTotal()
+    {
+        var assets = new[]
+        {
+            TestData.Asset(name: "A", currentTotal: 1_000m),
+            TestData.Asset(name: "B", currentTotal: 2_000m)
+        };
+
+        var cut = Render<AssetTable>(p => p.Add(c => c.Assets, assets));
+
+        Assert.DoesNotContain("Coefficient zone", cut.Markup);
+        Assert.Contains((3_000m).ToEurAmount(), cut.Markup);
+    }
+
+    [Fact]
     public void AssetTable_WhenPrivacyModeIsHidden_MasksAmounts()
     {
         Services.AddPrivacyModeMock(isHidden: true);

@@ -117,7 +117,8 @@ else
                                 @L.Translate("Back")
                             </MudButton>
                             <AssetTable Title="@($"{ViewModel.GetPanelTitle(panel)} — {_selectedZone}")"
-                                    Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)" />
+                                    Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)"
+                                    Coefficients="@ViewModel.GetZoneCoefficients(geoClass, _selectedZone)" />
                         </MudStack>
                     }
                     else if (geoClass is not null && _selectedSector is not null)

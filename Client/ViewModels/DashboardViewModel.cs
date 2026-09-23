@@ -1,5 +1,6 @@
 using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
+using InvestissementsDashboard.Shared;
 using InvestissementsDashboard.Shared.Models;
 
 namespace InvestissementsDashboard.Client.ViewModels;
@@ -139,9 +140,22 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     }
 
     public IReadOnlyList<AssetDto> GetAssetsForZone(string assetClass, string zone) =>
-        [.. ActiveAssets()
-             .Where(a => a.AssetClass == assetClass && a.Geography.Contains(zone))
-             .OrderByDescending(a => a.CurrentTotal)];
+        [.. ZoneMatches(assetClass, zone).Select(m => m.Asset).OrderByDescending(a => a.CurrentTotal)];
+
+    // Coefficient (0–1) that each matching asset allocates to this specific zone —
+    // an ETF can span several zones (e.g. "USA : 41% - Europe : 24%"), so the zone's
+    // true weight is CurrentTotal × coefficient, not the asset's full CurrentTotal.
+    public IReadOnlyDictionary<int, decimal> GetZoneCoefficients(string assetClass, string zone) =>
+        ZoneMatches(assetClass, zone).ToDictionary(m => m.Asset.Id, m => m.Coefficient);
+
+    // Same eligibility filter as GetDistributionAsync (Api/Services/GeographyService.cs) so the
+    // list's total can be made to match the geography donut exactly.
+    private IEnumerable<(AssetDto Asset, decimal Coefficient)> ZoneMatches(string assetClass, string zone) =>
+        ActiveAssets()
+            .Where(a => a.AssetClass == assetClass && GeoAndSectorEligibleTypes.Contains(a.AssetType))
+            .SelectMany(a => GeographyParser.Parse(a.Geography)
+                .Where(z => z.Zone == zone)
+                .Select(z => (Asset: a, Coefficient: z.Pct)));
 
     private HashSet<string> GeoAndSectorEligibleTypes =>
         [.. _assetTypeRef.Where(r => r.GeoSectorEligible).Select(r => r.Name)];

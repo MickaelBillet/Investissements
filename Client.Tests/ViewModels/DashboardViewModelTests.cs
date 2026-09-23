@@ -480,6 +480,51 @@ public class DashboardViewModelTests
         Assert.Equal("Technology", result[0].Name);
     }
 
+    // ── GetAssetsForZone / GetZoneCoefficients ────────────────────────────────
+
+    [Fact]
+    public async Task GetAssetsForZone_MatchesExactZoneNotSubstring()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(id: 1, name: "India Fund",   assetClass: "Stocks", geography: "Inde : 100%",          currentTotal: 1_000m),
+            TestData.Asset(id: 2, name: "Indexed Fund",  assetClass: "Stocks", geography: "Indépendance : 100%", currentTotal: 2_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetAssetsForZone("Stocks", "Inde");
+
+        Assert.Single(result);
+        Assert.Equal("India Fund", result[0].Name);
+    }
+
+    [Fact]
+    public async Task GetAssetsForZone_ExcludesTypeNotGeoSectorEligible()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(id: 1, assetClass: "Bonds", assetType: "MarketBonds", geography: "Europe : 100%", currentTotal: 4_000m),
+            TestData.Asset(id: 2, assetClass: "Bonds", assetType: "ETF_Bunds",   geography: "Europe : 100%", currentTotal: 2_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetAssetsForZone("Bonds", "Europe");
+
+        Assert.Single(result);
+        Assert.Equal(4_000m, result[0].CurrentTotal);
+    }
+
+    [Fact]
+    public async Task GetZoneCoefficients_ReturnsPctForMatchingAssets()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(id: 1, assetClass: "Stocks", geography: "USA : 41% - Europe : 24%", currentTotal: 1_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetZoneCoefficients("Stocks", "USA");
+
+        Assert.Equal(0.41m, result[1]);
+    }
+
     // ── GetAssetsForSector ────────────────────────────────────────────────────
 
     [Fact]

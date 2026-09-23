@@ -11,6 +11,10 @@
           Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:16px;">
     <HeaderContent>
         <MudTh Style="color:#787774;font-size:12px;">@L.Translate("Col_Name")</MudTh>
+        @if (Coefficients is not null)
+        {
+            <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_GeoCoefficient")</MudTh>
+        }
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_CurrentValue")</MudTh>
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_UnrealizedGain")</MudTh>
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_ROI")</MudTh>
@@ -18,6 +22,12 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="@L.Translate("Col_Name")" Style="font-weight:500;">@context.Name</MudTd>
+        @if (Coefficients is not null)
+        {
+            <MudTd DataLabel="@L.Translate("Col_GeoCoefficient")" Style="text-align:right;">
+                @(Coefficients.TryGetValue(context.Id, out var coefficient) ? (coefficient * 100m).ToPercentage(1) : "—")
+            </MudTd>
+        }
         <MudTd DataLabel="@L.Translate("Col_CurrentValue")" Style="text-align:right;">
             @context.CurrentTotal.ToEurAmount(Privacy.IsHidden)
         </MudTd>
@@ -35,8 +45,12 @@
     </RowTemplate>
     <FooterContent>
         <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
+        @if (Coefficients is not null)
+        {
+            <MudTd />
+        }
         <MudTd Style="text-align:right;font-weight:600;">
-            @Assets.Sum(a => a.CurrentTotal ?? 0m).ToEurAmount(Privacy.IsHidden)
+            @WeightedTotal().ToEurAmount(Privacy.IsHidden)
         </MudTd>
         <MudTd /><MudTd /><MudTd />
     </FooterContent>
@@ -48,6 +62,15 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AssetDto> Assets { get; set; } = [];
     [Parameter]                 public string?                  Title  { get; set; }
+
+    // Per-asset zone coefficient (0–1), keyed by AssetDto.Id — when provided, an extra
+    // column is shown and the footer total is weighted instead of summing CurrentTotal.
+    [Parameter]                 public IReadOnlyDictionary<int, decimal>? Coefficients { get; set; }
+
+    private decimal WeightedTotal() =>
+        Coefficients is null
+            ? Assets.Sum(a => a.CurrentTotal ?? 0m)
+            : Assets.Sum(a => (a.CurrentTotal ?? 0m) * (Coefficients.TryGetValue(a.Id, out var c) ? c : 0m));
 
     protected override void OnInitialized() => Privacy.OnChange += StateHasChanged;
 

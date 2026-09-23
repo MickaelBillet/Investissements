@@ -112,6 +112,7 @@
   <data name="Col_ROI"           xml:space="preserve"><value>ROI</value></data>
   <data name="Col_Yield"         xml:space="preserve"><value>Rendement</value></data>
   <data name="Col_Weight"        xml:space="preserve"><value>Poids</value></data>
+  <data name="Col_GeoCoefficient" xml:space="preserve"><value>Coefficient zone</value></data>
   <data name="Table_Total"       xml:space="preserve"><value>Total</value></data>
 
   <!-- États vides -->
