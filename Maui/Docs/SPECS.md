@@ -14,7 +14,7 @@ Offrir sur le PC du propriétaire une application native affichant le **même da
 
 | # | Exigence |
 |---|---|
-| 1 | Application Windows 10 (1809, build 17763) ou plus récent, lancée directement depuis son exécutable (non packagée) |
+| 1 | Application Windows 10 (1809, build 17763) ou plus récent, installable via un package MSIX signé : entrée « Suivi des Investissements » dans le menu Démarrer, épinglable à la barre des tâches, désinstallable depuis les Paramètres Windows |
 | 2 | Fenêtre unique intitulée « Suivi des Investissements », contenant le dashboard |
 | 3 | Les données viennent de l'Api de production (`https://invest.zapto.fr/`) ; l'URL peut être remplacée par la variable d'environnement `INVEST_API_BASE_URL` |
 | 4 | Le même mot de passe que le site est demandé à la connexion ; session à expiration glissante d'1 h |
@@ -28,5 +28,5 @@ Offrir sur le PC du propriétaire une application native affichant le **même da
 
 - Agents IA (Chat, Météo, Action, Portefeuille, Actualités) exécutés dans le processus de l'application — voir `CLAUDE.md` racine §14.
 - Page de paramètres (URL de l'Api, identité Azure).
-- Packaging MSIX / entrée dans le menu Démarrer.
+- Distribution à d'autres postes (certificat de confiance ou signature par une autorité).
 - Exécution des tests et du build MAUI en CI.

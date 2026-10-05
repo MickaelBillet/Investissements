@@ -12,7 +12,7 @@ Elle prépare l'accueil des agents IA (CLAUDE.md racine §14) : ceux-ci s'exécu
 |---|---|
 | SDK / cible | `Microsoft.NET.Sdk.Razor`, `net10.0-windows10.0.19041.0` (Windows uniquement), `UseMaui`, `SingleProject` |
 | Paquets | `Microsoft.Maui.Controls`, `Microsoft.AspNetCore.Components.WebView.Maui` (versions `$(MauiVersion)`), `Microsoft.Extensions.Logging.Debug` |
-| Packaging | **Non packagé** (`WindowsPackageType=None`) — l'exécutable se lance directement ; MSIX non testé avec le futur flux d'identité Azure |
+| Packaging | **Non packagé** par défaut (`WindowsPackageType=None`) pour `dotnet run` et les tests ; **MSIX signé** pour l'installation sur le poste (voir §7). Le comportement d'un MSIX avec le futur flux d'identité Azure (`az login`) reste à valider |
 | Référence | `Client.Shared` |
 | Tests | `Maui.Tests/` (xUnit + Moq) |
 
@@ -25,7 +25,8 @@ Maui/
 ├── MainPage.xaml(.cs)          # BlazorWebView : #app → App (Client.Shared), head::after → HeadOutlet
 ├── MauiProgram.cs              # DI et configuration (voir §4)
 ├── Services/SecureStorageKeyValueStore.cs   # IKeyValueStore → ISecureStorage (chiffré par l'OS)
-├── Platforms/Windows/          # App.xaml(.cs), app.manifest (boilerplate WinUI)
+├── Platforms/Windows/          # App.xaml(.cs), app.manifest (boilerplate WinUI), Package.appxmanifest (identité MSIX)
+├── Scripts/                    # New-DevCertificate.ps1, Publish-Msix.ps1, Install-Msix.ps1 (packaging, voir §7)
 ├── Resources/AppIcon/appicon.svg, Resources/Splash/splash.svg   # même visuel que le favicon du site
 ├── wwwroot/index.html          # page d'hébergement du BlazorWebView
 └── Docs/                       # CLAUDE.md, SPECS.md
@@ -59,11 +60,23 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 - La CI ne construit ni ne teste ce projet.
 - Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `Maui/obj` (cache de génération des icônes).
 
+### Installer l'application (MSIX signé, auto-signé)
+
+À faire dans l'ordre, depuis la racine du dépôt :
+
+1. **Une seule fois** — créer le certificat de signature (PowerShell normal) : `.\Maui\Scripts\New-DevCertificate.ps1`. Le certificat vit dans le magasin utilisateur (`CN=Mickael Billet`, 3 ans) ; la signature se fait par empreinte, donc **aucun `.pfx` ni mot de passe** n'existe sur disque ou dans le dépôt. Seul le `.cer` public est exporté dans `%USERPROFILE%\.certs\`. Le `Publisher` du `Package.appxmanifest` doit rester égal au sujet du certificat.
+2. **À chaque version** — construire le package : `.\Maui\Scripts\Publish-Msix.ps1` → `Maui/artifacts/…/InvestissementsDashboard.Maui_<version>_x64.msix` (dossier ignoré par git).
+3. **Dans un PowerShell administrateur** — `.\Maui\Scripts\Install-Msix.ps1` : fait confiance au `.cer` (`LocalMachine\TrustedPeople`, nécessite l'élévation) puis installe le `.msix` avec `Add-AppxPackage -ForceUpdateFromAnyVersion` (une mise à jour remplace la version installée).
+4. L'application apparaît dans le menu Démarrer (« Suivi des Investissements ») avec l'icône du site. Désinstallation : Paramètres → Applications, ou `Get-AppxPackage fr.zapto.invest.maui | Remove-AppxPackage`.
+
+Une application packagée est isolée : les données de `SecureStorage` et du profil WebView2 sont propres au package (une désinstallation les efface, le mot de passe est à ressaisir) et les variables d'environnement d'un terminal (`INVEST_API_BASE_URL`) ne sont pas visibles.
+
 ## 8. Limites connues / à valider
 
 - Le rendu de MudBlazor et d'ApexCharts dans le `BlazorWebView` n'est pas vérifié visuellement (l'application démarre et crée sa fenêtre).
 - Le lien « Documentation » (`ClientOptions.DocumentationUri`, URL absolue du site) doit s'ouvrir dans le navigateur — non testé.
-- Aucun raccourci ni entrée de menu Démarrer : seul l'exécutable existe (installation propre = packaging MSIX, non fait).
+- Le certificat auto-signé expire au bout de 3 ans : en recréer un (`New-DevCertificate.ps1`), republier et réinstaller. Changer son sujet impose de changer le `Publisher` du manifeste, et donc de désinstaller l'ancien package.
+- L'installation du MSIX n'est pas automatisée en CI (poste du propriétaire uniquement).
 - Pas de page de paramètres : l'URL de l'Api passe uniquement par la variable d'environnement.
 
 ## 9. Git — Règle absolue
