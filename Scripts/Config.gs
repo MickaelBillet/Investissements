@@ -7,13 +7,12 @@ const SOURCE_ID    = "188bNY_oSVrHZKZ1Vadj7SxnCosDDw2g-oG8UjDARMAI";
 const DEST_ID      = "1Dvhz3AME0WoGkmiJQ5eBQ4FYno4l_kuyiShk75TZZNE";
 const REPORT_EMAIL = "mickael.billet@gmail.com";
 
-const NET_PURCHASES = "C48";
-const TOTAL_PURCHASES = "F69";
-const TOTAL_SALES = "F71";
-const TOTAL_RETURNS = "F61";
-const CASH_PEA = "B71";
-const TRADE_REPUBLIC_ACCOUNT = "B55";
-const SMART_CASH_MINTOS ="B73";
+const NET_PURCHASES = "C49";
+const TOTAL_PURCHASES = "F70";
+const TOTAL_SALES = "F72";
+const TOTAL_RETURNS = "F62";
+const CASH_PEA = "B70";
+const SMART_CASH_MINTOS ="B72";
 
 // --- SOURCE - Sheet name
 const SOURCE_RESULTS = "Bilan";
