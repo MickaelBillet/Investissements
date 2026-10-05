@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Client.Shared/">
+    <Project Path="Client.Shared/InvestissementsDashboard.Client.Shared.csproj" />
+  </Folder>
+  <Folder Name="/Maui.Tests/">
+    <Project Path="Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Maui/">
+    <Project Path="Maui/InvestissementsDashboard.Maui.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/InvestissementsDashboard.Shared.csproj" />
+  </Folder>
+</Solution>

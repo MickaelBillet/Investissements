@@ -248,10 +248,13 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 ```
 investment-dashboard/
 ├── CLAUDE.md                        # Architecture globale (ce fichier)
-├── Client/                          # Projet Blazor WASM
+├── Client/                          # Hôte Blazor WASM mince (Program.cs, index.html, staticwebapp.config.json)
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique du Client
 │       └── SPECS.md                 # Spécifications fonctionnelles du Client
+├── Client.Shared/                   # Bibliothèque Razor partagée (App, Views, composants, ViewModels, Services) — WASM + MAUI
+├── Maui/                            # Hôte MAUI Windows (BlazorWebView) — Investissements.Maui.slnx
+├── Maui.Tests/                      # Tests xUnit du projet MAUI
 ├── Api/                             # Azure Functions (C#)
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique de l'Api
@@ -458,6 +461,8 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 ---
 
 ## 14. Agents IA et application MAUI Windows (décisions — projet en préparation)
+
+> **État d'avancement (branche `feat/maui-shared-razor`)** : la bibliothèque Razor partagée `Client.Shared/` est extraite, le `Client/` est un hôte WASM mince, et un hôte `Maui/` (BlazorWebView, non packagé) reprend le dashboard à l'identique. Seams : `IKeyValueStore` (localStorage côté WASM, `SecureStorage` côté MAUI) et `AddInvestissementsClient(apiBaseUri)` (enregistrement DI commun). Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. Le workflow CI cible explicitement `Investissements.slnx`. Les agents (Bibliothèque `Agents`, page Agents) restent à faire. Compatibilité MudBlazor/ApexCharts dans le BlazorWebView : à valider visuellement.
 
 > Rien de cette section n'est encore implémenté dans cette solution. Les agents existent aujourd'hui dans une console séparée, `C:\Users\mbillet.NOVACATH\source\AgentAI` (net10.0, Microsoft Agent Framework + Azure AI Foundry) ; son `CLAUDE.md` détaille les agents (Chat, Weather, Stock, Portfolio, News). Constats sur la doc Microsoft consultés le 2026-10-01.
 

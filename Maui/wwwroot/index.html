@@ -6,12 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Suivi des Investissements</title>
     <base href="/" />
-    <link rel="preload" id="webassembly" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="_content/InvestissementsDashboard.Client.Shared/css/app.css" />
-    <link rel="icon" type="image/svg+xml" href="_content/InvestissementsDashboard.Client.Shared/icon.svg?v=4" />
-    <link href="InvestissementsDashboard.Client.styles.css" rel="stylesheet" />
-    <script type="importmap"></script>
+    <link href="InvestissementsDashboard.Maui.styles.css" rel="stylesheet" />
+    <link rel="icon" href="data:," />
 </head>
 
 <body>
@@ -21,13 +19,13 @@
         </div>
     </div>
 
-    <div id="blazor-error-ui">
+    <div id="blazor-error-ui" data-nosnippet>
         Une erreur est survenue.
         <a href="." class="reload">Recharger</a>
         <span class="dismiss">✕</span>
     </div>
 
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script src="_framework/blazor.webview.js" autostart="false"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 

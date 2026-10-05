@@ -1,8 +1,6 @@
-using Microsoft.JSInterop;
-
 namespace InvestissementsDashboard.Client.Services;
 
-public class PrivacyModeService(IJSRuntime jsRuntime) : IPrivacyModeService
+public class PrivacyModeService(IKeyValueStore store) : IPrivacyModeService
 {
     private const string StorageKey = "investissements.hideAmounts";
 
@@ -12,7 +10,7 @@ public class PrivacyModeService(IJSRuntime jsRuntime) : IPrivacyModeService
 
     public async Task InitializeAsync()
     {
-        var stored = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+        var stored = await store.GetAsync(StorageKey);
         IsHidden = stored == "true";
         OnChange?.Invoke();
     }
@@ -20,7 +18,7 @@ public class PrivacyModeService(IJSRuntime jsRuntime) : IPrivacyModeService
     public async Task ToggleAsync()
     {
         IsHidden = !IsHidden;
-        await jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, IsHidden ? "true" : "false");
+        await store.SetAsync(StorageKey, IsHidden ? "true" : "false");
         OnChange?.Invoke();
     }
 }
