@@ -17,7 +17,7 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore Investissements.slnx
 
       - name: Test
         run: dotnet test Api.Tests/InvestissementsDashboard.Api.Tests.csproj --no-restore

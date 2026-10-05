@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using InvestissementsDashboard.Client.Services;
-using Microsoft.JSInterop;
 using Moq;
 using Xunit;
 
@@ -17,10 +16,10 @@ public class SessionServiceTests
             Task.FromResult(new HttpResponseMessage(respond(request)));
     }
 
-    private static SessionService CreateService(Func<HttpRequestMessage, HttpStatusCode> respond, Mock<IJSRuntime>? jsRuntime = null)
+    private static SessionService CreateService(Func<HttpRequestMessage, HttpStatusCode> respond, Mock<IKeyValueStore>? store = null)
     {
         var client = new HttpClient(new FakeHandler(respond)) { BaseAddress = new Uri("https://example.test/") };
-        return new SessionService(client, (jsRuntime ?? new Mock<IJSRuntime>()).Object);
+        return new SessionService(client, (store ?? new Mock<IKeyValueStore>()).Object);
     }
 
     private static string StoredSessionJson(string password, DateTimeOffset expiresAt) =>
@@ -29,8 +28,8 @@ public class SessionServiceTests
     [Fact]
     public async Task LoginAsync_WhenPasswordIsValid_SetsAuthenticatedAndStoresSession()
     {
-        var jsRuntime = new Mock<IJSRuntime>();
-        var service = CreateService(_ => HttpStatusCode.OK, jsRuntime);
+        var store = new Mock<IKeyValueStore>();
+        var service = CreateService(_ => HttpStatusCode.OK, store);
 
         var result = await service.LoginAsync("correct");
 
@@ -38,9 +37,7 @@ public class SessionServiceTests
         Assert.True(service.IsAuthenticated);
         Assert.False(service.IsSessionExpired);
         Assert.Equal("correct", service.Password);
-        jsRuntime.Verify(js => js.InvokeAsync<object>(
-            "localStorage.setItem", It.Is<object[]>(a => (string)a[0]! == StorageKey && ((string)a[1]!).Contains("correct"))),
-            Times.Once);
+        store.Verify(s => s.SetAsync(StorageKey, It.Is<string>(v => v.Contains("correct"))), Times.Once);
     }
 
     [Fact]
@@ -58,10 +55,10 @@ public class SessionServiceTests
     [Fact]
     public async Task InitializeAsync_WhenNoStoredSession_IsNotAuthenticated()
     {
-        var jsRuntime = new Mock<IJSRuntime>();
-        jsRuntime.Setup(js => js.InvokeAsync<string?>("localStorage.getItem", It.IsAny<object[]>()))
+        var store = new Mock<IKeyValueStore>();
+        store.Setup(s => s.GetAsync(StorageKey))
             .ReturnsAsync((string?)null);
-        var service = CreateService(_ => HttpStatusCode.OK, jsRuntime);
+        var service = CreateService(_ => HttpStatusCode.OK, store);
 
         await service.InitializeAsync();
 
@@ -71,10 +68,10 @@ public class SessionServiceTests
     [Fact]
     public async Task InitializeAsync_WhenStoredSessionIsStillValid_IsAuthenticated()
     {
-        var jsRuntime = new Mock<IJSRuntime>();
-        jsRuntime.Setup(js => js.InvokeAsync<string?>("localStorage.getItem", It.IsAny<object[]>()))
+        var store = new Mock<IKeyValueStore>();
+        store.Setup(s => s.GetAsync(StorageKey))
             .ReturnsAsync(StoredSessionJson("stored-password", DateTimeOffset.UtcNow.AddMinutes(30)));
-        var service = CreateService(_ => HttpStatusCode.OK, jsRuntime);
+        var service = CreateService(_ => HttpStatusCode.OK, store);
 
         await service.InitializeAsync();
 
@@ -85,10 +82,10 @@ public class SessionServiceTests
     [Fact]
     public async Task InitializeAsync_WhenStoredSessionIsExpired_IsNotAuthenticated()
     {
-        var jsRuntime = new Mock<IJSRuntime>();
-        jsRuntime.Setup(js => js.InvokeAsync<string?>("localStorage.getItem", It.IsAny<object[]>()))
+        var store = new Mock<IKeyValueStore>();
+        store.Setup(s => s.GetAsync(StorageKey))
             .ReturnsAsync(StoredSessionJson("stored-password", DateTimeOffset.UtcNow.AddMinutes(-1)));
-        var service = CreateService(_ => HttpStatusCode.OK, jsRuntime);
+        var service = CreateService(_ => HttpStatusCode.OK, store);
 
         await service.InitializeAsync();
 
@@ -99,31 +96,27 @@ public class SessionServiceTests
     [Fact]
     public async Task LogoutAsync_ClearsAuthenticationAndStoredSession()
     {
-        var jsRuntime = new Mock<IJSRuntime>();
-        var service = CreateService(_ => HttpStatusCode.OK, jsRuntime);
+        var store = new Mock<IKeyValueStore>();
+        var service = CreateService(_ => HttpStatusCode.OK, store);
         await service.LoginAsync("correct");
 
         await service.LogoutAsync();
 
         Assert.False(service.IsAuthenticated);
         Assert.Null(service.Password);
-        jsRuntime.Verify(js => js.InvokeAsync<object>(
-            "localStorage.removeItem", It.Is<object[]>(a => (string)a[0]! == StorageKey)),
-            Times.Once);
+        store.Verify(s => s.RemoveAsync(StorageKey), Times.Once);
     }
 
     [Fact]
     public async Task ExtendSessionAsync_WhenAuthenticated_PersistsNewExpiry()
     {
-        var jsRuntime = new Mock<IJSRuntime>();
-        var service = CreateService(_ => HttpStatusCode.OK, jsRuntime);
+        var store = new Mock<IKeyValueStore>();
+        var service = CreateService(_ => HttpStatusCode.OK, store);
         await service.LoginAsync("correct");
 
         await service.ExtendSessionAsync();
 
         Assert.False(service.IsSessionExpired);
-        jsRuntime.Verify(js => js.InvokeAsync<object>(
-            "localStorage.setItem", It.Is<object[]>(a => (string)a[0]! == StorageKey)),
-            Times.Exactly(2));
+        store.Verify(s => s.SetAsync(StorageKey, It.IsAny<string>()), Times.Exactly(2));
     }
 }

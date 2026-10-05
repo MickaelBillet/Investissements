@@ -3,6 +3,8 @@
 ## 1. Rôle
 Blazor WebAssembly — dashboard de visualisation du portefeuille d'investissement personnel. Consomme les endpoints Azure Functions (`/api/*`), n'embarque aucune clé API ni donnée sensible.
 
+> **Structure** : le code Blazor (App, Views, Shared, ViewModels, Services, Resources) vit dans `Client.Shared/` (RCL, namespaces `InvestissementsDashboard.Client.*` inchangés) ; `Client/` n'est plus que l'hôte WASM (`Program.cs`, `wwwroot/index.html`, `staticwebapp.config.json`). L'hôte MAUI est dans `Maui/`. Les chemins `Client/Views/`, `Client/Shared/`… ci-dessous désignent désormais `Client.Shared/…`. Un hôte doit enregistrer `IKeyValueStore` puis appeler `AddInvestissementsClient(apiBaseUri)`. Assets partagés : `_content/InvestissementsDashboard.Client.Shared/…` (`css/app.css`, `icon.svg`).
+
 ## 2. Stack
 
 | Élément | Choix |
@@ -163,7 +165,7 @@ public interface IPrivacyModeService
 }
 ```
 
-- Singleton (`Program.cs`), état persisté dans `localStorage` (clé `investissements.hideAmounts`).
+- Singleton (`Program.cs`), état persisté via `IKeyValueStore` (clé `investissements.hideAmounts` ; localStorage en WASM, SecureStorage en MAUI).
 - `MainLayout.razor` appelle `InitializeAsync()` une fois (`OnInitializedAsync`) et affiche le bouton de bascule (`MudIconButton`, icône `Visibility`/`VisibilityOff`) dans le `MudAppBar`.
 - Tout composant affichant un montant € injecte `IPrivacyModeService`, s'abonne à `OnChange += StateHasChanged` dans `OnInitialized` et se désabonne via `IDisposable` — puis passe `Privacy.IsHidden` à `ToEurAmount(hidden)`.
 - Pour les graphiques ApexCharts (formatters JS en chaîne statique dans `ApexChartOptions`, ex. tooltip de `DrillDownDonut`, axe Y de `BondScheduleChart`) : régénérer la chaîne du `Formatter` selon `Privacy.IsHidden` dans un handler `OnChange`, puis appeler `await _chart.UpdateOptionsAsync(false, false, false)` pour forcer le redraw JS (la simple mutation de `_options` ne suffit pas, contrairement au cas `@key` du §7.3 — ici le composant n'est pas recréé, juste rafraîchi).

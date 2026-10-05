@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Keeps the original namespaces and the .resx manifest names unchanged after the extraction from Client/. -->
+    <RootNamespace>InvestissementsDashboard.Client</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazor-ApexCharts" Version="7.0.0" />
+    <PackageReference Include="MudBlazor" Version="9.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\InvestissementsDashboard.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

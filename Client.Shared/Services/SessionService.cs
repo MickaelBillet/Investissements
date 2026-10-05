@@ -1,9 +1,8 @@
 using System.Text.Json;
-using Microsoft.JSInterop;
 
 namespace InvestissementsDashboard.Client.Services;
 
-public class SessionService(HttpClient httpClient, IJSRuntime jsRuntime) : ISessionService
+public class SessionService(HttpClient httpClient, IKeyValueStore store) : ISessionService
 {
     private static readonly TimeSpan SessionDuration = TimeSpan.FromHours(1);
 
@@ -20,7 +19,7 @@ public class SessionService(HttpClient httpClient, IJSRuntime jsRuntime) : ISess
 
     public async Task InitializeAsync()
     {
-        var stored = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+        var stored = await store.GetAsync(StorageKey);
         var session = Deserialize(stored);
 
         if (session is null || DateTimeOffset.UtcNow >= session.Value.ExpiresAt)
@@ -53,7 +52,7 @@ public class SessionService(HttpClient httpClient, IJSRuntime jsRuntime) : ISess
     {
         Password = null;
         IsAuthenticated = false;
-        await jsRuntime.InvokeVoidAsync("localStorage.removeItem", StorageKey);
+        await store.RemoveAsync(StorageKey);
         OnChange?.Invoke();
     }
 
@@ -73,8 +72,8 @@ public class SessionService(HttpClient httpClient, IJSRuntime jsRuntime) : ISess
     }
 
     private Task PersistAsync() =>
-        jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey,
-            JsonSerializer.Serialize(new StoredSession(Password!, _expiresAt))).AsTask();
+        store.SetAsync(StorageKey,
+            JsonSerializer.Serialize(new StoredSession(Password!, _expiresAt)));
 
     private static (string Password, DateTimeOffset ExpiresAt)? Deserialize(string? json)
     {

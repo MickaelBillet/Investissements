@@ -5,12 +5,13 @@
 @inject ISessionService Session
 @inject SyncViewModel SyncViewModel
 @inject ISnackbar Snackbar
+@inject ClientOptions Options
 
 <MudLayout>
     <MudAppBar Elevation="0" Dense="false" Color="MudBlazor.Color.Surface"
                Style="border-bottom:1px solid #E9E9E7;">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <img src="icon.svg" alt="logo" style="width:18px;height:18px;" />
+            <img src="_content/InvestissementsDashboard.Client.Shared/icon.svg" alt="logo" style="width:18px;height:18px;" />
             <MudText Style="font-size:18px;font-weight:700;color:#37352F;">
                 @L.Translate("Nav_AppTitle")
             </MudText>
@@ -39,7 +40,7 @@
                     @L.Translate("Nav_Sync")
                 }
             </MudMenuItem>
-            <MudMenuItem Icon="@Icons.Material.Outlined.PictureAsPdf" Href="docs/presentation.pdf" Target="_blank">
+            <MudMenuItem Icon="@Icons.Material.Outlined.PictureAsPdf" Href="@Options.DocumentationUri.ToString()" Target="_blank">
                 @L.Translate("Nav_Documentation")
             </MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Outlined.Logout" OnClick="@(() => Session.LogoutAsync())">

@@ -8,6 +8,9 @@
   <Folder Name="/Client.Tests/">
     <Project Path="Client.Tests/InvestissementsDashboard.Client.Tests.csproj" />
   </Folder>
+  <Folder Name="/Client.Shared/">
+    <Project Path="Client.Shared/InvestissementsDashboard.Client.Shared.csproj" />
+  </Folder>
   <Folder Name="/Client/">
     <Project Path="Client/InvestissementsDashboard.Client.csproj" />
   </Folder>
