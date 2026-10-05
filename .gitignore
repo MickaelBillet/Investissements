@@ -21,3 +21,8 @@ __blobstorage__/
 __queuestorage__/
 __tablestorage__/
 .azurite/
+
+# MAUI MSIX packaging (signing material and build output stay local)
+Maui/artifacts/
+*.pfx
+*.cer

@@ -16,10 +16,20 @@
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
 
-    <!-- Unpackaged on purpose: personal PC app, and MSIX packaging is untested with the planned Azure identity flow. -->
-    <WindowsPackageType>None</WindowsPackageType>
+    <!-- Unpackaged by default so `dotnet run` and the test loop keep working (an MSIX cannot be started by dotnet run).
+         Maui/Scripts/Publish-Msix.ps1 overrides it with -p:WindowsPackageType=MSIX to build the installable package. -->
+    <WindowsPackageType Condition="'$(WindowsPackageType)' == ''">None</WindowsPackageType>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(WindowsPackageType)' == 'MSIX'">
+    <!-- The certificate is selected by thumbprint (-p:PackageCertificateThumbprint=...) from the user's store:
+         no password or key file path is ever stored in the repository. -->
+    <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
+    <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
+    <AppxPackageDir>$(MSBuildProjectDirectory)\artifacts\</AppxPackageDir>
+    <AppxBundle>Never</AppxBundle>
   </PropertyGroup>
 
   <ItemGroup>
