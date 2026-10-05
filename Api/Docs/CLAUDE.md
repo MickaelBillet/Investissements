@@ -13,10 +13,11 @@ Couche backend serverless entre Google Sheets et le Blazor WASM. Lit le Sheet `I
 | Runtime | .NET 9, Azure Functions v4 isolated worker |
 | Modèle HTTP | `Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore` |
 | Accès données | `Google.Apis.Sheets.v4` via le projet `GoogleSheets/` (référencé, pas de dépendance Google directe dans l'Api) |
-| Tests | xUnit + Moq |
+| Tests | xUnit 2.9.3 + Moq 4.20.72 — projet `Api.Tests/` (voir §11) |
 | Déploiement | Lié à Azure Static Web Apps (Managed Functions) |
+| Projets référencés | `Shared` (net8.0, DTOs) et `GoogleSheets` (net9.0) |
 
-> **Note CI :** Oryx (builder Azure SWA) supporte net8.0. Pour net9.0, prévoir un build explicite dans le pipeline si le déploiement échoue.
+> **Note CI :** le `csproj` cible **net9.0**, alors que la liste officielle des runtimes des fonctions managées s'arrête à .NET 8 (voir `CLAUDE.md` racine §8.3 et §14.5 — incohérence à vérifier). Le workflow passe l'Api en source (`api_location: 'Api'`) et laisse Oryx la construire ; en cas d'échec du déploiement, prévoir un build explicite.
 
 ---
 
@@ -25,7 +26,7 @@ Couche backend serverless entre Google Sheets et le Blazor WASM. Lit le Sheet `I
 ```
 Api/
 ├── InvestissementsDashboard.Api.csproj
-├── Program.cs                  # Point d'entrée, DI
+├── Program.cs                  # Point d'entrée, DI (services scoped, IGoogleSheetsClient singleton, AddHttpClient<ISyncService, SyncService> timeout 100 s, AddMemoryCache, DashboardAuthMiddleware)
 ├── host.json                   # Config Azure Functions
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
@@ -35,7 +36,8 @@ Api/
 │   ├── GeographyFunction.cs
 │   ├── McpFunction.cs             # Endpoint MCP POST /api/mcp
 │   ├── PortfolioMetricsFunction.cs
-│   └── SnapshotFunction.cs
+│   ├── SnapshotFunction.cs
+│   └── SyncFunction.cs            # POST /api/sync — déclenche la synchro manuelle (Apps Script)
 ├── Middleware/
 │   └── DashboardAuthMiddleware.cs # Vérifie x-dashboard-password sur toutes les routes (sauf mcp/auth/verify)
 ├── Interfaces/                 # Interfaces des services
@@ -44,6 +46,7 @@ Api/
 │   ├── IGeographyService.cs
 │   ├── IPortfolioMetricsService.cs
 │   ├── ISnapshotService.cs
+│   ├── ISyncService.cs
 │   └── Mcp/
 │       └── IMcpService.cs         # Interface du handler JSON-RPC
 ├── Mappers/
@@ -56,6 +59,7 @@ Api/
 │   ├── GeographyService.cs
 │   ├── PortfolioMetricsService.cs
 │   ├── SnapshotService.cs
+│   ├── SyncService.cs             # Appelle le Web App Apps Script (HttpClient typé, timeout 100 s)
 │   └── Mcp/
 │       └── McpService.cs          # Handler JSON-RPC — route vers les services
 └── Properties/
@@ -162,6 +166,8 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`
 
 `DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP, comparé à l'App Setting `DASHBOARD_PASSWORD` (fail-safe : non configuré = accès refusé). Deux exceptions, identifiées par le nom de la Function (`context.FunctionDefinition.Name`) : `McpFunction.McpEndpoint` (protégée par sa propre clé `MCP_API_KEY`, Claude Code ne peut pas saisir de mot de passe interactif) et `AuthFunction.Verify` (doit rester accessible pour tester un mot de passe candidat depuis l'écran de connexion du Client). Toute nouvelle Function HTTP est protégée par défaut — l'ajouter à la liste `ExemptFunctions` du middleware est le seul moyen de l'exclure.
 
+> ⚠️ **Anomalie connue (à corriger) :** `AuthFunction.Verify` étant exemptée, le middleware ne contrôle pas le mot de passe pour cette route et la Function répond toujours `200 OK`. Or `SessionService.VerifyAsync` (Client) se fie à ce statut : l'écran de connexion accepte donc n'importe quel mot de passe, alors que tous les autres endpoints répondent `401` sans le bon mot de passe (les données restent protégées). Le commentaire de `AuthFunction.cs` suppose à tort que le middleware vérifie aussi cette route. Correctif possible : comparer `x-dashboard-password` à `DASHBOARD_PASSWORD` dans `Verify` elle-même (ou retirer `Verify` de `ExemptFunctions`).
+
 Voir `CLAUDE.md` (racine) §5.2.4 pour le détail côté Client (écran de connexion) et l'historique des approches abandonnées (rôles Azure Static Web Apps).
 
 ### Endpoint MCP
@@ -219,7 +225,24 @@ Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.Wh
 
 ---
 
-## 10. Git — Règle absolue
+## 10. Synchronisation manuelle (`SyncService`)
+
+`SyncService.TriggerAsync` lit `APPS_SCRIPT_SYNC_URL` et `APPS_SCRIPT_SYNC_KEY` via `IConfiguration`, appelle `GET <url>?key=<clé>` (clé URL-encodée) et traduit la réponse JSON de `Scripts/SyncWebApp.gs` en `SyncResultDto(Success, AddedCount, ErrorMessage)`. Jamais d'exception vers l'appelant : configuration absente, réponse non-JSON (déploiement du Web App à vérifier), erreur Apps Script et erreurs réseau/timeout sont toutes converties en `SyncResultDto` avec `Success = false` et un message en français. `SyncFunction` renvoie `200` avec ce DTO, ou `500` sur exception inattendue. Le `HttpClient` a un timeout de 100 s : l'ETL complet est long, mais reste sous la limite de 45 s du proxy SWA seulement si Apps Script répond vite (au-delà, le Client voit une erreur 500).
+
+---
+
+## 11. Tests (`Api.Tests/`)
+
+xUnit + Moq, 94 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+- `Functions/` — `AssetsFunction`, `AuthFunction`, `McpFunction`
+- `Mcp/` — `McpHandlerTests`
+- `Services/` — `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SnapshotService`, `SyncService`
+
+Commande : `dotnet test "Api.Tests/InvestissementsDashboard.Api.Tests.csproj"` (seule suite exécutée par la CI).
+
+---
+
+## 12. Git — Règle absolue
 
 **Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
 

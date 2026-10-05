@@ -1,174 +1,33 @@
-# SPECS.md — Client (Blazor WASM)
+# SPECS.md — Client (hôte Blazor WebAssembly)
 
 **Statut :** Implémenté  
-**Version :** 1.6  
-**Date :** 2026-09-05
+**Version :** 2.0  
+**Date :** 2026-10-05
 
 ---
 
-## 1. Vue d'ensemble
+## 1. Périmètre
 
-Le dashboard expose deux pages :
+Le dashboard (écran de connexion, KPI, répartition, suivi, échéancier, mode confidentialité, synchronisation) est spécifié dans **`Client.Shared/Docs/SPECS.md`** — il est identique sur le site et dans l'application Windows. Ce document ne couvre que ce qui est propre au **site web** hébergé sur Azure Static Web Apps.
 
-| Route | Vue |
+## 2. Exigences propres au site
+
+| # | Exigence |
 |---|---|
-| `/` | Dashboard — état instantané du portefeuille |
-| `/suivi` | Suivi — évolution de la performance dans le temps et échéancier de remboursement obligataire |
+| 1 | Le site est servi en HTTPS sur `invest.zapto.fr` (certificat géré par Azure) |
+| 2 | L'Api est appelée sur la **même origine** que le site (`/api/*`), via le proxy Static Web Apps — aucune clé n'est exposée dans le navigateur |
+| 3 | En développement local, l'Api est jointe sur `http://localhost:7071/` (`appsettings.Development.json`) |
+| 4 | La session (mot de passe + expiration) est conservée dans le `localStorage` du navigateur, retrouvée au rechargement tant que l'expiration glissante d'1 h n'est pas dépassée |
+| 5 | Toute route inconnue est réécrite vers `index.html` (navigation côté client) ; `/api/*`, `/_framework/*`, `/_content/*`, `/css/*`, `/docs/*` et les fichiers statiques en sont exclus |
+| 6 | Les réponses portent les en-têtes de sécurité `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` restrictive |
+| 7 | Le lien « Documentation » du menu ouvre `docs/presentation.pdf` dans un nouvel onglet |
+| 8 | Écran de démarrage « Chargement » affiché pendant le téléchargement du runtime WebAssembly (`index.html`) |
+| 9 | Aucune ressource externe (polices, CDN) : le site fonctionne avec ses seuls fichiers |
 
----
+## 3. Différences avec l'application Windows
 
-## 2. En-tête KPI
-
-6 cartes affichées en haut de chaque page :
-
-| Carte | Source | Comportement si indisponible |
+| Sujet | Site (`Client/`) | Application (`Maui/`) |
 |---|---|---|
-| Capital net engagé | `SnapshotDto.NetCapital` | `—` |
-| Dernière mise à jour | `SnapshotDto.Date` | `—` |
-| Actifs en portefeuille | `AssetDto[]` count | `0` |
-| ROI / Capital Engagé | `PortfolioMetricsDto.RoiOnCapitalEngaged` | `N/A` |
-| Risque moyen (0 – 4) | `PortfolioMetricsDto.AverageRisk` | `—` |
-
-La carte ROI est colorée en vert (`roi-positive`) si positif, rouge (`roi-negative`) si négatif, neutre si `null`.
-
-Les cartes **Capital net engagé** et **ROI (Capital Engagé)** affichent à droite de leur valeur jusqu'à cinq chips de variation, mesurant deux choses différentes :
-
-- **Capital net engagé** : variation de `NetCapital` — combien a été versé/retiré sur la période, pas une performance
-- **ROI (Capital Engagé)** : variation du `ROIC` (série TWR, `GetIndexedHistoryAsync`) — la vraie performance de marché du portefeuille, neutralisée de l'effet des versements/retraits
-
-| Chip | Calcul | Source |
-|---|---|---|
-| J (quotidien) | `(last − ref) / ref × 100` | dernier vs avant-dernier point |
-| S (hebdomadaire) | idem | dernier vs point ≤ J−7 |
-| M (mensuel) | idem | dernier vs point ≤ J−30 |
-| YTD (depuis le 1er janvier) | idem | dernier vs **1er point de l'année courante** |
-| 1A (annuel) | idem | dernier vs point ≤ J−365 |
-
-- Capital net engagé : calculé depuis `_snapshotHistory` (`GET /api/snapshot/history`), base `NetCapital`
-- ROI (Capital Engagé) : calculé depuis `_performanceHistory` (`GET /api/portfolio/metrics/history`, série TWR), base `ROIC`
-- Chip vert/rouge via `roi-positive` / `roi-negative`
-- Chaque chip n'est affichée que si une référence existe pour sa période ; `null` (chip masquée) si historique insuffisant, aucun point de référence trouvé, ou valeur de référence = 0. Pour YTD avec un seul point dans l'année, la référence est ce point → variation `0 %`
-
----
-
-## 3. Vue principale — Dashboard (`/`)
-
-### 3.1 Vue initiale — 3 donuts côte à côte
-
-3 graphiques à secteurs (ApexCharts) affichés simultanément :
-
-| Donut | Dimension |
-|---|---|
-| Classes d'actifs | `AssetClass` |
-| Types de supports | `SupportType` |
-| Niveaux de risque | `Risk` (0–4) |
-
-Cliquer sur un secteur active le **mode Master-Detail** pour la hiérarchie correspondante.
-
-### 3.2 Mode Master-Detail — layout drill-down
-
-Quand une hiérarchie est active, la vue affiche :
-- **Colonne gauche (5/12)** : `DrillDownDonut` — graphique en mode plein écran avec fil d'Ariane en titre et bouton retour
-- **Colonne droite (7/12)** :
-  - `DistributionTable` si le niveau courant n'est pas le niveau feuille
-  - `AssetTable` si le niveau feuille est atteint
-
-### 3.3 Hiérarchies de drill-down
-
-| Hiérarchie | Niveau 0 | Niveau 1 | Niveau 2 | Niveau 3 |
-|---|---|---|---|---|
-| Classes d'actifs | AssetClass | AssetType | Actifs (feuille) | — |
-| Classes d'actifs (ETF_Stocks + toggle) | AssetClass | AssetType=ETF_Stocks | Information (thématique) | Actifs (feuille) |
-| Classes d'actifs (Stocks/Bonds + géographie) | AssetClass | Stocks ou Bonds | Zone géographique | Actifs (feuille) |
-| Classes d'actifs (Stocks/Bonds + secteur) | AssetClass | Stocks ou Bonds | Secteur économique | Actifs (feuille) |
-| Types de supports | SupportType | Support | Actifs (feuille) | — |
-| Niveaux de risque | Risk | Actifs (feuille) | — | — |
-
-### 3.4 Toggle ETF_Stocks — groupement par thématique
-
-Quand le drill-down Classes d'actifs atteint le niveau `AssetType = ETF_Stocks`, un switch **"Grouper par thématique"** apparaît dans l'en-tête du donut. Activé, il insère un niveau intermédiaire groupant les ETF_Stocks par leur champ `information` avant d'atteindre les actifs individuels. Désactivé, la hiérarchie descend directement aux actifs.
-
-### 3.5 Tableau des actifs (niveau feuille)
-
-Colonnes affichées : Nom, Valeur actuelle (€), Plus-value latente (€), ROI (%), Rendement (%).  
-Tri : par valeur actuelle décroissante.  
-Footer : somme de la colonne Valeur actuelle.  
-Les champs `null` (données incomplètes) sont affichés `—`.
-
-### 3.6 Tableau de distribution (niveaux intermédiaires)
-
-Colonnes affichées : Nom, Valeur actuelle (€), Poids (%).  
-Footer : total de la colonne Valeur actuelle.
-
-### 3.7 Répartition géographique et par secteur (Stocks / Bonds — niveau 1)
-
-Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélectionnée est `Stocks` ou `Bonds`, la colonne droite affiche **deux donuts côte à côte** à la place du tableau de distribution habituel :
-
-- **Zones géographiques** : alimenté par `ViewModel.GetGeographyForClass(assetClass)`, pré-chargé au démarrage depuis `GET /api/portfolio/geography/{assetClass}`
-- **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, calculé côté client depuis les actifs chargés, filtré aux `AssetType` marqués éligibles (`GeoSectorEligible = TRUE` dans l'onglet `AssetType` du Sheet, exposé via `GET /api/assets/types/reference`)
-
-**Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `_selectedZone` dans `Dashboard.razor`.
-
-**Navigation secteur** : cliquer sur un secteur remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForSector(assetClass, sector)` — actifs dont le champ `sector` correspond au secteur. Bouton **Retour** ramène aux deux donuts. Géré par `_selectedSector` dans `Dashboard.razor`.
-
-`_selectedZone` et `_selectedSector` sont mutuellement exclusifs — en sélectionner un efface l'autre. Les deux sont indépendants de `PanelState`.
-
----
-
-## 4. Vue Suivi (`/suivi`)
-
-La vue présente 2 onglets (`MudTabs`/`MudTabPanel`), chacun occupant toute la hauteur disponible sans scroll — plutôt qu'un empilement vertical des deux graphiques.
-
-### 4.1 Onglet "Performance"
-
-Graphique en courbes (ApexCharts, `HistoryChart.razor`) représentant l'évolution de la performance, indexée à 100 à la date T0 (première entrée disponible). 3 séries :
-
-| Série | Calcul | Masquée si |
-|---|---|---|
-| Portefeuille (ROIC) | TWR chaîné (rendement journalier neutralisant les flux de capital), base 100 — voir `Api/Docs/SPECS.md` §2.7 | jamais |
-| LifeStrategy 40 | prix unitaire / prix T0 × 100 | `LifeStrategy` absent sur un point |
-| MSCI World | prix unitaire / prix T0 × 100 | `MsciWorld` absent sur un point |
-
-Les données sont fournies par `GET /api/portfolio/metrics/history` (`PerformancePointDto[]`), déjà normalisées base 100 par l'Api. Seuls les snapshots avec `NetCapital > 0`, `LifeStrategy` et `MsciWorld` renseignés sont inclus dans le calcul.
-
-### 4.2 Onglet "Échéancier"
-
-Graphique en barres (ApexCharts, `BondScheduleChart.razor`) représentant le capital obligataire à percevoir par période d'échéance (hors coupons).
-
-Les données sont fournies par `GET /api/assets/bondschedule` (`BondScheduleDto[]`), agrégées **par mois** par l'Api (granularité la plus fine), avec le détail par obligation (`bonds[]`) — voir `Api/Docs/SPECS.md` §2.5 pour la logique de calcul. C'est le Client qui ré-agrège ensuite ces données mensuelles en trimestre ou en année pour l'affichage (`SuiviViewModel.BondScheduleDisplayed`), sans nouvel appel réseau.
-
-**Bascule trimestre/année** : un `MudSwitch` (`BondScheduleQuarterlyView`, clé `BondSchedule_QuarterlyToggle`) au-dessus du graphique permet de choisir la granularité d'affichage. Par défaut, la vue est annuelle. Chaque bascule réinitialise la période sélectionnée pour le drill-down.
-
-**Drill-down au clic** : cliquer sur une barre (période — année ou trimestre selon le mode actif) affiche un tableau (`BondScheduleDetailTable.razor`) précédé d'un en-tête rappelant la période sélectionnée (clé `BondSchedule_DetailTitle`, ex. "2027" ou "T2 2027"), listant les obligations de cette période (nom, montant) avec une ligne de total. Sur écran large (`MudItem md="7"`/`md="5"`), le tableau apparaît à droite du graphique, côte à côte — le graphique passant de `md="12"` (pleine largeur, aucune période sélectionnée) à `md="7"` dès qu'une période est cliquée. Sur écran étroit (`xs="12"` sur les deux blocs), le tableau reste empilé sous le graphique.
-
----
-
-## 5. Page de chargement
-
-Affichée pendant les deux phases de démarrage :
-1. **Phase WASM** (`index.html`) : pendant le téléchargement du runtime Blazor
-2. **Phase données** (`Dashboard.razor`) : pendant les appels API parallèles à l'initialisation
-
-Overlay plein écran (`position: fixed`, `z-index: 9999`) — couvre la barre de navigation. Texte "Chargement" animé en typewriter (lettre par lettre, 1s), maintenu 1s, puis réinitialisé — sans écriture inversée. Police 38px semi-bold, couleur `#787774`. Classes CSS : `.loading-screen`, `.loading-text` dans `css/app.css`.
-
----
-
-## 6. Formatage
-
-| Méthode | Exemple de sortie |
-|---|---|
-| `value.ToEurAmount()` | `€ 12 345,67` |
-| `value.ToEurAmount(hidden: true)` | `*****` |
-| `value.ToPercentage()` | `15,50 %` |
-| `value.CssRoiClass()` | `"roi-positive"` / `"roi-negative"` / `""` |
-| `value.ToSignedPercentage()` | `"+1,23 %"` / `"-0,45 %"` |
-
----
-
-## 7. Mode confidentialité (masquage des montants)
-
-Bouton dans la barre de menu (icône `Visibility`/`VisibilityOff`, `MudAppBar`, à gauche des liens de navigation) qui masque tous les montants en euros affichés dans l'application (KPIs, tableaux d'actifs/répartition/échéancier, tooltips et axes des graphiques ApexCharts) — utile pour un partage d'écran.
-
-- Masquage : chaîne fixe `*****` à la place du montant formaté.
-- État persisté dans `localStorage` du navigateur — retrouvé au rechargement de la page.
-- Voir `Client/Docs/CLAUDE.md` §7.6 pour le détail d'implémentation (`IPrivacyModeService`).
+| Stockage de session | `localStorage` (en clair) | `SecureStorage` (chiffré par l'OS) |
+| URL de l'Api | Origine du site | `https://invest.zapto.fr/` par défaut, surchargeable |
+| Mise à jour | Déploiement SWA à chaque push sur `main` | Recompilation locale |
