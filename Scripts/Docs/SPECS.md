@@ -1,31 +1,34 @@
 # SPECS.md — Scripts Google Apps Script
 
 **Statut :** Implémenté
-**Version :** 2.0 — Web App HTTP retiré, le dashboard lit le Sheet directement via l'API Google Sheets (voir `Api/Docs/SPECS.md`)
-**Date :** 2026-08-12
+**Version :** 2.1 — lecture directe du Sheet par l'Api ; Web App HTTP réduit à la synchronisation manuelle ; création automatique des actifs
+**Date :** 2026-10-05
 
 ---
 
 ## 1. Vue d'ensemble
 
-Il n'y a plus de point d'entrée HTTP (`doGet` a été retiré) — l'Api Azure Functions lit désormais le Google Sheet `InvestData` (`DEST_ID`) directement via l'API Google Sheets officielle, avec un compte de service (voir `Api/Docs/CLAUDE.md`). Les fichiers `.gs` couvrent deux responsabilités restantes, toutes deux déclenchées par des triggers temporels, jamais par une requête HTTP :
+L'Api Azure Functions lit le Google Sheet `InvestData` (`DEST_ID`) directement via l'API Google Sheets officielle, avec un compte de service (voir `Api/Docs/CLAUDE.md`). Les fichiers `.gs` couvrent trois responsabilités ; seule la troisième est atteignable par HTTP :
 
 - **ETL quotidien** (`SnapshotService.gs` : `snapshotQuotidien()`, `SyncData.gs` : `syncCurrentTotal()`) — synchronise les valeurs courantes depuis le Bilan (SOURCE) et appende un snapshot dans la feuille historique (DEST), tous les jours à 06h00.
 - **Rapport hebdomadaire** (`WeeklyReportService.gs` : `rapportHebdomadaire()`) — envoie un email HTML récapitulatif chaque lundi à 08h00. Réutilise en interne les handlers `handleSnapshot`, `handleAssetClass`, `handleSupportType`, `handleAsset` (appel de fonction direct, pas HTTP).
+- **Synchronisation manuelle** (`SyncWebApp.gs` : `doGet`) — relance `snapshotQuotidien()` à la demande du bouton « Synchroniser » du dashboard (voir §2.2).
 
 ---
 
 ## 2. ETL quotidien — `snapshotQuotidien()`
 
+### 2.1 Déroulé
+
 Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheurSnapshot()`.
 
 ```
-1. syncCurrentTotal()    → met à jour les colonnes I–L de l'onglet Asset (DEST)
+1. syncCurrentTotal()    → met à jour les colonnes J–N de l'onglet Asset (DEST), puis crée les actifs manquants (§2.3)
 2. getAssetsData()       → lit toutes les lignes valides de l'onglet Asset
-3. resultSheet C48 (NET_PURCHASES)   → netCapital     (capital net réellement engagé, lu depuis le Bilan)
-4. resultSheet F66 (TOTAL_PURCHASES) → totalPurchases (lu directement depuis le Bilan)
-5. resultSheet F58 (TOTAL_RETURNS)   → totalReturns   (lu directement depuis le Bilan)
-6. resultSheet F68 (TOTAL_SALES)     → totalSales     (lu directement depuis le Bilan)
+3. resultSheet C49 (NET_PURCHASES)   → netCapital     (capital net réellement engagé, lu depuis le Bilan)
+4. resultSheet F70 (TOTAL_PURCHASES) → totalPurchases (lu directement depuis le Bilan)
+5. resultSheet F62 (TOTAL_RETURNS)   → totalReturns   (lu directement depuis le Bilan)
+6. resultSheet F72 (TOTAL_SALES)     → totalSales     (lu directement depuis le Bilan)
 7. fetchStockValues()    → prix LifeStrategy (AMS:V40A) et MSCI World (EPA:MWRD)
 8. Si une ligne existe déjà pour la date du jour → overwrite ; sinon → appendRow
    [date, netCapital, ref1, ref2, totalPurchases, totalReturns, totalSales]
@@ -34,6 +37,28 @@ Appelé automatiquement à 06h00 via le déclencheur créé par `creerDeclencheu
 `netCapital`, `totalPurchases`, `totalReturns` et `totalSales` sont lus directement depuis des cellules du Bilan (SOURCE) car ils couvrent l'historique complet incluant les actifs vendus, non listés dans l'onglet Asset.
 
 `fetchStockValues()` utilise une cellule temporaire `ZZ1` pour forcer le calcul `GOOGLEFINANCE` (Apps Script ne le supporte pas nativement). Retourne `[prixLifeStrategy, prixMSCIWorld]`, `-1` en cas d'erreur sur un ticker.
+
+### 2.2 Synchronisation manuelle (`SyncWebApp.gs`)
+
+`GET <URL /exec>?key=<SYNC_SECRET_KEY>` exécute `snapshotQuotidien()` (ETL complet, ligne `Snapshot` du jour incluse). Réponses JSON :
+
+| Cas | Réponse |
+|---|---|
+| Clé absente ou incorrecte | `{ "success": false, "error": "Unauthorized" }` |
+| Succès | `{ "success": true, "addedCount": 0 }` (`addedCount` vaut 0 : `snapshotQuotidien()` ne retourne rien) |
+| Exception | `{ "success": false, "error": "<message>" }` |
+
+La clé est la Script Property `SYNC_SECRET_KEY` (jamais commitée). Seul appelant légitime : `SyncService` de l'Api (`POST /api/sync`, voir `Api/Docs/SPECS.md`).
+
+### 2.3 Création automatique des actifs
+
+| Règle | Détail |
+|---|---|
+| Détection | Ligne du Bilan (`COL_SOURCE_ASSETS`) absente de l'onglet Asset, dédoublonnée par nom |
+| Éligibilité | Valeur actuelle numérique **strictement positive** |
+| Identifiant | max(`COL_ID`) + 1, écrit en texte |
+| Colonnes de classification | `"Not Defined"` (AssetClass, SupportType, Support, AssetType, Sector, Geography) |
+| Alerte | Email à `REPORT_EMAIL` listant les nouveaux actifs, à classer manuellement |
 
 ---
 

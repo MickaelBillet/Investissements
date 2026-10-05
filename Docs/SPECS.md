@@ -10,7 +10,7 @@ SRS_13 Le nombre total d’actifs en portefeuille doit être affiché
 
 SRS_15 Le ROI du portefeuille doit être affiché :
 - ROI (Capital Engagé) = TotalReturns / NetCapital × 100
-où TotalReturns = plus-values réalisées depuis l'origine
+où TotalReturns = plus-values réalisées et latentes depuis l'origine (les cours sont saisis à la main chaque jour)
 
 SRS_17 Le risque moyen du portefeuille (0–4) doit être affiché, calculé comme la moyenne pondérée par la valeur actuelle des actifs
 
@@ -53,7 +53,7 @@ SRS_08 Un contrôle graphique doit permettre de revenir au graphique à secteurs
 
 #### Détail des actifs
 
-SRS_14 Lorsque le dernier niveau de drill-down est atteint (actifs du type, actifs du support, actifs du niveau de risque), un tableau s'affiche en dessous du graphique à secteurs présentant pour chaque actif : le nom, la valeur actuelle en euros, la plus-value latente en euros, le ROI en % et le rendement en %
+SRS_14 Lorsque le dernier niveau de drill-down est atteint (actifs du type, actifs du support, actifs du niveau de risque), un tableau s'affiche en dessous du graphique à secteurs présentant pour chaque actif : le nom, la valeur actuelle en euros, la plus-value latente en euros, le ROI en % et le rendement en %. Dans le drill-down par zone géographique (SRS_21), une colonne « coefficient de zone » (SRS_30) s'ajoute après la valeur actuelle
 
 #### ETF Stocks — Groupement par thématique
 
@@ -77,10 +77,36 @@ SRS_19 En mode Master-Detail (drill-down actif), le graphique à secteurs occupe
 
 SRS_11 Afficher un graphique en courbe représentant l’évolution de la performance du portefeuille dans le temps, comparée aux références LifeStrategy 40 et MSCI World. Les 3 courbes sont indexées à une base commune à la date T0 (première date disponible dans l’historique) afin de permettre une comparaison relative de la performance.
 
-SRS_24 Afficher un graphique en barres représentant le capital obligataire à percevoir par année d’échéance (hors coupons), agrégé depuis les actifs dont le champ `information` contient une année d'échéance.
+SRS_24 Afficher un graphique en barres représentant le capital obligataire à percevoir par période d’échéance (hors coupons), agrégé depuis les actifs dont le champ `information` contient une échéance au format `MM/AAAA`. La granularité est l'année par défaut ; un interrupteur permet de passer au trimestre (SRS_28).
 
 SRS_25 La vue Suivi présente le graphique de performance (SRS_11) et l'échéancier obligataire (SRS_24) sous forme de 2 onglets, chacun occupant toute la hauteur disponible, plutôt qu'empilés verticalement avec défilement.
 
-SRS_26 Lorsque l'utilisateur clique sur une barre (année) de l'échéancier obligataire, un tableau affiche la liste des obligations de cette année avec leur nom et leur montant, ainsi qu'une ligne de total.
+SRS_26 Lorsque l'utilisateur clique sur une barre (année ou trimestre selon la granularité) de l'échéancier obligataire, un tableau affiche la liste des obligations de cette année avec leur nom et leur montant, ainsi qu'une ligne de total.
 
 SRS_27 Sur écran large, le tableau du détail par obligation (SRS_26) s'affiche à droite du graphique de l'échéancier, côte à côte, plutôt qu'empilé en dessous — sur écran étroit il reste empilé sous le graphique.
+
+SRS_28 Un interrupteur au-dessus de l'échéancier obligataire permet de basculer l'affichage entre année et trimestre ; la bascule réinitialise la période sélectionnée et ne déclenche aucun nouvel appel réseau (les données sont agrégées au mois par l'Api puis ré-agrégées par le Client)
+
+#### Authentification
+
+SRS_29 Tout le dashboard est protégé par un mot de passe unique : tant qu'il n'a pas été saisi correctement, seul un écran de connexion est affiché. La session expire après 1 h sans appel réussi (expiration glissante). Le mot de passe n'est jamais embarqué dans le code ; l'Api refuse (401) toute requête sans le bon mot de passe, sauf l'endpoint MCP (protégé par sa propre clé) et la route de vérification du mot de passe
+
+#### Coefficient géographique
+
+SRS_30 Dans le tableau des actifs d'une zone géographique (SRS_21), la colonne « coefficient de zone » affiche pour chaque actif la part de sa valeur allouée à cette zone ; le total du tableau est pondéré par ces coefficients
+
+#### Synchronisation manuelle
+
+SRS_31 Un menu de la barre d'application propose « Synchroniser » : l'action relance l'ETL complet (synchro des actifs depuis le Bilan, création des actifs manquants, snapshot du jour) sans attendre le déclenchement automatique de 06h00, affiche un indicateur d'attente puis une notification de succès ou d'erreur
+
+#### Mode confidentialité
+
+SRS_32 Un bouton du menu de la barre d'application masque tous les montants en euros (KPI, tableaux, infobulles et axes des graphiques) pour le partage d'écran ; ce choix est mémorisé entre deux sessions. Ce n'est pas une frontière de sécurité
+
+#### Application Windows
+
+SRS_33 Une application Windows (MAUI) affiche le même dashboard, avec les mêmes fonctionnalités et les mêmes données que le site, sans navigateur (voir `Maui/Docs/SPECS.md`). Elle stocke le mot de passe de session chiffré par le système
+
+#### Accès par assistant IA
+
+SRS_34 Un endpoint MCP (JSON-RPC, protégé par clé) expose en lecture les données du portefeuille (actifs, répartitions, métriques, snapshots, géographie) à un assistant IA compatible (Claude Code, Claude Desktop, Claude Web)
