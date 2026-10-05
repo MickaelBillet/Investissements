@@ -1,14 +1,14 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 2.0 — lecture directe du Google Sheet via l'API Sheets, l'Apps Script Web App n'est plus dans le chemin
-**Date :** 2026-08-12
+**Version :** 2.1 — lecture directe du Google Sheet via l'API Sheets ; ajout de `auth/verify` et de `POST /api/sync`
+**Date :** 2026-10-05
 
 ---
 
 ## 1. Vue d'ensemble
 
-L'Api expose 10 endpoints REST en lecture seule et 1 endpoint MCP. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
+L'Api expose 14 routes HTTP : 11 endpoints REST de lecture, `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle) et 1 endpoint MCP. Toutes, sauf `mcp` et `auth/verify`, exigent le header `x-dashboard-password` (voir `Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
 
 `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` sont mis en cache (single-flight, TTL 30s) — voir `Api/Docs/CLAUDE.md` §8.
 
@@ -182,7 +182,7 @@ RoiOnCapitalEngaged = TotalReturns / NetCapital × 100
 AverageRisk         = Σ(risk_i × currentTotal_i) / Σ(currentTotal_i)  [actifs avec currentTotal > 0]
 ```
 
-> `TotalReturns` = plus-values réalisées et latentes depuis l'origine (cellule F57 du Bilan) — les cours d'actions sont saisis à la main chaque jour, donc la valeur suit aussi les mouvements de marché non réalisés.
+> `TotalReturns` = plus-values réalisées et latentes depuis l'origine (cellule F62 du Bilan) — les cours d'actions sont saisis à la main chaque jour, donc la valeur suit aussi les mouvements de marché non réalisés.
 
 **Notes :**
 - `roiOnCapitalEngaged` est `null` si `NetCapital` est nul ou indisponible
@@ -385,11 +385,36 @@ En local : définir `MCP_API_KEY` dans `local.settings.json` (gitignorée) ou da
 
 ---
 
+### 2.12 `POST /api/sync`
+
+Déclenche la synchronisation manuelle : l'Api appelle le Web App Apps Script (`Scripts/SyncWebApp.gs`) qui exécute `snapshotQuotidien()` — même ETL que le trigger de 06h00, ligne `Snapshot` du jour incluse (le KPI « Capital net engagé » est donc à jour immédiatement). Le compte de service Azure reste lecteur seul ; seul Apps Script écrit.
+
+**Requête :** aucun corps. **Réponse `200`** (toujours, y compris en cas d'échec fonctionnel) :
+```json
+{ "success": true, "addedCount": 0, "errorMessage": null }
+```
+| Cas | `success` | `errorMessage` |
+|---|---|---|
+| Succès | `true` | `null` |
+| `APPS_SCRIPT_SYNC_URL` / `APPS_SCRIPT_SYNC_KEY` absents | `false` | « Synchronisation non configurée. » |
+| Réponse non-JSON d'Apps Script | `false` | « Réponse invalide de Google Apps Script — vérifie le déploiement du Web App. » |
+| Erreur renvoyée par Apps Script (dont clé refusée) | `false` | message d'Apps Script, ou « Erreur inconnue. » |
+| Erreur réseau / timeout (100 s) | `false` | « Impossible de contacter Google Apps Script. » |
+
+`addedCount` vaut 0 aujourd'hui (voir `Scripts/Docs/SPECS.md` §2.2). `500` uniquement sur exception inattendue.
+
+### 2.13 `GET /api/auth/verify`
+
+Sert à l'écran de connexion du Client pour tester un mot de passe candidat (header `x-dashboard-password`). La route est exemptée de `DashboardAuthMiddleware` pour rester joignable avant connexion. **Comportement actuel :** répond toujours `200 OK`, quel que soit le mot de passe — anomalie connue décrite dans `Api/Docs/CLAUDE.md` §6 (le comportement attendu est `200` si le mot de passe est correct, `401` sinon).
+
+---
+
 ## 3. Codes de réponse
 
 | Code | Cas |
 |---|---|
 | `200 OK` | Succès |
+| `401 Unauthorized` | Header `x-dashboard-password` absent ou incorrect (toutes les routes sauf `mcp` et `auth/verify`) ; `DASHBOARD_PASSWORD` non configuré = tout refusé |
 | `400 Bad Request` | Paramètre invalide (ex : dimension inconnue sur `/api/assets/distribution/{dimension}`) |
 | `500 Internal Server Error` | Erreur lors de l'appel à l'API Google Sheets, du mapping ou du calcul |
 
@@ -411,6 +436,8 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, month, amount, bonds (`BondScheduleItemDto[]`) |
 | `BondScheduleItemDto` | `Shared/Models/BondScheduleDto.cs` | name, amount |
 | `AssetTypeReferenceDto` | `Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
+| `SyncResultDto` | `Shared/Models/SyncResultDto.cs` | success, addedCount, errorMessage? |
+| `AggregateDto` | `Shared/Models/AggregateDto.cs` | agrégat par groupe (name, totalPurchases?, totalSales?, dividends?, currentTotal, hasIncompleteData, unrealizedGain?, yield?, roi?, weightInGroup, weightInPortfolio) |
 
 > Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.
 
