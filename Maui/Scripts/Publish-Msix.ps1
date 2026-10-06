@@ -23,8 +23,15 @@ if (-not $certificate) {
 
 $project = Join-Path $PSScriptRoot '..\InvestissementsDashboard.Maui.csproj'
 
+# Windows refuses to install a package whose identity (name + version) matches an installed one but whose content
+# differs, so every build needs a higher version. The commit count grows monotonically and stays below the 65535
+# limit of an MSIX version part. Rebuilding the same commit with local edits keeps the same number: uninstall first then.
+$buildNumber = [int](git -C $PSScriptRoot rev-list --count HEAD)
+if ($LASTEXITCODE -ne 0) { throw 'Could not compute the package version from git (git rev-list failed).' }
+
 dotnet publish $project -f net10.0-windows10.0.19041.0 -c $Configuration `
     -p:WindowsPackageType=MSIX `
+    -p:ApplicationVersion=$buildNumber `
     -p:RuntimeIdentifierOverride=win10-x64 `
     -p:PackageCertificateThumbprint=$($certificate.Thumbprint)
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed (exit code $LASTEXITCODE)." }

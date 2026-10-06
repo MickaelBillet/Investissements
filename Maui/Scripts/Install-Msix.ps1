@@ -31,6 +31,7 @@ if (-not $package) {
 Import-Certificate -FilePath $CerPath -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
 Write-Host 'Certificate trusted (LocalMachine\TrustedPeople).'
 
-# ForceUpdateFromAnyVersion lets a rebuild with the same version number replace the installed package.
+# ForceUpdateFromAnyVersion only lifts the "version must be higher" check; a package with the same identity but a
+# different content is still rejected (0x80073CFB), hence the version bump done by Publish-Msix.ps1.
 Add-AppxPackage -Path $package.FullName -ForceUpdateFromAnyVersion
 Write-Host "Installed: $($package.Name). Look for 'Suivi des Investissements' in the Start menu."

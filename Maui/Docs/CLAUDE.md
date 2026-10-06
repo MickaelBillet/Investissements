@@ -65,8 +65,8 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 À faire dans l'ordre, depuis la racine du dépôt :
 
 1. **Une seule fois** — créer le certificat de signature (PowerShell normal) : `.\Maui\Scripts\New-DevCertificate.ps1`. Le certificat vit dans le magasin utilisateur (`CN=Mickael Billet`, 3 ans) ; la signature se fait par empreinte, donc **aucun `.pfx` ni mot de passe** n'existe sur disque ou dans le dépôt. Seul le `.cer` public est exporté dans `%USERPROFILE%\.certs\`. Le `Publisher` du `Package.appxmanifest` doit rester égal au sujet du certificat.
-2. **À chaque version** — construire le package : `.\Maui\Scripts\Publish-Msix.ps1` → `Maui/artifacts/…/InvestissementsDashboard.Maui_<version>_x64.msix` (dossier ignoré par git).
-3. **Dans un PowerShell administrateur** — `.\Maui\Scripts\Install-Msix.ps1` : fait confiance au `.cer` (`LocalMachine\TrustedPeople`, nécessite l'élévation) puis installe le `.msix` avec `Add-AppxPackage -ForceUpdateFromAnyVersion` (une mise à jour remplace la version installée).
+2. **À chaque version** — construire le package : `.\Maui\Scripts\Publish-Msix.ps1` (le numéro de build `ApplicationVersion` est le nombre de commits du dépôt : Windows refuse d'installer un contenu différent sous la même version `1.0.0.N`, erreur `0x80073CFB` ; si l'on republie le même commit avec des modifications locales, désinstaller d'abord l'ancien package) → `Maui/artifacts/…/InvestissementsDashboard.Maui_<version>_x64.msix` (dossier ignoré par git).
+3. **Dans un PowerShell administrateur** — `.\Maui\Scripts\Install-Msix.ps1` : fait confiance au `.cer` (`LocalMachine\TrustedPeople`, nécessite l'élévation) puis installe le `.msix` avec `Add-AppxPackage -ForceUpdateFromAnyVersion` (une mise à jour remplace la version installée en conservant ses données, à condition que le numéro de version ait augmenté).
 4. L'application apparaît dans le menu Démarrer (« Suivi des Investissements ») avec l'icône du site. Désinstallation : Paramètres → Applications, ou `Get-AppxPackage fr.zapto.invest.maui | Remove-AppxPackage`.
 
 Une application packagée est isolée : les données de `SecureStorage` et du profil WebView2 sont propres au package (une désinstallation les efface, le mot de passe est à ressaisir) et les variables d'environnement d'un terminal ne sont pas visibles.
@@ -77,7 +77,7 @@ Une application packagée est isolée : les données de `SecureStorage` et du pr
 - Le lien « Documentation » (`ClientOptions.DocumentationUri`, URL absolue du site) doit s'ouvrir dans le navigateur — non testé.
 - Le certificat auto-signé expire au bout de 3 ans : en recréer un (`New-DevCertificate.ps1`), republier et réinstaller. Changer son sujet impose de changer le `Publisher` du manifeste, et donc de désinstaller l'ancien package.
 - L'installation du MSIX n'est pas automatisée en CI (poste du propriétaire uniquement).
-- Pas de page de paramètres : l'URL de l'Api passe uniquement par la variable d'environnement.
+- Pas de page de paramètres : l'URL de l'Api est fixe (`MauiProgram.ApiBaseUri`).
 
 ## 9. Git — Règle absolue
 
