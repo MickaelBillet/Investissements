@@ -39,9 +39,9 @@ Maui.Tests/
 
 1. `AddMauiBlazorWebView()` (+ `AddBlazorWebViewDeveloperTools()` et log debug en `DEBUG`).
 2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`.
-3. `AddInvestissementsClient(ResolveApiBaseUri())` — toute la DI du dashboard vient de `Client.Shared`.
+3. `AddInvestissementsClient(ApiBaseUri)` — toute la DI du dashboard vient de `Client.Shared`.
 
-**URL de l'Api** : `https://invest.zapto.fr/` par défaut (l'Api n'est joignable que via le proxy SWA) ; surchargeable par la variable d'environnement `INVEST_API_BASE_URL` (ex. `http://localhost:7071/` pour développer contre une Api locale). Une application lancée depuis le menu Démarrer ne voit pas forcément les variables d'un terminal.
+**URL de l'Api** : `https://invest.zapto.fr/`, fixée dans `MauiProgram.ApiBaseUri` (l'Api n'est joignable que via le proxy SWA). Aucune surcharge par variable d'environnement : pour développer contre une Api locale, modifier la constante.
 
 ## 5. `SecureStorageKeyValueStore`
 
@@ -69,7 +69,7 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 3. **Dans un PowerShell administrateur** — `.\Maui\Scripts\Install-Msix.ps1` : fait confiance au `.cer` (`LocalMachine\TrustedPeople`, nécessite l'élévation) puis installe le `.msix` avec `Add-AppxPackage -ForceUpdateFromAnyVersion` (une mise à jour remplace la version installée).
 4. L'application apparaît dans le menu Démarrer (« Suivi des Investissements ») avec l'icône du site. Désinstallation : Paramètres → Applications, ou `Get-AppxPackage fr.zapto.invest.maui | Remove-AppxPackage`.
 
-Une application packagée est isolée : les données de `SecureStorage` et du profil WebView2 sont propres au package (une désinstallation les efface, le mot de passe est à ressaisir) et les variables d'environnement d'un terminal (`INVEST_API_BASE_URL`) ne sont pas visibles.
+Une application packagée est isolée : les données de `SecureStorage` et du profil WebView2 sont propres au package (une désinstallation les efface, le mot de passe est à ressaisir) et les variables d'environnement d'un terminal ne sont pas visibles.
 
 ## 8. Limites connues / à valider
 

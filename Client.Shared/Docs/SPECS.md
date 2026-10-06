@@ -207,4 +207,4 @@ Barre en haut de page : logo + titre, liens **Portefeuille** (`/`) et **Suivi** 
 | Hôte | Particularités fonctionnelles |
 |---|---|
 | Site (`Client/`) | Stockage de session dans `localStorage` ; Api à la même origine que le site |
-| Application Windows (`Maui/`) | Stockage chiffré (`SecureStorage`) ; Api de production par défaut, surchargeable (`INVEST_API_BASE_URL`) ; voir `Maui/Docs/SPECS.md` |
+| Application Windows (`Maui/`) | Stockage chiffré (`SecureStorage`) ; Api de production (URL fixe) ; voir `Maui/Docs/SPECS.md` |
