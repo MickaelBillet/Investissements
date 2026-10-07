@@ -7,7 +7,7 @@
     @string.Format(L.Translate("BondSchedule_DetailTitle"), PeriodLabel)
 </MudText>
 
-<MudTable Items="@Bonds" Dense="true" Hover="true" Elevation="0"
+<MudTable Items="@DisplayedBonds"Dense="true" Hover="true" Elevation="0"
           Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:8px;">
     <HeaderContent>
         <MudTh Style="color:#787774;font-size:12px;">@L.Translate("Col_Name")</MudTh>
@@ -34,6 +34,10 @@
     [Parameter, EditorRequired] public string PeriodLabel { get; set; } = string.Empty;
     [Parameter, EditorRequired] public IReadOnlyList<BondScheduleItemDto> Bonds { get; set; } = [];
     [Parameter, EditorRequired] public decimal Total { get; set; }
+
+    // Zero-value bonds are already repaid/sold: hiding them keeps the list focused on live positions
+    private IEnumerable<BondScheduleItemDto> DisplayedBonds =>
+        Bonds.Where(b => b.Amount > 0).OrderByDescending(b => b.Amount);
 
     protected override void OnInitialized() => Privacy.OnChange += StateHasChanged;
 
