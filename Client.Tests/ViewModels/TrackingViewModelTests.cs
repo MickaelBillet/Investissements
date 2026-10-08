@@ -1,3 +1,4 @@
+using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.Tests.Helpers;
 using InvestissementsDashboard.Client.ViewModels;
@@ -6,9 +7,9 @@ using Moq;
 
 namespace InvestissementsDashboard.Client.Tests.ViewModels;
 
-public class SuiviViewModelTests
+public class TrackingViewModelTests
 {
-    private static SuiviViewModel CreateVm(Mock<IPortfolioService> mock)
+    private static TrackingViewModel CreateVm(Mock<IPortfolioService> mock)
     {
         var locMock = new Mock<ILocalizationService>();
         locMock.Setup(l => l.Translate(It.IsAny<string>())).Returns<string>(k => k);
@@ -240,5 +241,91 @@ public class SuiviViewModelTests
         Assert.Equal(3, displayed[1].Quarter);
         Assert.Equal(300m, displayed[1].Amount);
         Assert.Equal("T3 2027", displayed[1].Label);
+    }
+
+    // ── Selected period ───────────────────────────────────────────────────────
+
+    private static BondSchedulePeriodDto Period(int year = 2027) => new(year, null, 100m, []);
+
+    [Fact]
+    public void SelectedPeriodEntry_Initially_IsNull()
+    {
+        Assert.Null(CreateVm(new Mock<IPortfolioService>()).SelectedPeriodEntry);
+    }
+
+    [Fact]
+    public void SelectPeriod_StoresSelectedEntry()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        var entry = Period();
+
+        vm.SelectPeriod(entry);
+
+        Assert.Same(entry, vm.SelectedPeriodEntry);
+    }
+
+    [Fact]
+    public void BondScheduleQuarterlyView_WhenGranularityChanges_ClearsSelectedPeriod()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.SelectPeriod(Period());
+
+        vm.BondScheduleQuarterlyView = true;
+
+        Assert.Null(vm.SelectedPeriodEntry);
+    }
+
+    [Fact]
+    public void BondScheduleQuarterlyView_WhenSetToSameValue_KeepsSelectedPeriod()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        var entry = Period();
+        vm.SelectPeriod(entry);
+
+        vm.BondScheduleQuarterlyView = false;
+
+        Assert.Same(entry, vm.SelectedPeriodEntry);
+    }
+
+    [Fact]
+    public void SelectedPeriodBonds_WhenNothingSelected_IsEmpty()
+    {
+        Assert.Empty(CreateVm(new Mock<IPortfolioService>()).SelectedPeriodBonds);
+    }
+
+    [Fact]
+    public void SelectedPeriodBonds_WhenBondsUnsorted_ReturnsHighestValueFirst()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.SelectPeriod(new BondSchedulePeriodDto(2027, null, 2250m,
+        [
+            new BondScheduleItemDto("Orange 2027",   500m),
+            new BondScheduleItemDto("Renault 2027", 1000m),
+            new BondScheduleItemDto("Total 2027",    750m)
+        ]));
+
+        Assert.Equal(["Renault 2027", "Total 2027", "Orange 2027"], vm.SelectedPeriodBonds.Select(b => b.Name));
+    }
+
+    [Fact]
+    public void SelectedPeriodBonds_WhenBondHasZeroAmount_ExcludesIt()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.SelectPeriod(new BondSchedulePeriodDto(2027, null, 1000m,
+        [
+            new BondScheduleItemDto("Renault 2027", 1000m),
+            new BondScheduleItemDto("Orange 2027",     0m)
+        ]));
+
+        Assert.Equal(["Renault 2027"], vm.SelectedPeriodBonds.Select(b => b.Name));
+    }
+
+    [Fact]
+    public void SelectedPeriodBonds_WhenAllBondsAreZero_IsEmpty()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.SelectPeriod(new BondSchedulePeriodDto(2027, null, 0m, [new BondScheduleItemDto("Orange 2027", 0m)]));
+
+        Assert.Empty(vm.SelectedPeriodBonds);
     }
 }

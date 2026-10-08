@@ -47,59 +47,6 @@ public class BondScheduleDetailTableTests : BunitContext
     }
 
     [Fact]
-    public void BondScheduleDetailTable_WhenBondsUnsorted_DisplaysHighestValueFirst()
-    {
-        var bonds = new[]
-        {
-            new BondScheduleItemDto("Orange 2027",   500m),
-            new BondScheduleItemDto("Renault 2027", 1000m),
-            new BondScheduleItemDto("Total 2027",    750m)
-        };
-
-        var cut = Render<BondScheduleDetailTable>(p => p
-            .Add(c => c.PeriodLabel, "2027")
-            .Add(c => c.Bonds, bonds)
-            .Add(c => c.Total, 2250m));
-
-        var names = cut.Markup;
-        var renault = names.IndexOf("Renault 2027", StringComparison.Ordinal);
-        var total   = names.IndexOf("Total 2027",   StringComparison.Ordinal);
-        var orange  = names.IndexOf("Orange 2027",  StringComparison.Ordinal);
-        Assert.True(renault < total && total < orange);
-    }
-
-    [Fact]
-    public void BondScheduleDetailTable_WhenBondHasZeroAmount_DoesNotDisplayIt()
-    {
-        var bonds = new[]
-        {
-            new BondScheduleItemDto("Renault 2027", 1000m),
-            new BondScheduleItemDto("Orange 2027",     0m)
-        };
-
-        var cut = Render<BondScheduleDetailTable>(p => p
-            .Add(c => c.PeriodLabel, "2027")
-            .Add(c => c.Bonds, bonds)
-            .Add(c => c.Total, 1000m));
-
-        Assert.Contains("Renault 2027", cut.Markup);
-        Assert.DoesNotContain("Orange 2027", cut.Markup);
-    }
-
-    [Fact]
-    public void BondScheduleDetailTable_WhenAllBondsAreZero_DisplaysNoDataMessage()
-    {
-        var bonds = new[] { new BondScheduleItemDto("Orange 2027", 0m) };
-
-        var cut = Render<BondScheduleDetailTable>(p => p
-            .Add(c => c.PeriodLabel, "2027")
-            .Add(c => c.Bonds, bonds)
-            .Add(c => c.Total, 0m));
-
-        Assert.Contains("Aucune donnée", cut.Markup);
-    }
-
-    [Fact]
     public void BondScheduleDetailTable_FooterDisplaysTotal()
     {
         var bonds = new[] { new BondScheduleItemDto("Renault 2027", 1000m) };

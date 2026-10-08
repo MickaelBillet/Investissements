@@ -2,7 +2,7 @@
 @inject DashboardViewModel ViewModel
 @inject ILocalizationService L
 
-<PageTitle>Portefeuille — Suivi des Investissements</PageTitle>
+<PageTitle>@L.Translate("Page_PortfolioTitle")</PageTitle>
 
 @if (ViewModel.IsLoading)
 {
@@ -33,45 +33,45 @@ else
                    YtdROICapitalEngagedVariation="@ViewModel.YtdROICapitalEngagedVariation"
                    YearlyROICapitalEngagedVariation="@ViewModel.YearlyROICapitalEngagedVariation" />
 
-        @if (_activeHierarchy == ActiveHierarchy.None)
+        @if (!ViewModel.HasActivePanel)
         {
             <MudGrid Spacing="4">
                 <MudItem xs="12" md="4">
                     <DrillDownDonut Title="@ViewModel.GetPanelTitle(ViewModel.AssetClassPanel)"
                                     Items="@ViewModel.GetDistribution(ViewModel.AssetClassPanel)"
                                     Colors="@_assetClassColors"
-                                    OnSliceClicked="@(name => DrillDown(ActiveHierarchy.AssetClass, ViewModel.AssetClassPanel, name))" />
+                                    OnSliceClicked="@(name => ViewModel.DrillDown(ViewModel.AssetClassPanel, name))" />
                 </MudItem>
                 <MudItem xs="12" md="4">
                     <DrillDownDonut Title="@ViewModel.GetPanelTitle(ViewModel.SupportTypePanel)"
                                     Items="@ViewModel.GetDistribution(ViewModel.SupportTypePanel)"
                                     Colors="@_supportTypeColors"
-                                    OnSliceClicked="@(name => DrillDown(ActiveHierarchy.SupportType, ViewModel.SupportTypePanel, name))" />
+                                    OnSliceClicked="@(name => ViewModel.DrillDown(ViewModel.SupportTypePanel, name))" />
                 </MudItem>
                 <MudItem xs="12" md="4">
                     <DrillDownDonut Title="@ViewModel.GetPanelTitle(ViewModel.RiskPanel)"
                                     Items="@ViewModel.GetDistribution(ViewModel.RiskPanel)"
                                     Colors="@_riskColors"
-                                    OnSliceClicked="@(name => DrillDown(ActiveHierarchy.Risk, ViewModel.RiskPanel, name))" />
+                                    OnSliceClicked="@(name => ViewModel.DrillDown(ViewModel.RiskPanel, name))" />
                 </MudItem>
             </MudGrid>
         }
         else
         {
-            var panel  = ActivePanel;
-            var colors = ActiveColors;
+            var panel  = ViewModel.ActivePanel!;
+            var colors = ColorsFor(panel);
             <MudGrid Spacing="4">
                 <MudItem xs="12" md="5">
-                    <DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
+                    <DrillDownDonut @key="@($"{panel.Type}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
                                     Title="@ViewModel.GetPanelTitle(panel)"
                                     Items="@ViewModel.GetDistribution(panel)"
                                     CanGoBack="true"
                                     Height="500"
                                     Colors="@colors"
-                                    OnSliceClicked="@(name => DrillDown(_activeHierarchy, panel, name))"
-                                    OnBackClicked="@(() => GoBack(panel))">
+                                    OnSliceClicked="@(name => ViewModel.DrillDown(panel, name))"
+                                    OnBackClicked="@(() => ViewModel.GoBack(panel))">
                         <TopRightContent>
-                            @if (_activeHierarchy == ActiveHierarchy.AssetClass && panel.Selected(1) == "ETF_Stocks")
+                            @if (ViewModel.ShowEtfGroupingToggle)
                             {
                                 <MudSwitch T="bool"
                                            @bind-Value="@ViewModel.EtfStocksGroupByInformation"
@@ -83,55 +83,52 @@ else
                 </MudItem>
                 <MudItem xs="12" md="7">
                     @{
-                        var geoClass = _activeHierarchy == ActiveHierarchy.AssetClass && panel.Level == 1
-                            && (panel.Selected(0) == "Stocks" || panel.Selected(0) == "Bonds")
-                            ? panel.Selected(0)
-                            : null;
+                        var geoClass = ViewModel.GeoClass;
                     }
-                    @if (geoClass is not null && _selectedZone is null && _selectedSector is null)
+                    @if (geoClass is not null && ViewModel.SelectedZone is null && ViewModel.SelectedSector is null)
                     {
                         <MudGrid Spacing="3">
                             <MudItem xs="12" md="6">
                                 <DrillDownDonut @key="@($"geo:{geoClass}")"
-                                                Title="@($"Zones géographiques — {ViewModel.GetPanelTitle(panel)}")"
+                                                Title="@ViewModel.GetZonesTitle(panel)"
                                                 Items="@ViewModel.GetGeographyForClass(geoClass)"
                                                 Colors="@_geographyColors"
-                                                OnSliceClicked="@(zone => { _selectedZone = zone; _selectedSector = null; })" />
+                                                OnSliceClicked="@(zone => ViewModel.SelectZone(zone))" />
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <DrillDownDonut @key="@($"sector:{geoClass}")"
-                                                Title="@($"Secteurs — {ViewModel.GetPanelTitle(panel)}")"
+                                                Title="@ViewModel.GetSectorsTitle(panel)"
                                                 Items="@ViewModel.GetSectorForClass(geoClass)"
                                                 Colors="@_sectorColors"
-                                                OnSliceClicked="@(sector => { _selectedSector = sector; _selectedZone = null; })" />
+                                                OnSliceClicked="@(sector => ViewModel.SelectSector(sector))" />
                             </MudItem>
                         </MudGrid>
                     }
-                    else if (geoClass is not null && _selectedZone is not null)
+                    else if (geoClass is not null && ViewModel.SelectedZone is not null)
                     {
                         <MudStack Spacing="2">
                             <MudButton Variant="Variant.Text"
                                        StartIcon="@Icons.Material.Outlined.ArrowBack"
                                        Style="align-self: flex-start;"
-                                       OnClick="@(() => _selectedZone = null)">
+                                       OnClick="@(() => ViewModel.ClearGeographySelection())">
                                 @L.Translate("Back")
                             </MudButton>
-                            <AssetTable Title="@($"{ViewModel.GetPanelTitle(panel)} — {_selectedZone}")"
-                                    Assets="@ViewModel.GetAssetsForZone(geoClass, _selectedZone)"
-                                    Coefficients="@ViewModel.GetZoneCoefficients(geoClass, _selectedZone)" />
+                            <AssetTable Title="@ViewModel.GetSelectionTitle(panel)"
+                                    Assets="@ViewModel.GetAssetsForZone(geoClass, ViewModel.SelectedZone)"
+                                    Coefficients="@ViewModel.GetZoneCoefficients(geoClass, ViewModel.SelectedZone)" />
                         </MudStack>
                     }
-                    else if (geoClass is not null && _selectedSector is not null)
+                    else if (geoClass is not null && ViewModel.SelectedSector is not null)
                     {
                         <MudStack Spacing="2">
                             <MudButton Variant="Variant.Text"
                                        StartIcon="@Icons.Material.Outlined.ArrowBack"
                                        Style="align-self: flex-start;"
-                                       OnClick="@(() => _selectedSector = null)">
+                                       OnClick="@(() => ViewModel.ClearGeographySelection())">
                                 @L.Translate("Back")
                             </MudButton>
-                            <AssetTable Title="@($"{ViewModel.GetPanelTitle(panel)} — {_selectedSector}")"
-                                        Assets="@ViewModel.GetAssetsForSector(geoClass, _selectedSector)" />
+                            <AssetTable Title="@ViewModel.GetSelectionTitle(panel)"
+                                        Assets="@ViewModel.GetAssetsForSector(geoClass, ViewModel.SelectedSector)" />
                         </MudStack>
                     }
                     else if (ViewModel.IsLeafLevel(panel))
@@ -141,7 +138,7 @@ else
                     }
                     else
                     {
-                        <DistributionTable Items="@ViewModel.GetDistribution(panel)" />
+                        <DistributionTable Items="@ViewModel.GetDistribution(panel)" Total="@ViewModel.GetDistributionTotal(panel)" />
                     }
                 </MudItem>
             </MudGrid>
@@ -151,12 +148,6 @@ else
 }
 
 @code {
-    private enum ActiveHierarchy { None, AssetClass, SupportType, Risk }
-
-    private ActiveHierarchy _activeHierarchy = ActiveHierarchy.None;
-    private string?         _selectedZone;
-    private string?         _selectedSector;
-
     private static readonly string[] _assetClassColors =
         ["#CE8BA0", "#E06D6D", "#4DAB9A", "#9B8DD6", "#D4A844", "#A0A0A0", "#787774", "#2383E2"];
 
@@ -172,40 +163,15 @@ else
     private static readonly string[] _sectorColors =
         ["#D4A844", "#CE8BA0", "#9B8DD6", "#4DAB9A", "#E06D6D", "#2383E2", "#787774", "#A0A0A0"];
 
-    private PanelState ActivePanel => _activeHierarchy switch
+    private static string[] ColorsFor(PanelState panel) => panel.Type switch
     {
-        ActiveHierarchy.AssetClass  => ViewModel.AssetClassPanel,
-        ActiveHierarchy.SupportType => ViewModel.SupportTypePanel,
-        _                           => ViewModel.RiskPanel
-    };
-
-    private string[] ActiveColors => _activeHierarchy switch
-    {
-        ActiveHierarchy.AssetClass  => _assetClassColors,
-        ActiveHierarchy.SupportType => _supportTypeColors,
-        _                           => _riskColors
+        PanelType.AssetClass  => _assetClassColors,
+        PanelType.SupportType => _supportTypeColors,
+        _                     => _riskColors
     };
 
     protected override async Task OnInitializedAsync()
     {
         await ViewModel.InitializeAsync();
-    }
-
-    private void DrillDown(ActiveHierarchy hierarchy, PanelState panel, string name)
-    {
-        if (ViewModel.IsLeafLevel(panel)) return;
-        _activeHierarchy = hierarchy;
-        _selectedZone    = null;
-        _selectedSector  = null;
-        panel.DrillDown(name);
-    }
-
-    private void GoBack(PanelState panel)
-    {
-        _selectedZone   = null;
-        _selectedSector = null;
-        panel.GoBack();
-        if (!panel.CanGoBack)
-            _activeHierarchy = ActiveHierarchy.None;
     }
 }

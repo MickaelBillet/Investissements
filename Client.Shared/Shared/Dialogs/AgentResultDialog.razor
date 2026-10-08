@@ -1,0 +1,37 @@
+@inject ILocalizationService L
+@inject AgentViewModel ViewModel
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        @if (ViewModel.IsRunning)
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">@L.Translate("Agent_Running")</MudText>
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (ViewModel.Error is not null)
+        {
+            <MudAlert Severity="Severity.Error">@L.Translate("Agent_Error") — @ViewModel.Error</MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Style="white-space:pre-wrap;max-height:60vh;overflow-y:auto;">@ViewModel.Response</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@L.Translate("Agent_Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public AgentChoice Agent { get; set; }
+    [Parameter, EditorRequired] public string AssetName { get; set; } = string.Empty;
+
+    protected override Task OnInitializedAsync() => ViewModel.LaunchAsync(Agent, AssetName);
+
+    private void Close() => MudDialog.Close();
+
+    public void Dispose() => ViewModel.Cancel();
+}

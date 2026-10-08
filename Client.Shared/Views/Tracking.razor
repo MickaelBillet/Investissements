@@ -1,8 +1,8 @@
 @page "/suivi"
-@inject SuiviViewModel ViewModel
+@inject TrackingViewModel ViewModel
 @inject ILocalizationService L
 
-<PageTitle>Suivi des Investissements</PageTitle>
+<PageTitle>@L.Translate("Nav_AppTitle")</PageTitle>
 
 @if (ViewModel.IsLoading)
 {
@@ -13,7 +13,7 @@
 else
 {
     <MudTabs Rounded="true" ApplyEffectsToContainer="true">
-        <MudTabPanel Text="@L.Translate("Suivi_Tab_History")">
+        <MudTabPanel Text="@L.Translate("Tracking_Tab_History")">
             <div style="height: calc(100vh - 230px);">
                 @if (ViewModel.HistoryError is not null)
                 {
@@ -27,7 +27,7 @@ else
                 }
             </div>
         </MudTabPanel>
-        <MudTabPanel Text="@L.Translate("Suivi_Tab_BondSchedule")">
+        <MudTabPanel Text="@L.Translate("Tracking_Tab_BondSchedule")">
             <div style="height: calc(100vh - 230px);overflow-y:auto;">
                 @if (ViewModel.BondScheduleError is not null)
                 {
@@ -35,20 +35,19 @@ else
                 }
                 else
                 {
-                    <MudSwitch T="bool" Value="@ViewModel.BondScheduleQuarterlyView"
-                               ValueChanged="@OnGranularityChanged"
+                    <MudSwitch T="bool" @bind-Value="@ViewModel.BondScheduleQuarterlyView"
                                Label="@L.Translate("BondSchedule_QuarterlyToggle")"
                                Color="MudBlazor.Color.Primary" Class="mb-2" />
                     <MudGrid Spacing="4" Style="height:100%;">
-                        <MudItem xs="12" md="@(_selectedPeriodEntry is null ? 12 : 7)" Style="height:100%;">
-                            <BondScheduleChart @key="@($"{ViewModel.BondScheduleQuarterlyView}:{_selectedPeriodEntry is null}")"
+                        <MudItem xs="12" md="@(ViewModel.SelectedPeriodEntry is null ? 12 : 7)" Style="height:100%;">
+                            <BondScheduleChart @key="@($"{ViewModel.BondScheduleQuarterlyView}:{ViewModel.SelectedPeriodEntry is null}")"
                                                Items="@ViewModel.BondScheduleDisplayed"
-                                               OnPeriodClicked="@(entry => _selectedPeriodEntry = entry)" />
+                                               OnPeriodClicked="@(entry => ViewModel.SelectPeriod(entry))" />
                         </MudItem>
-                        @if (_selectedPeriodEntry is not null)
+                        @if (ViewModel.SelectedPeriodEntry is { } selected)
                         {
                             <MudItem xs="12" md="5">
-                                <BondScheduleDetailTable PeriodLabel="@_selectedPeriodEntry.Label" Bonds="@_selectedPeriodEntry.Bonds" Total="@_selectedPeriodEntry.Amount" />
+                                <BondScheduleDetailTable PeriodLabel="@selected.Label" Bonds="@ViewModel.SelectedPeriodBonds" Total="@selected.Amount" />
                             </MudItem>
                         }
                     </MudGrid>
@@ -59,16 +58,8 @@ else
 }
 
 @code {
-    private BondSchedulePeriodDto? _selectedPeriodEntry;
-
     protected override async Task OnInitializedAsync()
     {
         await ViewModel.InitializeAsync();
-    }
-
-    private void OnGranularityChanged(bool value)
-    {
-        ViewModel.BondScheduleQuarterlyView = value;
-        _selectedPeriodEntry = null;
     }
 }

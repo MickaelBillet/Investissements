@@ -109,11 +109,13 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 - **Zones géographiques** : alimenté par `ViewModel.GetGeographyForClass(assetClass)`, pré-chargé au démarrage depuis `GET /api/portfolio/geography/{assetClass}`
 - **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, calculé côté client depuis les actifs chargés, filtré aux `AssetType` marqués éligibles (`GeoSectorEligible = TRUE` dans l'onglet `AssetType` du Sheet, exposé via `GET /api/assets/types/reference`)
 
-**Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `_selectedZone` dans `Dashboard.razor`.
+**Agents IA (MAUI uniquement)** : dans l'application Windows, chaque ligne `Stock` d'un `AssetTable` propose un bouton « Lancer un agent » ; un dialogue demande l'agent (Stock ou News), puis une fenêtre affiche la réponse (progression, résultat ou erreur). Absent du site web. Voir `CLAUDE.md` §7.10.
 
-**Navigation secteur** : cliquer sur un secteur remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForSector(assetClass, sector)` — actifs dont le champ `sector` correspond au secteur. Bouton **Retour** ramène aux deux donuts. Géré par `_selectedSector` dans `Dashboard.razor`.
+**Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedZone`.
 
-`_selectedZone` et `_selectedSector` sont mutuellement exclusifs — en sélectionner un efface l'autre. Les deux sont indépendants de `PanelState`.
+**Navigation secteur** : cliquer sur un secteur remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForSector(assetClass, sector)` — actifs dont le champ `sector` correspond au secteur. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedSector`.
+
+`SelectedZone` et `SelectedSector` (`DashboardViewModel`) sont mutuellement exclusifs — en sélectionner un efface l'autre. Les deux sont indépendants de `PanelState`.
 
 ---
 
@@ -137,7 +139,7 @@ Les données sont fournies par `GET /api/portfolio/metrics/history` (`Performanc
 
 Graphique en barres (ApexCharts, `BondScheduleChart.razor`) représentant le capital obligataire à percevoir par période d'échéance (hors coupons).
 
-Les données sont fournies par `GET /api/assets/bondschedule` (`BondScheduleDto[]`), agrégées **par mois** par l'Api (granularité la plus fine), avec le détail par obligation (`bonds[]`) — voir `Api/Docs/SPECS.md` §2.5 pour la logique de calcul. C'est le Client qui ré-agrège ensuite ces données mensuelles en trimestre ou en année pour l'affichage (`SuiviViewModel.BondScheduleDisplayed`), sans nouvel appel réseau.
+Les données sont fournies par `GET /api/assets/bondschedule` (`BondScheduleDto[]`), agrégées **par mois** par l'Api (granularité la plus fine), avec le détail par obligation (`bonds[]`) — voir `Api/Docs/SPECS.md` §2.5 pour la logique de calcul. C'est le Client qui ré-agrège ensuite ces données mensuelles en trimestre ou en année pour l'affichage (`TrackingViewModel.BondScheduleDisplayed`), sans nouvel appel réseau.
 
 **Bascule trimestre/année** : un `MudSwitch` (`BondScheduleQuarterlyView`, clé `BondSchedule_QuarterlyToggle`) au-dessus du graphique permet de choisir la granularité d'affichage. Par défaut, la vue est annuelle. Chaque bascule réinitialise la période sélectionnée pour le drill-down.
 

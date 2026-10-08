@@ -775,4 +775,220 @@ public class DashboardViewModelTests
         // (150.00 - 100.00) / 100.00 * 100 = 50 %
         Assert.Equal(50m, vm.YtdROICapitalEngagedVariation);
     }
+
+    // ── Drill-down state ──────────────────────────────────────────────────────
+
+    private static DashboardViewModel CreateEmptyVm() => CreateVm(new Mock<IPortfolioService>());
+
+    [Fact]
+    public void ActivePanel_WhenNothingDrilledDown_IsNull()
+    {
+        var vm = CreateEmptyVm();
+
+        Assert.Null(vm.ActivePanel);
+        Assert.False(vm.HasActivePanel);
+    }
+
+    [Fact]
+    public void DrillDown_WhenNotAtLeaf_MakesPanelActive()
+    {
+        var vm = CreateEmptyVm();
+
+        vm.DrillDown(vm.SupportTypePanel, "PEA");
+
+        Assert.Same(vm.SupportTypePanel, vm.ActivePanel);
+        Assert.True(vm.HasActivePanel);
+        Assert.Equal("PEA", vm.SupportTypePanel.Selected(0));
+    }
+
+    [Fact]
+    public void DrillDown_WhenAtLeafLevel_DoesNothing()
+    {
+        var vm = CreateEmptyVm();
+        vm.DrillDown(vm.RiskPanel, "3");
+
+        vm.DrillDown(vm.RiskPanel, "4");
+
+        Assert.Equal(1, vm.RiskPanel.Level);
+        Assert.Equal("3", vm.RiskPanel.Selected(0));
+    }
+
+    [Fact]
+    public void DrillDown_ResetsZoneAndSectorSelection()
+    {
+        var vm = CreateEmptyVm();
+        vm.SelectZone("Europe");
+
+        vm.DrillDown(vm.AssetClassPanel, "Stocks");
+
+        Assert.Null(vm.SelectedZone);
+        Assert.Null(vm.SelectedSector);
+    }
+
+    [Fact]
+    public void GoBack_WhenReturningToLevelZero_ClearsActivePanelAndSelection()
+    {
+        var vm = CreateEmptyVm();
+        vm.DrillDown(vm.AssetClassPanel, "Stocks");
+        vm.SelectSector("Technology");
+
+        vm.GoBack(vm.AssetClassPanel);
+
+        Assert.Null(vm.ActivePanel);
+        Assert.Null(vm.SelectedSector);
+    }
+
+    [Fact]
+    public void GoBack_WhenStillBelowRoot_KeepsPanelActive()
+    {
+        var vm = CreateEmptyVm();
+        vm.DrillDown(vm.AssetClassPanel, "Stocks");
+        vm.DrillDown(vm.AssetClassPanel, "ETF_Stocks");
+
+        vm.GoBack(vm.AssetClassPanel);
+
+        Assert.Same(vm.AssetClassPanel, vm.ActivePanel);
+        Assert.Equal(1, vm.AssetClassPanel.Level);
+    }
+
+    [Fact]
+    public void SelectZone_ClearsSector()
+    {
+        var vm = CreateEmptyVm();
+        vm.SelectSector("Technology");
+
+        vm.SelectZone("Europe");
+
+        Assert.Equal("Europe", vm.SelectedZone);
+        Assert.Null(vm.SelectedSector);
+    }
+
+    [Fact]
+    public void SelectSector_ClearsZone()
+    {
+        var vm = CreateEmptyVm();
+        vm.SelectZone("Europe");
+
+        vm.SelectSector("Technology");
+
+        Assert.Equal("Technology", vm.SelectedSector);
+        Assert.Null(vm.SelectedZone);
+    }
+
+    [Fact]
+    public void ClearGeographySelection_ClearsZoneAndSector()
+    {
+        var vm = CreateEmptyVm();
+        vm.SelectZone("Europe");
+
+        vm.ClearGeographySelection();
+
+        Assert.Null(vm.SelectedZone);
+        Assert.Null(vm.SelectedSector);
+    }
+
+    [Theory]
+    [InlineData("Stocks", "Stocks")]
+    [InlineData("Bonds", "Bonds")]
+    [InlineData("Cash", null)]
+    public void GeoClass_WhenAssetClassSelectedAtLevelOne_ReturnsOnlyStocksOrBonds(string selected, string? expected)
+    {
+        var vm = CreateEmptyVm();
+        vm.DrillDown(vm.AssetClassPanel, selected);
+
+        Assert.Equal(expected, vm.GeoClass);
+    }
+
+    [Fact]
+    public void GeoClass_WhenAtLevelTwo_IsNull()
+    {
+        var vm = CreateEmptyVm();
+        vm.DrillDown(vm.AssetClassPanel, "Stocks");
+        vm.DrillDown(vm.AssetClassPanel, "ETF_Stocks");
+
+        Assert.Null(vm.GeoClass);
+    }
+
+    [Fact]
+    public void GeoClass_WhenAnotherHierarchyIsActive_IsNull()
+    {
+        var vm = CreateEmptyVm();
+        vm.DrillDown(vm.SupportTypePanel, "Stocks");
+
+        Assert.Null(vm.GeoClass);
+    }
+
+    [Fact]
+    public void ShowEtfGroupingToggle_WhenEtfStocksSelectedInAssetClass_IsTrue()
+    {
+        var vm = CreateEmptyVm();
+        vm.DrillDown(vm.AssetClassPanel, "Stocks");
+        vm.DrillDown(vm.AssetClassPanel, "ETF_Stocks");
+
+        Assert.True(vm.ShowEtfGroupingToggle);
+    }
+
+    [Fact]
+    public void ShowEtfGroupingToggle_WhenNothingDrilledDown_IsFalse()
+    {
+        Assert.False(CreateEmptyVm().ShowEtfGroupingToggle);
+    }
+
+    // ── Totals and titles ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetDistributionTotal_ReturnsSumOfCurrentTotals()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(assetClass: "Stocks", currentTotal: 1_000m),
+            TestData.Asset(assetClass: "Bonds",  currentTotal: 3_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        Assert.Equal(4_000m, vm.GetDistributionTotal(vm.AssetClassPanel));
+    }
+
+    [Fact]
+    public void GetDistributionTotal_WhenNoAssets_IsZero()
+    {
+        var vm = CreateEmptyVm();
+
+        Assert.Equal(0m, vm.GetDistributionTotal(vm.AssetClassPanel));
+    }
+
+    [Fact]
+    public void GetZonesTitle_FormatsLocalizedTemplateWithPanelTitle()
+    {
+        var loc = new Mock<ILocalizationService>();
+        loc.Setup(l => l.Translate("Geo_ZonesTitle")).Returns("Zones — {0}");
+        loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object);
+
+        Assert.Equal("Zones — Classes", vm.GetZonesTitle(vm.AssetClassPanel));
+    }
+
+    [Fact]
+    public void GetSectorsTitle_FormatsLocalizedTemplateWithPanelTitle()
+    {
+        var loc = new Mock<ILocalizationService>();
+        loc.Setup(l => l.Translate("Geo_SectorsTitle")).Returns("Secteurs — {0}");
+        loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object);
+
+        Assert.Equal("Secteurs — Classes", vm.GetSectorsTitle(vm.AssetClassPanel));
+    }
+
+    [Theory]
+    [InlineData(true,  "Classes — Europe")]
+    [InlineData(false, "Classes — Technology")]
+    public void GetSelectionTitle_UsesSelectedZoneOrSector(bool zoneSelected, string expected)
+    {
+        var loc = new Mock<ILocalizationService>();
+        loc.Setup(l => l.Translate("Panel_SelectionTitle")).Returns("{0} — {1}");
+        loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object);
+        if (zoneSelected) vm.SelectZone("Europe"); else vm.SelectSector("Technology");
+
+        Assert.Equal(expected, vm.GetSelectionTitle(vm.AssetClassPanel));
+    }
 }

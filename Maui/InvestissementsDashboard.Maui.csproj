@@ -45,6 +45,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AgentAI.Core\AgentAI.Core.csproj" />
     <ProjectReference Include="..\Client.Shared\InvestissementsDashboard.Client.Shared.csproj" />
   </ItemGroup>
 

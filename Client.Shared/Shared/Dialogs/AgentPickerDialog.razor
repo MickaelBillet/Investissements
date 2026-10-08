@@ -1,0 +1,32 @@
+@inject ILocalizationService L
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.body2">@AssetName</MudText>
+            <MudButton Variant="Variant.Outlined" FullWidth="true" id="agent-stock"
+                       StartIcon="@Icons.Material.Outlined.ShowChart"
+                       OnClick="@(() => Choose(AgentChoice.Stock))">
+                @L.Translate("Agent_Stock")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" FullWidth="true" id="agent-news"
+                       StartIcon="@Icons.Material.Outlined.Newspaper"
+                       OnClick="@(() => Choose(AgentChoice.News))">
+                @L.Translate("Agent_News")
+            </MudButton>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L.Translate("Agent_Cancel")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string AssetName { get; set; } = string.Empty;
+
+    private void Choose(AgentChoice choice) => MudDialog.Close(DialogResult.Ok(choice));
+
+    private void Cancel() => MudDialog.Cancel();
+}

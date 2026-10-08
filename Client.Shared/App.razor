@@ -1,6 +1,6 @@
 @implements IDisposable
 @inject ILocalizationService L
-@inject ISessionService Session
+@inject AppViewModel ViewModel
 
 <MudThemeProvider Theme="_theme" />
 <MudPopoverProvider />
@@ -11,7 +11,7 @@
 {
     <MudProgressCircular Indeterminate="true" Style="margin:48px auto;display:block;" />
 }
-else if (!Session.IsAuthenticated)
+else if (!ViewModel.IsAuthenticated)
 {
     <LoginGate />
 }
@@ -35,12 +35,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        Session.OnChange += StateHasChanged;
-        await Session.InitializeAsync();
+        ViewModel.OnChange += StateHasChanged;
+        await ViewModel.InitializeAsync();
         _initialized = true;
     }
 
-    public void Dispose() => Session.OnChange -= StateHasChanged;
+    public void Dispose() => ViewModel.OnChange -= StateHasChanged;
 
     private readonly MudTheme _theme = new()
     {

@@ -2,6 +2,8 @@ using InvestissementsDashboard.Client.Resources;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;
+using InvestissementsDashboard.Client.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace InvestissementsDashboard.Client.Tests.Helpers;
@@ -19,6 +21,12 @@ internal static class TestData
             .Returns<string>(key => _rm.GetString(key) ?? key);
         services.AddSingleton(mock.Object);
     }
+
+    public static void AddAgentViewModel(this IServiceCollection services, IAgentRunner? runner = null)
+        => services.AddSingleton(new AgentViewModel(NullLogger<AgentViewModel>.Instance, runner));
+
+    public static void AddAssetViewModel(this IServiceCollection services, IAgentRunner? runner = null)
+        => services.AddSingleton(new AssetViewModel(runner));
 
     public static void AddPrivacyModeMock(this IServiceCollection services, bool isHidden = false)
     {
