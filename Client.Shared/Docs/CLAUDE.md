@@ -13,7 +13,7 @@ Elle consomme les endpoints Azure Functions (`/api/*`), n'embarque aucune clé A
 ### Contrat avec les hôtes
 Un hôte doit :
 1. enregistrer une implémentation de `IKeyValueStore` (stockage persistant de la session et du mode confidentialité) — `LocalStorageKeyValueStore` (fournie, WASM) ou `SecureStorageKeyValueStore` (`Maui/`) ;
-2. appeler `services.AddInvestissementsClient(apiBaseUri)` (`Extensions/ServiceCollectionExtensions.cs`) : enregistre MudBlazor, ApexCharts, la localisation, `ClientOptions`, `ILocalizationService`, `IPrivacyModeService`, `ISessionService` (avec son propre `HttpClient` sans handler de mot de passe), `DashboardPasswordHandler`, les `HttpClient` typés `IPortfolioService`/`ISyncService`, les sept ViewModels (scoped) et force la culture `fr-FR` ;
+2. appeler `services.AddInvestissementsClient(apiBaseUri)` (`Extensions/ServiceCollectionExtensions.cs`) : enregistre MudBlazor, ApexCharts, la localisation, `ClientOptions`, `ILocalizationService`, `IPrivacyModeService`, `ISessionService` (avec son propre `HttpClient` sans handler de mot de passe), `DashboardPasswordHandler`, les `HttpClient` typés `IPortfolioService`/`ISyncService`, les huit ViewModels (scoped) et force la culture `fr-FR` ;
 3. monter `App` sur `#app` et `HeadOutlet` sur `head::after`, et lier dans sa page d'hébergement le CSS de MudBlazor, `_content/InvestissementsDashboard.Client.Shared/css/app.css` et le bundle CSS isolé.
 
 L'URL de l'Api est toujours fournie par l'hôte (`ClientOptions.ApiBaseUri`) — jamais déduite de `NavigationManager.BaseUri`, qui n'a aucun sens dans un `BlazorWebView`. Assets de la RCL : `_content/InvestissementsDashboard.Client.Shared/` (`css/app.css`, `icon.svg`).
@@ -55,24 +55,24 @@ Client.Shared/
 │                    ILocalizationService.cs, LocalizationService.cs,
 │                    IPrivacyModeService.cs, PrivacyModeService.cs,
 │                    ISessionService.cs, SessionService.cs, DashboardPasswordHandler.cs,
-│                    IAgentRunner.cs (seam optionnel, voir §7.10)
+│                    IAgentRunner.cs, IAgentSettings.cs (seams optionnels, voir §7.10 et §7.12)
 ├── Shared/        → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                    KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
 │                    BondScheduleDetailTable.razor, LoginGate.razor,
 │                    Dialogs/AgentPickerDialog.razor, Dialogs/AgentResultDialog.razor
-├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs
-├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi)
+├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs, SettingsViewModel.cs
+├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi), Settings.razor (/settings, MAUI uniquement)
 ├── wwwroot/       → css/app.css, icon.svg (servis sous _content/InvestissementsDashboard.Client.Shared/)
 └── Docs/          → CLAUDE.md, SPECS.md (ce dossier)
 
 Client.Tests/      (xUnit + bUnit, référence Client.Shared)
 ├── Components/    → KpiHeader, AssetTable, DistributionTable, DrillDownDonut, HistoryChart,
-│                    BondScheduleChart, BondScheduleDetailTable, LoginGate
+│                    BondScheduleChart, BondScheduleDetailTable, LoginGate, AgentPickerDialog, AgentResultDialog, Settings
 ├── Extensions/    → DecimalExtensionsTests, ServiceCollectionExtensionsTests
 ├── Helpers/       → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + mocks)
 ├── Models/        → PanelStateTests
 ├── Services/      → SessionServiceTests, PrivacyModeServiceTests, LocalStorageKeyValueStoreTests
-└── ViewModels/    → DashboardViewModelTests, TrackingViewModelTests, LoginGateViewModelTests, AppViewModelTests, MainViewModelTests, AssetViewModelTests, AgentViewModelTests
+└── ViewModels/    → DashboardViewModelTests, TrackingViewModelTests, LoginGateViewModelTests, AppViewModelTests, MainViewModelTests, AssetViewModelTests, AgentViewModelTests, SettingsViewModelTests
 ```
 
 ## 5. UI — Règles MudBlazor
@@ -242,6 +242,14 @@ Seam **optionnel** (même principe qu'`IKeyValueStore`, mais volontairement **no
 ### 7.11 Exception assumée : bornes de l'axe Y de `HistoryChart`
 
 `HistoryChart.OnParametersSet` calcule les bornes de l'axe Y (min et max des trois séries, ±20) directement dans le composant. C'est une règle de rendu du graphique, au même titre que ses couleurs ou son style de ligne (comme les formatters d'`ApexChartOptions`), pas une règle de présentation de données : elle reste dans le composant.
+
+### 7.12 IAgentSettings — page Paramètres des agents (MAUI uniquement)
+
+Second seam optionnel, **non enregistré** par `AddInvestissementsClient` (même raison que §7.10) : `IAgentSettings` expose `FoundryEndpoint`, `Model` et `Save(...)`. Seul `Maui/` fournit une implémentation (`Preferences`). Valeurs **non secrètes** uniquement : l'endpoint Foundry est protégé par l'identité Entra, pas par son secret ; les vrais secrets (clé MCP, mot de passe) restent dans `IKeyValueStore`.
+
+- `SettingsViewModel` (scoped, store optionnel) : `IsAvailable`, `Endpoint`, `Model`, `Load()`, `Save()`, `StatusMessage`/`IsStatusError`. L'endpoint doit être une URL **https** absolue (le jeton Entra ne doit jamais transiter en http) ; un modèle vide est enregistré `null` (valeur par défaut de la bibliothèque).
+- `Views/Settings.razor` (`/settings`) : formulaire sans logique ; rien n'est affiché sans store (site WASM).
+- `MainViewModel.IsSettingsAvailable` conditionne l'entrée « Paramètres » du menu de `MainLayout`.
 
 ## 8. Localisation
 

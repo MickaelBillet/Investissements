@@ -4,10 +4,13 @@ using Microsoft.Extensions.Logging;
 namespace InvestissementsDashboard.Client.ViewModels;
 
 /// <summary>
-/// Presentation logic of <c>MainLayout</c>: the manual synchronization (and the message that reports its outcome) and the logout.
+/// Presentation logic of <c>MainLayout</c>: the manual synchronization (and the message that reports its outcome), the logout
+/// and whether the settings entry is shown (only when the host provides <see cref="IAgentSettings"/>, i.e. MAUI).
 /// </summary>
-public class MainViewModel(ISyncService syncService, ISessionService sessionService, ILocalizationService localizer, ILogger<MainViewModel> logger)
+public class MainViewModel(ISyncService syncService, ISessionService sessionService, ILocalizationService localizer, ILogger<MainViewModel> logger, IAgentSettings? agentSettings = null)
 {
+    public bool IsSettingsAvailable => agentSettings is not null;
+
     public bool IsSyncing { get; private set; }
 
     /// <summary>Localized outcome of the last synchronization, or <see langword="null"/> before the first one.</summary>

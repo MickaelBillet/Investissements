@@ -12,8 +12,11 @@ public sealed class AgentAIOptions
     /// <summary>Azure AI Foundry project endpoint.</summary>
     public required string FoundryProjectEndpoint { get; init; }
 
+    /// <summary>Model used when the host does not configure one.</summary>
+    public const string DefaultModel = "gpt-5-mini";
+
     /// <summary>Model deployment name used by every agent.</summary>
-    public string Model { get; init; } = "gpt-5-mini";
+    public string Model { get; init; } = DefaultModel;
 
     /// <summary>InvestZapto MCP server URL; only required by <see cref="AgentKind.Portfolio"/>.</summary>
     public string? InvestZaptoMcpUrl { get; init; }

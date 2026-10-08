@@ -42,6 +42,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MainViewModel>();
         services.AddScoped<AssetViewModel>();
         services.AddScoped<AgentViewModel>();
+        services.AddScoped<SettingsViewModel>();
 
         return services;
     }

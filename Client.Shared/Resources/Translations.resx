@@ -155,5 +155,14 @@
   <data name="Agent_Close"        xml:space="preserve"><value>Fermer</value></data>
   <data name="Agent_Running"      xml:space="preserve"><value>L'agent travaille…</value></data>
   <data name="Agent_Error"        xml:space="preserve"><value>L'agent a échoué</value></data>
+  <data name="Nav_Settings"       xml:space="preserve"><value>Paramètres</value></data>
+  <data name="Settings_Title"     xml:space="preserve"><value>Paramètres des agents</value></data>
+  <data name="Settings_Endpoint"  xml:space="preserve"><value>Endpoint du projet Foundry</value></data>
+  <data name="Settings_EndpointHelp" xml:space="preserve"><value>URL https du projet Azure AI Foundry</value></data>
+  <data name="Settings_Model"     xml:space="preserve"><value>Modèle</value></data>
+  <data name="Settings_ModelHelp" xml:space="preserve"><value>Nom du déploiement ; laisser vide pour la valeur par défaut</value></data>
+  <data name="Settings_Save"      xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Settings_Saved"     xml:space="preserve"><value>Paramètres enregistrés</value></data>
+  <data name="Settings_EndpointInvalid" xml:space="preserve"><value>L'endpoint doit être une URL https valide</value></data>
 
 </root>

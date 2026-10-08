@@ -14,6 +14,8 @@ internal static class TestData
         "InvestissementsDashboard.Client.Resources.Translations",
         typeof(Translations).Assembly);
 
+    public static string Translate(string key) => _rm.GetString(key) ?? key;
+
     public static void AddLocalizationMock(this IServiceCollection services)
     {
         var mock = new Mock<ILocalizationService>();

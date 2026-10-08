@@ -23,10 +23,27 @@ public static class ServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddAgentAI(this IServiceCollection services, AgentAIOptions options)
     {
-        ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(options);
 
-        services.TryAddSingleton(options);
+        return services.AddAgentAI(_ => options);
+    }
+
+    /// <summary>
+    /// Registers <see cref="IAgentFactory"/> and its dependencies, reading the configuration lazily.
+    /// </summary>
+    /// <param name="services">The service collection to add to.</param>
+    /// <param name="optionsFactory">Builds the host configuration the first time it is needed.</param>
+    /// <remarks>
+    /// Lets a host whose settings are user-editable (e.g. MAUI) start without them: a missing value then
+    /// surfaces when an agent is first used, where it can be reported, instead of breaking application start-up.
+    /// See <see cref="AddAgentAI(IServiceCollection, AgentAIOptions)"/> for the other host requirements.
+    /// </remarks>
+    public static IServiceCollection AddAgentAI(this IServiceCollection services, Func<IServiceProvider, AgentAIOptions> optionsFactory)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(optionsFactory);
+
+        services.TryAddSingleton(optionsFactory);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<InvestZaptoMcpClient>();
         services.TryAddSingleton<INewsService, RssNewsService>();

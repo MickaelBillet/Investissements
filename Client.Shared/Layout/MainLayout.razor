@@ -39,7 +39,13 @@
                     @L.Translate("Nav_Sync")
                 }
             </MudMenuItem>
-            <MudMenuItem Icon="@Icons.Material.Outlined.PictureAsPdf" Href="@Options.DocumentationUri.ToString()" Target="_blank">
+            @if (ViewModel.IsSettingsAvailable)
+            {
+                <MudMenuItem Icon="@Icons.Material.Outlined.Settings" Href="/settings">
+                    @L.Translate("Nav_Settings")
+                </MudMenuItem>
+            }
+            <MudMenuItem Icon="@Icons.Material.Outlined.PictureAsPdf"Href="@Options.DocumentationUri.ToString()" Target="_blank">
                 @L.Translate("Nav_Documentation")
             </MudMenuItem>
             <MudMenuItem Icon="@Icons.Material.Outlined.Logout" OnClick="@(() => ViewModel.LogoutAsync())">

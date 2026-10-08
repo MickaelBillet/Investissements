@@ -111,6 +111,8 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 
 **Agents IA (MAUI uniquement)** : dans l'application Windows, chaque ligne `Stock` d'un `AssetTable` propose un bouton « Lancer un agent » ; un dialogue demande l'agent (Stock ou News), puis une fenêtre affiche la réponse (progression, résultat ou erreur). Absent du site web. Voir `CLAUDE.md` §7.10.
 
+**Paramètres des agents (MAUI uniquement)** : le menu ⋮ propose « Paramètres », une page où l'on saisit l'endpoint du projet Azure AI Foundry (URL https) et le modèle (facultatif). Absente du site web. Voir `CLAUDE.md` §7.12.
+
 **Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedZone`.
 
 **Navigation secteur** : cliquer sur un secteur remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForSector(assetClass, sector)` — actifs dont le champ `sector` correspond au secteur. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedSector`.

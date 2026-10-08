@@ -20,6 +20,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IKeyValueStore, SecureStorageKeyValueStore>();
         builder.Services.AddInvestissementsClient(ApiBaseUri);
         builder.Services.AddSingleton<IAgentRunner, PlaceholderAgentRunner>();
+        builder.Services.AddSingleton<IAgentSettings>(_ => new PreferencesAgentSettings(Preferences.Default, ApiBaseUri.ToString()));
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
