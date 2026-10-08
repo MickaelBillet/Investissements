@@ -22,7 +22,7 @@
     <FooterContent>
         <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
         <MudTd Style="text-align:right;font-weight:600;">
-            @Items.Sum(i => i.CurrentTotal).ToEurAmount(Privacy.IsHidden)
+            @Total.ToEurAmount(Privacy.IsHidden)
         </MudTd>
         <MudTd />
     </FooterContent>
@@ -33,6 +33,7 @@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<DistributionItem> Items { get; set; } = [];
+    [Parameter, EditorRequired] public decimal Total { get; set; }
 
     protected override void OnInitialized() => Privacy.OnChange += StateHasChanged;
 

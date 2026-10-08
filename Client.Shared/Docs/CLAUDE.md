@@ -13,7 +13,7 @@ Elle consomme les endpoints Azure Functions (`/api/*`), n'embarque aucune clé A
 ### Contrat avec les hôtes
 Un hôte doit :
 1. enregistrer une implémentation de `IKeyValueStore` (stockage persistant de la session et du mode confidentialité) — `LocalStorageKeyValueStore` (fournie, WASM) ou `SecureStorageKeyValueStore` (`Maui/`) ;
-2. appeler `services.AddInvestissementsClient(apiBaseUri)` (`Extensions/ServiceCollectionExtensions.cs`) : enregistre MudBlazor, ApexCharts, la localisation, `ClientOptions`, `ILocalizationService`, `IPrivacyModeService`, `ISessionService` (avec son propre `HttpClient` sans handler de mot de passe), `DashboardPasswordHandler`, les `HttpClient` typés `IPortfolioService`/`ISyncService`, les quatre ViewModels (scoped) et force la culture `fr-FR` ;
+2. appeler `services.AddInvestissementsClient(apiBaseUri)` (`Extensions/ServiceCollectionExtensions.cs`) : enregistre MudBlazor, ApexCharts, la localisation, `ClientOptions`, `ILocalizationService`, `IPrivacyModeService`, `ISessionService` (avec son propre `HttpClient` sans handler de mot de passe), `DashboardPasswordHandler`, les `HttpClient` typés `IPortfolioService`/`ISyncService`, les sept ViewModels (scoped) et force la culture `fr-FR` ;
 3. monter `App` sur `#app` et `HeadOutlet` sur `head::after`, et lier dans sa page d'hébergement le CSS de MudBlazor, `_content/InvestissementsDashboard.Client.Shared/css/app.css` et le bundle CSS isolé.
 
 L'URL de l'Api est toujours fournie par l'hôte (`ClientOptions.ApiBaseUri`) — jamais déduite de `NavigationManager.BaseUri`, qui n'a aucun sens dans un `BlazorWebView`. Assets de la RCL : `_content/InvestissementsDashboard.Client.Shared/` (`css/app.css`, `icon.svg`).
@@ -46,7 +46,7 @@ Client.Shared/
 ├── _Imports.razor
 ├── Extensions/    → DecimalExtensions.cs (ToEurAmount, ToPercentage, ToSignedPercentage, CssRoiClass),
 │                    ServiceCollectionExtensions.cs (AddInvestissementsClient)
-├── Layout/        → MainLayout.razor (barre d'application + menu « ⋮ »), NavMenu.razor (vide)
+├── Layout/        → MainLayout.razor (barre d'application + menu « ⋮ »)
 ├── Model/         → DistributionItem.cs, IndexedPoint.cs, PanelState.cs, BondSchedulePeriodDto.cs
 ├── Pages/         → Home.razor (/home-legacy, redirige vers /)
 ├── Resources/     → Translations.cs (classe marqueur), Translations.resx (toutes les chaînes UI)
@@ -54,12 +54,14 @@ Client.Shared/
 │                    IPortfolioService.cs, PortfolioService.cs, ISyncService.cs, SyncService.cs,
 │                    ILocalizationService.cs, LocalizationService.cs,
 │                    IPrivacyModeService.cs, PrivacyModeService.cs,
-│                    ISessionService.cs, SessionService.cs, DashboardPasswordHandler.cs
+│                    ISessionService.cs, SessionService.cs, DashboardPasswordHandler.cs,
+│                    IAgentRunner.cs (seam optionnel, voir §7.10)
 ├── Shared/        → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                    KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
-│                    BondScheduleDetailTable.razor, LoginGate.razor
-├── ViewModels/    → DashboardViewModel.cs, SuiviViewModel.cs, LoginGateViewModel.cs, SyncViewModel.cs
-├── Views/         → Dashboard.razor (/), Suivi.razor (/suivi)
+│                    BondScheduleDetailTable.razor, LoginGate.razor,
+│                    Dialogs/AgentPickerDialog.razor, Dialogs/AgentResultDialog.razor
+├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs
+├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi)
 ├── wwwroot/       → css/app.css, icon.svg (servis sous _content/InvestissementsDashboard.Client.Shared/)
 └── Docs/          → CLAUDE.md, SPECS.md (ce dossier)
 
@@ -70,7 +72,7 @@ Client.Tests/      (xUnit + bUnit, référence Client.Shared)
 ├── Helpers/       → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + mocks)
 ├── Models/        → PanelStateTests
 ├── Services/      → SessionServiceTests, PrivacyModeServiceTests, LocalStorageKeyValueStoreTests
-└── ViewModels/    → DashboardViewModelTests, SuiviViewModelTests, LoginGateViewModelTests, SyncViewModelTests
+└── ViewModels/    → DashboardViewModelTests, TrackingViewModelTests, LoginGateViewModelTests, AppViewModelTests, MainViewModelTests, AssetViewModelTests, AgentViewModelTests
 ```
 
 ## 5. UI — Règles MudBlazor
@@ -107,6 +109,8 @@ public PanelState RiskPanel        { get; } = new(PanelType.Risk);         // 2 
 
 Méthodes : `DrillDown(name)`, `GoBack()`. Propriétés : `Level`, `CanGoBack`, `IsAtLeafLevel`, `Selected(level)`.
 
+L'état de navigation de la page est porté par `DashboardViewModel`, pas par `Dashboard.razor` : `ActivePanel` / `HasActivePanel` (le panel descendu d'au moins un niveau — déduit, pas stocké), `SelectedZone` / `SelectedSector` (mutuellement exclusifs), `GeoClass` (`Stocks` ou `Bonds` juste sous la classe d'actifs, sinon `null`), `ShowEtfGroupingToggle`, et les commandes `DrillDown(panel, name)` (sans effet au niveau feuille, remet à zéro zone et secteur), `GoBack(panel)`, `SelectZone`, `SelectSector`, `ClearGeographySelection`. La vue ne garde que les palettes de couleurs (`ColorsFor(panel)`).
+
 Le titre d'un panel (ex : "Classes d'actifs") est calculé par `DashboardViewModel.GetPanelTitle(panel)` — jamais par `PanelState` directement.
 
 **Ne pas utiliser `panel.IsAtLeafLevel` directement dans les Views** — appeler `ViewModel.IsLeafLevel(panel)` qui prend en compte le toggle ETF et le type de panel.
@@ -117,7 +121,11 @@ Le titre d'un panel (ex : "Classes d'actifs") est calculé par `DashboardViewMod
 IReadOnlyList<DistributionItem> GetDistribution(PanelState panel)  // données du donut
 IReadOnlyList<AssetDto>         GetAssetsForPanel(PanelState panel) // données du tableau (feuille seulement)
 bool                            IsLeafLevel(PanelState panel)       // true si niveau feuille atteint
+decimal                         GetDistributionTotal(PanelState panel) // total du pied de DistributionTable
+string                          GetZonesTitle / GetSectorsTitle / GetSelectionTitle(PanelState panel) // titres localisés : donuts zones / secteurs, liste après sélection
 ```
+
+Règle commune aux tableaux : le total du pied est toujours fourni au composant (paramètre `Total` de `DistributionTable` et `BondScheduleDetailTable`) ou calculé par un ViewModel (`AssetViewModel.GetTotal`) — jamais calculé dans le balisage Razor.
 
 `GetDistribution` sélectionne automatiquement le bon filtre et le bon groupement selon `panel.Type`, `panel.Level` et `EtfStocksGroupByInformation`.
 
@@ -157,7 +165,7 @@ Retournent `null` si historique insuffisant, si aucune référence n'est trouvé
 ApexCharts for Blazor ne redessine pas le graphique sur simple mise à jour des paramètres. Toujours ajouter `@key` pour forcer la recréation du composant quand le niveau ou le toggle change :
 
 ```razor
-<DrillDownDonut @key="@($"{_activeHierarchy}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
+<DrillDownDonut @key="@($"{panel.Type}:{panel.Level}:{ViewModel.EtfStocksGroupByInformation}")"
                 Items="@ViewModel.GetDistribution(panel)" ... />
 ```
 
@@ -190,19 +198,19 @@ public interface IPrivacyModeService
 
 ### 7.5 BondScheduleChart — granularité trimestre/année et drill-down au clic sur une barre
 
-L'Api (`GET /api/assets/bondschedule`) renvoie `BondScheduleDto[]` à la granularité **mois** (`Year` + `Month`). `SuiviViewModel.BondScheduleDisplayed` ré-agrège ces données en `BondSchedulePeriodDto[]` (`Client.Shared/Model/BondSchedulePeriodDto.cs` — `Year`, `Quarter` nullable, `Amount`, `Bonds`, propriété calculée `Label` = `"T{Quarter} {Year}"` ou `"{Year}"`), recalculé à chaque lecture selon `SuiviViewModel.BondScheduleQuarterlyView` (bool, pattern identique à `EtfStocksGroupByInformation` — pas de cache, pas d'appel réseau supplémentaire). `Suivi.razor` expose ce choix via un `MudSwitch` (`ValueChanged` plutôt que `@bind-Value`, pour pouvoir réinitialiser la sélection de drill-down au changement de granularité).
+L'Api (`GET /api/assets/bondschedule`) renvoie `BondScheduleDto[]` à la granularité **mois** (`Year` + `Month`). `TrackingViewModel.BondScheduleDisplayed` ré-agrège ces données en `BondSchedulePeriodDto[]` (`Client.Shared/Model/BondSchedulePeriodDto.cs` — `Year`, `Quarter` nullable, `Amount`, `Bonds`, propriété calculée `Label` = `"T{Quarter} {Year}"` ou `"{Year}"`), recalculé à chaque lecture selon `TrackingViewModel.BondScheduleQuarterlyView` (bool, pattern identique à `EtfStocksGroupByInformation` — pas de cache, pas d'appel réseau supplémentaire). `Tracking.razor` expose ce choix via un `MudSwitch` en `@bind-Value` : le setter de `BondScheduleQuarterlyView` réinitialise lui-même la sélection de drill-down quand la granularité change.
 
 Contrairement à `DrillDownDonut` (donut, `OnDataPointSelection` → nom de la tranche via `Items.FirstOrDefault()?.Name`), `BondScheduleChart` est un graphique en barres dont `TItem = BondSchedulePeriodDto` n'a pas de propriété `Name` : `data.DataPoint.Items.FirstOrDefault()` renvoie directement le `BondSchedulePeriodDto` complet du point cliqué (`XValue` utilise `Label`), remonté au parent via `EventCallback<BondSchedulePeriodDto> OnPeriodClicked`.
 
-`Suivi.razor` stocke l'entrée sélectionnée dans un champ code-behind (`_selectedPeriodEntry`, pas dans `SuiviViewModel` — état de sélection UI pure, même logique que `_activeHierarchy`/`_selectedZone` dans `Dashboard.razor`) et l'affiche via `BondScheduleDetailTable.razor` (paramètre `PeriodLabel` en `string`, pas `Year` en `int` — même style que `DistributionTable.razor` : bordure `#E9E9E7`, `Dense`, `Hover`, colonnes `Col_Name`/`Col_CurrentValue`, ligne `Table_Total`, `NoRecordsContent` sur `Empty_NoData`).
+`TrackingViewModel` porte l'entrée sélectionnée (`SelectedPeriodEntry`, `SelectPeriod(entry)`), comme `DashboardViewModel` porte l'état de drill-down (§7.1) : `Tracking.razor` ne garde aucun état et l'affiche via `BondScheduleDetailTable.razor` (paramètre `PeriodLabel` en `string`, pas `Year` en `int` — même style que `DistributionTable.razor` : bordure `#E9E9E7`, `Dense`, `Hover`, colonnes `Col_Name`/`Col_CurrentValue`, ligne `Table_Total`, `NoRecordsContent` sur `Empty_NoData`). Le composant affiche tel quel les `Bonds` reçus : le filtre (obligations à 0 masquées) et le tri décroissant sont faits par `TrackingViewModel.SelectedPeriodBonds`.
 
 Layout responsive (`MudGrid`/`MudItem xs="12" md="X"`) : graphique en `md="12"` tant qu'aucune période n'est sélectionnée, puis `md="7"` dès le premier clic pour laisser la place au tableau en `md="5"` à droite. En dessous du breakpoint `md`, les deux blocs passent en `xs="12"` (empilés). Le `MudGrid` et le `MudItem` du graphique ont `Style="height:100%;"` — sans quoi le `height:100%` du `MudPaper` interne à `BondScheduleChart` se réduit à la hauteur du contenu (le `MudGrid` ne propage pas la hauteur de son conteneur par défaut).
 
-`<BondScheduleChart>` a un `@key="@($"{ViewModel.BondScheduleQuarterlyView}:{_selectedPeriodEntry is null}")"` — combine deux raisons de forcer la recréation de l'instance ApexCharts JS sous-jacente : (1) un clic changeant `md="12"` en `md="7"` (ou l'inverse) sans quoi le graphique continue de se redessiner à l'ancienne largeur pendant que `MudTable` apparaît déjà dans son propre `MudItem`, provoquant un chevauchement visuel en cas de clics rapides successifs ; (2) la bascule du `MudSwitch` trimestre/année — sans `BondScheduleQuarterlyView` dans la clé, `Items` change bien de contenu (nouveaux `BondSchedulePeriodDto[]`) mais ApexCharts.Blazor ne redessine pas le graphique sur simple mise à jour du paramètre, le switch semble alors ne rien faire. Même règle que `@key` sur `DrillDownDonut` (§7.3) : forcer la recréation du composant chaque fois qu'un changement doit être suivi d'un redessin ApexCharts.
+`<BondScheduleChart>` a un `@key="@($"{ViewModel.BondScheduleQuarterlyView}:{ViewModel.SelectedPeriodEntry is null}")"` — combine deux raisons de forcer la recréation de l'instance ApexCharts JS sous-jacente : (1) un clic changeant `md="12"` en `md="7"` (ou l'inverse) sans quoi le graphique continue de se redessiner à l'ancienne largeur pendant que `MudTable` apparaît déjà dans son propre `MudItem`, provoquant un chevauchement visuel en cas de clics rapides successifs ; (2) la bascule du `MudSwitch` trimestre/année — sans `BondScheduleQuarterlyView` dans la clé, `Items` change bien de contenu (nouveaux `BondSchedulePeriodDto[]`) mais ApexCharts.Blazor ne redessine pas le graphique sur simple mise à jour du paramètre, le switch semble alors ne rien faire. Même règle que `@key` sur `DrillDownDonut` (§7.3) : forcer la recréation du composant chaque fois qu'un changement doit être suivi d'un redessin ApexCharts.
 
 ### 7.7 ISessionService — écran de connexion (mot de passe du dashboard)
 
-`App.razor` est le point de garde unique : tant que `ISessionService.IsAuthenticated` est faux, il affiche `Client.Shared/Shared/LoginGate.razor` à la place du `<Router>` — aucune route du dashboard n'est jamais montée sans authentification préalable.
+`App.razor` est le point de garde unique (via `AppViewModel.IsAuthenticated` / `OnChange` / `InitializeAsync()`, qui relaient `ISessionService` : ni `App.razor` ni `MainLayout` n'injectent `ISessionService` ; la déconnexion passe par `MainViewModel.LogoutAsync()`) : tant que `ISessionService.IsAuthenticated` est faux, il affiche `Client.Shared/Shared/LoginGate.razor` à la place du `<Router>` — aucune route du dashboard n'est jamais montée sans authentification préalable.
 
 - `SessionService` (singleton, pattern similaire à `IPrivacyModeService`) stocke `{password, expiresAt}` (JSON, clé `investissements.dashboardSession`) via `IKeyValueStore` et revérifie le mot de passe au démarrage via `GET /api/auth/verify`
 - **Expiration glissante d'1h** : `DashboardPasswordHandler` appelle `ExtendSessionAsync()` après chaque requête réussie (repousse `expiresAt` à +1h) et court-circuite (`LogoutAsync()`, 401 local sans appeler l'Api) si `IsSessionExpired` avant d'envoyer quoi que ce soit — après 1h sans aucun appel réussi, l'utilisateur retombe sur `LoginGate` au prochain appel ou rechargement
@@ -212,13 +220,28 @@ Layout responsive (`MudGrid`/`MudItem xs="12" md="X"`) : graphique en `md="12"` 
 - **Limite connue (WASM)** : avec `LocalStorageKeyValueStore`, le mot de passe et l'expiration sont stockés en clair dans `localStorage`, visibles via les DevTools — protection suffisante contre un visiteur lambda, pas contre un accès physique à la session du navigateur. Côté MAUI, `SecureStorageKeyValueStore` les chiffre via l'OS.
 - **Anomalie connue** : `GET /api/auth/verify` répond actuellement toujours `200` (route exemptée du middleware) — l'écran de connexion accepte donc n'importe quel mot de passe tant que l'Api n'est pas corrigée ; les données restent protégées (`401` sans le bon mot de passe). Voir `Api/Docs/CLAUDE.md` §6.
 
-### 7.8 Synchronisation manuelle — SyncViewModel / ISyncService
+### 7.8 Synchronisation manuelle — MainViewModel / ISyncService
 
-Le menu « ⋮ » de `MainLayout` contient l'entrée « Synchroniser » : `SyncViewModel.TriggerAsync()` → `ISyncService` → `POST /api/sync` (voir `Api/Docs/SPECS.md` §2.12). `IsSyncing` désactive l'entrée et affiche un `MudProgressCircular` pendant l'appel. Le résultat (`SyncResultDto`) est affiché dans un `ISnackbar` : succès (`Sync_Success_WithAdded` si `AddedCount > 0`, sinon `Sync_Success_NoAdded`) ou erreur (`Sync_Error` + message de l'Api). Le `SyncViewModel` ne porte aucune logique de rafraîchissement : les KPI se mettent à jour au rechargement.
+Le menu « ⋮ » de `MainLayout` contient l'entrée « Synchroniser » : `MainViewModel.SyncAsync()` → `ISyncService` → `POST /api/sync` (voir `Api/Docs/SPECS.md` §2.12). `IsSyncing` désactive l'entrée et affiche un `MudProgressCircular` pendant l'appel. Le `MainViewModel` choisit le message localisé (`SyncMessage`, `IsSyncSuccess`) : succès (`Sync_Success_WithAdded` si `AddedCount > 0`, sinon `Sync_Success_NoAdded`) ou erreur (`Sync_Error` + message de l'Api ou de l'exception, journalisée). `MainLayout` se contente de l'afficher dans un `ISnackbar`. Le `MainViewModel` ne porte aucune logique de rafraîchissement : les KPI se mettent à jour au rechargement.
 
 ### 7.9 AssetTable — colonne coefficient de zone
 
-`AssetTable` accepte `IReadOnlyDictionary<int, decimal>? Coefficients` (clé = `AssetDto.Id`, valeur 0–1). Fourni uniquement par le drill-down géographique (`DashboardViewModel.GetZoneCoefficients(assetClass, zone)`), il ajoute la colonne « Coefficient zone » (`Col_GeoCoefficient`, après « Valeur actuelle ») et le total du pied de tableau devient **pondéré** (Σ valeur × coefficient) au lieu de la somme brute. Ordre des colonnes : Nom, Valeur actuelle, [Coefficient zone], Plus-value latente, ROI, Rendement.
+`AssetTable` accepte `IReadOnlyDictionary<int, decimal>? Coefficients` (clé = `AssetDto.Id`, valeur 0–1). Fourni uniquement par le drill-down géographique (`DashboardViewModel.GetZoneCoefficients(assetClass, zone)`), il ajoute la colonne « Coefficient zone » (`Col_GeoCoefficient`, après « Valeur actuelle ») et le total du pied de tableau devient **pondéré** (Σ valeur × coefficient) au lieu de la somme brute — calcul porté par `AssetViewModel.GetTotal(assets, coefficients)`, pas par le composant. Ordre des colonnes : Nom, Valeur actuelle, [Coefficient zone], Plus-value latente, ROI, Rendement.
+
+### 7.10 IAgentRunner — lancement d'un agent IA depuis la liste des actions
+
+Seam **optionnel** (même principe qu'`IKeyValueStore`, mais volontairement **non enregistré** par `AddInvestissementsClient`) : `Client.Shared` ne peut pas référencer `AgentAI.Core` (identité Azure, MCP), et les agents ne tournent pas dans le site WASM (CLAUDE.md racine §14). Seul l'hôte `Maui/` enregistre une implémentation.
+
+- `IAgentRunner.RunAsync(AgentChoice, assetName, ct)` → texte de la réponse ; `AgentChoice` = `Stock` | `News` (enum propre à `Client.Shared`, indépendante d'`AgentKind`).
+- Deux ViewModels (scoped, runner **optionnel** dans leur constructeur) :
+  - `AssetViewModel` (celui d'`AssetTable`) : `IsAgentAvailable` (runner enregistré ?) et `CanLaunchAgent(AssetDto)` (runner présent **et** `AssetType == Stock`). Sans runner (site WASM), aucune colonne ni bouton.
+  - `AgentViewModel` (celui d'`AgentResultDialog`) : `IsRunning`, `Response`, `Error`, `LaunchAsync(AgentChoice, assetName)` (réinitialise l'état, journalise et capture l'erreur, ignore l'annulation) et `Cancel()`. Un seul dialogue modal étant ouvert à la fois, l'état est remis à zéro à chaque lancement. Avec runner, une icône `SmartToy` apparaît **uniquement sur les lignes `AssetType == Stock`** (`AssetTypeNames.Stock`).
+- Clic → `AgentPickerDialog` (choix Stock / News, annulable) → `AgentResultDialog` (lie l'affichage à `AgentViewModel` : progression `MudProgressLinear`, puis réponse ou erreur ; sa libération appelle `Cancel()`). Les vues ne contiennent que l'ouverture des dialogues (`IDialogService`) : aucun paramètre à propager depuis `Dashboard.razor`.
+- Tests : les classes de test de dialogues implémentent `IAsyncLifetime` et libèrent le contexte via `base.DisposeAsync()` (les services de dialogue MudBlazor n'implémentent que `IAsyncDisposable`).
+
+### 7.11 Exception assumée : bornes de l'axe Y de `HistoryChart`
+
+`HistoryChart.OnParametersSet` calcule les bornes de l'axe Y (min et max des trois séries, ±20) directement dans le composant. C'est une règle de rendu du graphique, au même titre que ses couleurs ou son style de ligne (comme les formatters d'`ApexChartOptions`), pas une règle de présentation de données : elle reste dans le composant.
 
 ## 8. Localisation
 
@@ -250,11 +273,10 @@ Framework : xUnit + bUnit. Nommage : `[MethodName]_[Scenario]_[ExpectedResult]`.
 - `TestData.AddLocalizationMock(this IServiceCollection services)` — extension à appeler dans le constructeur de tout test de composant qui rend un composant injectant `ILocalizationService`. Le mock utilise `ResourceManager` sur les vraies ressources compilées → les assertions peuvent vérifier les chaînes françaises.
 - `TestData.AddPrivacyModeMock(this IServiceCollection services, bool isHidden = false)` — extension à appeler dans le constructeur de tout test de composant qui affiche un montant € (injecte `IPrivacyModeService`). Rappeler avec `isHidden: true` dans un test dédié pour vérifier le masquage.
 - `DashboardViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>` (setup `Translate(key) → key`)
-- `SuiviViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
+- `TrackingViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
 - Les tests de composants héritent de `BunitContext` et appellent `Services.AddMudServices(...)` + `Services.AddLocalizationMock()`
 - `IKeyValueStore` : les tests de services (`SessionService`, `PrivacyModeService`) injectent `Mock<IKeyValueStore>` ; `LocalStorageKeyValueStore` est testé avec `Mock<IJSRuntime>`
 - `ServiceCollectionExtensionsTests` vérifie que `AddInvestissementsClient` permet de résoudre services et ViewModels
-- `Client.Tests/UnitTest1.cs` est un reste de template sans test utile (à supprimer)
 - Lancer les tests : `dotnet test "Client.Tests/InvestissementsDashboard.Client.Tests.csproj"` — non exécutés par la CI actuelle (seul `Api.Tests` l'est)
 
 ---

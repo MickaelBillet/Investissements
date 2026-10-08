@@ -4,7 +4,7 @@
 
 Application **MAUI Windows**, strictement personnelle (PC du propriétaire), qui affiche le dashboard dans un `BlazorWebView`. Elle réutilise **tout** le code Blazor de la bibliothèque `Client.Shared/` (voir `Client.Shared/Docs/CLAUDE.md`) et appelle la même Api que le site. Elle ne contient aucun composant ni logique métier : uniquement l'hôte (DI, stockage sécurisé, page d'hébergement, icône).
 
-Elle prépare l'accueil des agents IA (CLAUDE.md racine §14) : ceux-ci s'exécuteront dans ce processus, sans la limite de 45 s du proxy SWA. Rien de cela n'est encore implémenté.
+Elle prépare l'accueil des agents IA (CLAUDE.md racine §14) : ceux-ci s'exécuteront dans ce processus, sans la limite de 45 s du proxy SWA. Seule l'interface est en place : `AgentAI.Core` est référencé, `Services/PlaceholderAgentRunner.cs` (réponse fictive) est enregistré comme `IAgentRunner` dans `MauiProgram` pour alimenter l'UI de `Client.Shared` (§7.10 de sa doc). L'exécution réelle des agents (`IAgentFactory`, `AddAgentAI`) reste à brancher.
 
 ## 2. Stack
 
@@ -25,6 +25,7 @@ Maui/
 ├── MainPage.xaml(.cs)          # BlazorWebView : #app → App (Client.Shared), head::after → HeadOutlet
 ├── MauiProgram.cs              # DI et configuration (voir §4)
 ├── Services/SecureStorageKeyValueStore.cs   # IKeyValueStore → ISecureStorage (chiffré par l'OS)
+├── Services/PlaceholderAgentRunner.cs       # IAgentRunner provisoire (réponse fictive)
 ├── Platforms/Windows/          # App.xaml(.cs), app.manifest (boilerplate WinUI), Package.appxmanifest (identité MSIX)
 ├── Scripts/                    # New-DevCertificate.ps1, Publish-Msix.ps1, Install-Msix.ps1 (packaging, voir §7)
 ├── Resources/AppIcon/appicon.svg, Resources/Splash/splash.svg   # même visuel que le favicon du site
@@ -38,7 +39,7 @@ Maui.Tests/
 ## 4. `MauiProgram.cs`
 
 1. `AddMauiBlazorWebView()` (+ `AddBlazorWebViewDeveloperTools()` et log debug en `DEBUG`).
-2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`.
+2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`, `IAgentRunner` → `PlaceholderAgentRunner` (provisoire).
 3. `AddInvestissementsClient(ApiBaseUri)` — toute la DI du dashboard vient de `Client.Shared`.
 
 **URL de l'Api** : `https://invest.zapto.fr/`, fixée dans `MauiProgram.ApiBaseUri` (l'Api n'est joignable que via le proxy SWA). Aucune surcharge par variable d'environnement : pour développer contre une Api locale, modifier la constante.

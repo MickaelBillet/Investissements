@@ -1,6 +1,8 @@
 @implements IDisposable
 @inject ILocalizationService L
 @inject IPrivacyModeService Privacy
+@inject IDialogService Dialogs
+@inject AssetViewModel ViewModel
 
 @if (!string.IsNullOrEmpty(Title))
 {
@@ -19,6 +21,10 @@
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_UnrealizedGain")</MudTh>
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_ROI")</MudTh>
         <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_Yield")</MudTh>
+        @if (AgentsAvailable)
+        {
+            <MudTh />
+        }
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="@L.Translate("Col_Name")" Style="font-weight:500;">@context.Name</MudTd>
@@ -42,17 +48,33 @@
         <MudTd DataLabel="@L.Translate("Col_Yield")" Style="text-align:right;">
             @context.Yield.ToPercentage()
         </MudTd>
+        @if (AgentsAvailable)
+        {
+            <MudTd Style="text-align:right;">
+                @if (ViewModel.CanLaunchAgent(context))
+                {
+                    <MudIconButton Icon="@Icons.Material.Outlined.SmartToy" Size="MudBlazor.Size.Small"
+                                   title="@L.Translate("Agent_Button")"
+                                   aria-label="@L.Translate("Agent_Button")"
+                                   OnClick="@(() => LaunchAgentAsync(context))" />
+                }
+            </MudTd>
+        }
     </RowTemplate>
     <FooterContent>
         <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
         <MudTd Style="text-align:right;font-weight:600;">
-            @WeightedTotal().ToEurAmount(Privacy.IsHidden)
+            @ViewModel.GetTotal(Assets, Coefficients).ToEurAmount(Privacy.IsHidden)
         </MudTd>
         @if (Coefficients is not null)
         {
             <MudTd />
         }
         <MudTd /><MudTd /><MudTd />
+        @if (AgentsAvailable)
+        {
+            <MudTd />
+        }
     </FooterContent>
     <NoRecordsContent>
         <MudText Typo="Typo.body2" Style="color:#787774;padding:16px;">@L.Translate("Empty_NoAsset")</MudText>
@@ -60,17 +82,31 @@
 </MudTable>
 
 @code {
-    [Parameter, EditorRequired] public IReadOnlyList<AssetDto> Assets { get; set; } = [];
+    [Parameter, EditorRequired] public new IReadOnlyList<AssetDto> Assets { get; set; } = [];
     [Parameter]                 public string?                  Title  { get; set; }
 
     // Per-asset zone coefficient (0–1), keyed by AssetDto.Id — when provided, an extra
     // column is shown and the footer total is weighted instead of summing CurrentTotal.
     [Parameter]                 public IReadOnlyDictionary<int, decimal>? Coefficients { get; set; }
 
-    private decimal WeightedTotal() =>
-        Coefficients is null
-            ? Assets.Sum(a => a.CurrentTotal ?? 0m)
-            : Assets.Sum(a => (a.CurrentTotal ?? 0m) * (Coefficients.TryGetValue(a.Id, out var c) ? c : 0m));
+    private bool AgentsAvailable => ViewModel.IsAgentAvailable;
+
+    private async Task LaunchAgentAsync(AssetDto asset)
+    {
+        var picker = await Dialogs.ShowAsync<AgentPickerDialog>(
+            L.Translate("Agent_PickerTitle"),
+            new DialogParameters<AgentPickerDialog> { { x => x.AssetName, asset.Name } });
+        var pickerResult = await picker.Result;
+        if (pickerResult is null || pickerResult.Canceled || pickerResult.Data is not AgentChoice choice)
+        {
+            return;
+        }
+
+        await Dialogs.ShowAsync<AgentResultDialog>(
+            asset.Name,
+            new DialogParameters<AgentResultDialog> { { x => x.Agent, choice }, { x => x.AssetName, asset.Name } },
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+    }
 
     protected override void OnInitialized() => Privacy.OnChange += StateHasChanged;
 

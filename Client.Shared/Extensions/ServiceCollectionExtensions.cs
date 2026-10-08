@@ -36,9 +36,12 @@ public static class ServiceCollectionExtensions
             .AddHttpMessageHandler<DashboardPasswordHandler>();
 
         services.AddScoped<DashboardViewModel>();
-        services.AddScoped<SuiviViewModel>();
+        services.AddScoped<TrackingViewModel>();
         services.AddScoped<LoginGateViewModel>();
-        services.AddScoped<SyncViewModel>();
+        services.AddScoped<AppViewModel>();
+        services.AddScoped<MainViewModel>();
+        services.AddScoped<AssetViewModel>();
+        services.AddScoped<AgentViewModel>();
 
         return services;
     }

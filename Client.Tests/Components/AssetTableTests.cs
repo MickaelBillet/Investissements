@@ -2,8 +2,10 @@ using Bunit;
 using InvestissementsDashboard.Client.Extensions;
 using InvestissementsDashboard.Client.Shared;
 using InvestissementsDashboard.Client.Tests.Helpers;
+using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using MudBlazor.Services;
 
 namespace InvestissementsDashboard.Client.Tests.Components;
@@ -15,6 +17,7 @@ public class AssetTableTests : BunitContext
         Services.AddMudServices(opt => opt.PopoverOptions.CheckForPopoverProvider = false);
         Services.AddLocalizationMock();
         Services.AddPrivacyModeMock();
+        Services.AddAssetViewModel();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -147,5 +150,37 @@ public class AssetTableTests : BunitContext
         Assert.Contains("*****", cut.Markup);
         Assert.DoesNotContain((5_000m).ToEurAmount(), cut.Markup);
         Assert.DoesNotContain((100m).ToEurAmount(), cut.Markup);
+    }
+
+    [Fact]
+    public void AssetTable_WithoutAgentRunner_ShowsNoAgentButton()
+    {
+        var assets = new[] { TestData.Asset(assetType: "Stock") };
+
+        var cut = Render<AssetTable>(p => p.Add(c => c.Assets, assets));
+
+        Assert.Empty(cut.FindAll("button[aria-label='Lancer un agent']"));
+    }
+
+    [Fact]
+    public void AssetTable_WithAgentRunnerAndStockRow_ShowsAgentButton()
+    {
+        Services.AddAssetViewModel(new Mock<IAgentRunner>().Object);
+        var assets = new[] { TestData.Asset(assetType: "Stock") };
+
+        var cut = Render<AssetTable>(p => p.Add(c => c.Assets, assets));
+
+        Assert.Single(cut.FindAll("button[aria-label='Lancer un agent']"));
+    }
+
+    [Fact]
+    public void AssetTable_WithAgentRunnerAndNonStockRow_ShowsNoAgentButton()
+    {
+        Services.AddAssetViewModel(new Mock<IAgentRunner>().Object);
+        var assets = new[] { TestData.Asset(assetType: "ETF_Stocks") };
+
+        var cut = Render<AssetTable>(p => p.Add(c => c.Assets, assets));
+
+        Assert.Empty(cut.FindAll("button[aria-label='Lancer un agent']"));
     }
 }

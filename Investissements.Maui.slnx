@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/AgentAI.Core/">
+    <Project Path="AgentAI.Core/AgentAI.Core.csproj" />
+  </Folder>
   <Folder Name="/Client.Shared/">
     <Project Path="Client.Shared/InvestissementsDashboard.Client.Shared.csproj" />
   </Folder>

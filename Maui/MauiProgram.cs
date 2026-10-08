@@ -19,6 +19,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISecureStorage>(SecureStorage.Default);
         builder.Services.AddSingleton<IKeyValueStore, SecureStorageKeyValueStore>();
         builder.Services.AddInvestissementsClient(ApiBaseUri);
+        builder.Services.AddSingleton<IAgentRunner, PlaceholderAgentRunner>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

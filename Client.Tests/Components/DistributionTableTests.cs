@@ -68,7 +68,7 @@ public class DistributionTableTests : BunitContext
     }
 
     [Fact]
-    public void DistributionTable_FooterDisplaysSumOfCurrentTotal()
+    public void DistributionTable_FooterDisplaysProvidedTotal()
     {
         var items = new[]
         {
@@ -77,10 +77,10 @@ public class DistributionTableTests : BunitContext
         };
 
         var cut = Render<DistributionTable>(p => p
-            .Add(c => c.Items, items));
+            .Add(c => c.Items, items)
+            .Add(c => c.Total, 16_000m));
 
-        // Total = 16 000 → formatted as "16 000,00" or similar
-        Assert.Contains("16", cut.Markup);
+        Assert.Contains((16_000m).ToEurAmount(), cut.Markup);
         Assert.Contains("Total", cut.Markup);
     }
 

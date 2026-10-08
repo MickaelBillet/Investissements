@@ -4,7 +4,7 @@ using InvestissementsDashboard.Shared.Models;
 
 namespace InvestissementsDashboard.Client.ViewModels;
 
-public class SuiviViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
+public class TrackingViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
 {
     public bool    IsLoading         { get; private set; } = true;
     public string? HistoryError      { get; private set; }
@@ -14,7 +14,29 @@ public class SuiviViewModel(IPortfolioService portfolioService, ILocalizationSer
     public IReadOnlyList<IndexedPoint> LifeStrategySeries { get; private set; } = [];
     public IReadOnlyList<IndexedPoint> MsciWorldSeries    { get; private set; } = [];
     public IReadOnlyList<BondScheduleDto> BondSchedule     { get; private set; } = [];
-    public bool BondScheduleQuarterlyView { get; set; }
+    private bool _bondScheduleQuarterlyView;
+
+    // Changing the granularity invalidates the selected period (a quarter label means nothing in the yearly view).
+    public bool BondScheduleQuarterlyView
+    {
+        get => _bondScheduleQuarterlyView;
+        set
+        {
+            if (_bondScheduleQuarterlyView == value) return;
+            _bondScheduleQuarterlyView = value;
+            SelectedPeriodEntry = null;
+        }
+    }
+
+    public BondSchedulePeriodDto? SelectedPeriodEntry { get; private set; }
+
+    // Zero-value bonds are already repaid/sold: hiding them keeps the list focused on live positions.
+    public IReadOnlyList<BondScheduleItemDto> SelectedPeriodBonds =>
+        SelectedPeriodEntry is null
+            ? []
+            : [.. SelectedPeriodEntry.Bonds.Where(b => b.Amount > 0).OrderByDescending(b => b.Amount)];
+
+    public void SelectPeriod(BondSchedulePeriodDto entry) => SelectedPeriodEntry = entry;
 
     public IReadOnlyList<BondSchedulePeriodDto> BondScheduleDisplayed =>
         BondScheduleQuarterlyView

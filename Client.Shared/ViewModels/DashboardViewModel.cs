@@ -1,6 +1,7 @@
 using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Shared;
+using InvestissementsDashboard.Shared.Constants;
 using InvestissementsDashboard.Shared.Models;
 
 namespace InvestissementsDashboard.Client.ViewModels;
@@ -23,6 +24,28 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     public PanelState AssetClassPanel  { get; } = new(PanelType.AssetClass);
     public PanelState SupportTypePanel { get; } = new(PanelType.SupportType);
     public PanelState RiskPanel        { get; } = new(PanelType.Risk);
+
+    // Only one hierarchy can be drilled into at a time (a drill-down starts from the overview), so the
+    // active panel is simply the one that has left level 0: no separate "active hierarchy" state to keep in sync.
+    public PanelState? ActivePanel =>
+        AssetClassPanel.CanGoBack  ? AssetClassPanel  :
+        SupportTypePanel.CanGoBack ? SupportTypePanel :
+        RiskPanel.CanGoBack        ? RiskPanel        : null;
+
+    public bool HasActivePanel => ActivePanel is not null;
+
+    public string? SelectedZone   { get; private set; }
+    public string? SelectedSector { get; private set; }
+
+    // The geography/sector donuts only make sense right under a Stocks or Bonds asset class.
+    public string? GeoClass =>
+        ActivePanel is { Type: PanelType.AssetClass, Level: 1 } panel
+        && panel.Selected(0) is AssetClassNames.Stocks or AssetClassNames.Bonds
+            ? panel.Selected(0)
+            : null;
+
+    public bool ShowEtfGroupingToggle =>
+        ActivePanel is { Type: PanelType.AssetClass } panel && panel.Selected(1) == AssetTypeNames.EtfStocks;
 
     public bool EtfStocksGroupByInformation { get; set; }
 
@@ -97,6 +120,37 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         return string.Join(" › ", segments);
     }
 
+    public void DrillDown(PanelState panel, string name)
+    {
+        if (IsLeafLevel(panel)) return;
+        ClearGeographySelection();
+        panel.DrillDown(name);
+    }
+
+    public void GoBack(PanelState panel)
+    {
+        ClearGeographySelection();
+        panel.GoBack();
+    }
+
+    public void SelectZone(string zone)
+    {
+        SelectedZone   = zone;
+        SelectedSector = null;
+    }
+
+    public void SelectSector(string sector)
+    {
+        SelectedSector = sector;
+        SelectedZone   = null;
+    }
+
+    public void ClearGeographySelection()
+    {
+        SelectedZone   = null;
+        SelectedSector = null;
+    }
+
     public bool IsLeafLevel(PanelState panel)
     {
         if (panel.Type == PanelType.AssetClass
@@ -106,6 +160,18 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
 
         return panel.Type == PanelType.Risk ? panel.Level >= 1 : panel.Level >= 2;
     }
+
+    public decimal GetDistributionTotal(PanelState panel) => GetDistribution(panel).Sum(i => i.CurrentTotal);
+
+    public string GetZonesTitle(PanelState panel) =>
+        string.Format(localizationService.Translate("Geo_ZonesTitle"), GetPanelTitle(panel));
+
+    public string GetSectorsTitle(PanelState panel) =>
+        string.Format(localizationService.Translate("Geo_SectorsTitle"), GetPanelTitle(panel));
+
+    // Title of the asset list shown once a zone or a sector has been picked.
+    public string GetSelectionTitle(PanelState panel) =>
+        string.Format(localizationService.Translate("Panel_SelectionTitle"), GetPanelTitle(panel), SelectedZone ?? SelectedSector);
 
     public IReadOnlyList<DistributionItem> GetDistribution(PanelState panel) =>
         panel.Type switch
