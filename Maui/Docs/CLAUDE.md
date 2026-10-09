@@ -26,6 +26,8 @@ Maui/
 ├── MauiProgram.cs              # DI et configuration (voir §4)
 ├── Services/SecureStorageKeyValueStore.cs   # IKeyValueStore → ISecureStorage (chiffré par l'OS)
 ├── Services/PlaceholderAgentRunner.cs       # IAgentRunner provisoire (réponse fictive)
+├── Services/PreferencesAgentSettings.cs     # IAgentSettings → IPreferences (page Paramètres)
+├── Services/AgentOptionsProvider.cs         # IAgentSettings → AgentAIOptions (MCP déduit de l'URL de base stockée, repli sur l'Api ; historique injecté) ; pas encore branché
 ├── Platforms/Windows/          # App.xaml(.cs), app.manifest (boilerplate WinUI), Package.appxmanifest (identité MSIX)
 ├── Scripts/                    # New-DevCertificate.ps1, Publish-Msix.ps1, Install-Msix.ps1 (packaging, voir §7)
 ├── Resources/AppIcon/appicon.svg, Resources/Splash/splash.svg   # même visuel que le favicon du site
@@ -33,13 +35,15 @@ Maui/
 └── Docs/                       # CLAUDE.md, SPECS.md
 
 Maui.Tests/
-└── SecureStorageKeyValueStoreTests.cs
+├── SecureStorageKeyValueStoreTests.cs
+├── PreferencesAgentSettingsTests.cs
+└── AgentOptionsProviderTests.cs
 ```
 
 ## 4. `MauiProgram.cs`
 
 1. `AddMauiBlazorWebView()` (+ `AddBlazorWebViewDeveloperTools()` et log debug en `DEBUG`).
-2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`, `IAgentRunner` → `PlaceholderAgentRunner` (provisoire).
+2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`, `IAgentRunner` → `PlaceholderAgentRunner` (provisoire), `IAgentSettings` → `PreferencesAgentSettings` (affiche la page Paramètres ; au premier lancement, `https://invest.zapto.fr/` — `ApiBaseUri` — est enregistrée dans les préférences comme URL de base du MCP, sans champ de saisie). `AgentOptionsProvider` + `AddAgentAI(factory)` (configuration lue au premier usage, pas au démarrage) sont prêts mais non enregistrés : le branchement des vrais agents est l'étape suivante.
 3. `AddInvestissementsClient(ApiBaseUri)` — toute la DI du dashboard vient de `Client.Shared`.
 
 **URL de l'Api** : `https://invest.zapto.fr/`, fixée dans `MauiProgram.ApiBaseUri` (l'Api n'est joignable que via le proxy SWA). Aucune surcharge par variable d'environnement : pour développer contre une Api locale, modifier la constante.
@@ -57,7 +61,7 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 - Les projets MAUI **ne figurent pas dans `Investissements.slnx`** (restauration impossible sur le runner Ubuntu de la CI). Ils sont dans **`Investissements.Maui.slnx`** (Client.Shared, Maui, Maui.Tests, Shared) — Windows uniquement, workload `maui-windows` requis.
 - Build : `dotnet build Investissements.Maui.slnx`
 - Lancer : `dotnet run --project Maui -f net10.0-windows10.0.19041.0` (ou exécuter `Maui/bin/Debug/net10.0-windows10.0.19041.0/win-x64/InvestissementsDashboard.Maui.exe`)
-- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (4 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** le fichier `SecureStorageKeyValueStore.cs` au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
+- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (18 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs` et `AgentOptionsProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
 - La CI ne construit ni ne teste ce projet.
 - Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `Maui/obj` (cache de génération des icônes).
 

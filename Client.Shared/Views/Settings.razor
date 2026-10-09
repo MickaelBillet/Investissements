@@ -1,0 +1,80 @@
+@page "/settings"
+@inject SettingsViewModel ViewModel
+@inject ILocalizationService L
+
+<PageTitle>@L.Translate("Nav_AppTitle")</PageTitle>
+
+@if (ViewModel.IsAvailable)
+{
+    @* Mimics the Windows 11 Settings look: section header, then one rounded "row" card per setting
+       (icon + title/description on the left, control on the right). *@
+    <style>
+        .win-settings { max-width: 760px; margin: 0 auto; }
+        .win-title { font-size: 28px; font-weight: 600; color: #37352F; margin-bottom: 24px; }
+        .win-section { font-size: 14px; font-weight: 600; color: #37352F; margin: 0 0 8px 2px; }
+        .win-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 20px; margin-bottom: 4px;
+                   background: #FFFFFF; border: 1px solid #E9E9E7; border-radius: 8px; }
+        .win-row-icon { color: #37352F; display: flex; }
+        .win-row-text { flex: 1 1 220px; min-width: 0; }
+        .win-row-title { font-size: 14px; color: #37352F; line-height: 1.3; }
+        .win-row-desc { font-size: 12px; color: #787774; line-height: 1.3; }
+        .win-row-control { flex: 0 1 320px; width: 320px; max-width: 100%; }
+        .win-footer { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 16px; }
+    </style>
+
+    <div class="win-settings">
+        <div class="win-title">@L.Translate("Nav_Settings")</div>
+
+        <form @onsubmit="ViewModel.Save" @onsubmit:preventDefault="true">
+            <div class="win-section">@L.Translate("Settings_Title")</div>
+
+            <div class="win-row">
+                <span class="win-row-icon"><MudIcon Icon="@Icons.Material.Outlined.CloudQueue" /></span>
+                <div class="win-row-text">
+                    <div class="win-row-title">@L.Translate("Settings_Endpoint")</div>
+                    <div class="win-row-desc">@L.Translate("Settings_EndpointHelp")</div>
+                </div>
+                <div class="win-row-control">
+                    <MudTextField T="string"
+                                  @bind-Value="ViewModel.Endpoint"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true"
+                                  Placeholder="https://..." />
+                </div>
+            </div>
+
+            <div class="win-row">
+                <span class="win-row-icon"><MudIcon Icon="@Icons.Material.Outlined.SmartToy" /></span>
+                <div class="win-row-text">
+                    <div class="win-row-title">@L.Translate("Settings_Model")</div>
+                    <div class="win-row-desc">@L.Translate("Settings_ModelHelp")</div>
+                </div>
+                <div class="win-row-control">
+                    <MudTextField T="string"
+                                  @bind-Value="ViewModel.Model"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true" />
+                </div>
+            </div>
+
+            <div class="win-footer">
+                <MudText Typo="Typo.body2"
+                         Style="@($"font-size:13px;color:{(ViewModel.IsStatusError ? "#E06D6D" : "#4DAB9A")};")">
+                    @ViewModel.StatusMessage
+                </MudText>
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="MudBlazor.Color.Primary"
+                           Style="border-radius:4px;text-transform:none;font-weight:500;">
+                    @L.Translate("Settings_Save")
+                </MudButton>
+            </div>
+        </form>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => ViewModel.Load();
+}

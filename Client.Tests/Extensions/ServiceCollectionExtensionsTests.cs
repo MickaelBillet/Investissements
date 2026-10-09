@@ -43,6 +43,15 @@ public class ServiceCollectionExtensionsTests
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<MainViewModel>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<AssetViewModel>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<AgentViewModel>());
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<SettingsViewModel>());
+    }
+
+    [Fact]
+    public void AddInvestissementsClient_DoesNotRegisterAgentSettings()
+    {
+        using var provider = BuildProvider(new Uri("https://example.test/"));
+
+        Assert.Null(provider.GetService<IAgentSettings>());
     }
 
     [Fact]
