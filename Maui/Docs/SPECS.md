@@ -1,8 +1,8 @@
 # SPECS.md — Maui (application Windows)
 
-**Statut :** Implémenté (première version — parité avec le site)  
-**Version :** 1.0  
-**Date :** 2026-10-05
+**Statut :** Implémenté (parité avec le site + agents IA Stock et Actualités)  
+**Version :** 1.1  
+**Date :** 2026-10-09
 
 ---
 
@@ -23,10 +23,16 @@ Offrir sur le PC du propriétaire une application native affichant le **même da
 | 7 | Icône d'application (exécutable, barre des tâches, écran de démarrage) identique au favicon du site |
 | 8 | Aucune clé d'API ni secret n'est embarqué dans l'application (un binaire se décompile) |
 | 9 | Le lien « Documentation » ouvre le PDF du site hors de l'application |
+| 10 | Une page **Paramètres** (menu « ⋮ ») permet de saisir l'endpoint du projet Azure AI Foundry (URL https absolue) et le nom du modèle (facultatif, `gpt-5-mini` par défaut). Ces valeurs ne sont pas secrètes ; elles sont conservées entre les lancements et modifiables à tout moment |
+| 11 | Sur chaque ligne d'action (`Stock`) de la liste, une icône ouvre le choix d'un agent IA : **Analyse de l'action** ou **Actualités de la société**. La réponse s'affiche dans une boîte de dialogue, avec un indicateur de progression pendant l'exécution |
+| 12 | Les agents répondent en un seul tour : pas de question finale, pas de conversation. Fermer la boîte de dialogue annule l'exécution |
+| 13 | Si l'endpoint Foundry n'est pas renseigné, ou si l'agent échoue, un message d'erreur est affiché dans la boîte de dialogue (l'application démarre normalement sans configuration) |
+| 14 | Les agents s'exécutent dans le processus de l'application avec l'identité Azure du poste (`az login`) ; aucun secret Azure n'est embarqué. Leur usage consomme des tokens Azure AI Foundry facturés à l'usage |
 
 ## 3. Hors périmètre (évolutions prévues)
 
-- Agents IA (Chat, Météo, Action, Portefeuille, Actualités) exécutés dans le processus de l'application — voir `CLAUDE.md` racine §14.
-- Page de paramètres (URL de l'Api, identité Azure).
+- Agents Chat, Météo et Portefeuille (déjà dans la bibliothèque `AgentAI.Core`, non exposés dans l'interface) — voir `CLAUDE.md` racine §14.
+- Réglage de l'URL de l'Api et connexion Azure interactive (sans `az login`).
+- Boucle conversationnelle avec les agents (questions de relance).
 - Distribution à d'autres postes (certificat de confiance ou signature par une autorité).
 - Exécution des tests et du build MAUI en CI.

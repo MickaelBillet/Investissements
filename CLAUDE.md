@@ -258,7 +258,7 @@ investment-dashboard/
 ├── SECURITY.md                      # Règles de sécurité générales
 ├── .mcp.json                        # Déclaration du serveur MCP du projet
 ├── Investissements.slnx             # Solution du CI : Api, Api.Tests, Client, Client.Shared, Client.Tests, Shared
-├── Investissements.Maui.slnx        # Solution MAUI (Windows uniquement) : Client.Shared, Maui, Maui.Tests, Shared
+├── Investissements.Maui.slnx        # Solution MAUI (Windows uniquement) : AgentAI.Core, Client.Shared, Maui, Maui.Tests, Shared
 ├── Client/                          # Hôte Blazor WASM mince (Program.cs, index.html, staticwebapp.config.json)
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique de l'hôte WASM
@@ -266,17 +266,24 @@ investment-dashboard/
 ├── Client.Shared/                   # Bibliothèque Razor partagée (App, Views, composants, ViewModels, Services) — WASM + MAUI
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique du dashboard
-│       └── SPECS.md                 # Spécifications fonctionnelles du dashboard
+│       ├── SPECS.md                 # Spécifications fonctionnelles du dashboard
+│       └── client-shared-class-diagram.drawio / .png   # Diagramme de classes
 ├── Client.Tests/                    # Tests xUnit + bUnit de Client.Shared
-├── Maui/                            # Hôte MAUI Windows (BlazorWebView)
+├── Maui/                            # Hôte MAUI Windows (BlazorWebView) + exécution des agents IA
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique de l'application Windows
-│       └── SPECS.md                 # Spécifications de l'application Windows
-├── Maui.Tests/                      # Tests xUnit du projet MAUI
+│       ├── SPECS.md                 # Spécifications de l'application Windows
+│       └── maui-class-diagram.drawio / .png            # Diagramme de classes
+├── Maui.Tests/                      # Tests xUnit du projet MAUI (et d'AgentAI.Core : AgentRunner, instructions)
+├── AgentAI.Core/                    # Bibliothèque des agents IA (Microsoft Agent Framework + Azure AI Foundry), net10.0
+│   └── Docs/
+│       ├── CLAUDE.md                # Architecture technique de la bibliothèque des agents
+│       └── agentai-class-diagram.drawio / .png         # Diagramme de classes
 ├── Api/                             # Azure Functions (C#)
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique de l'Api
-│       └── SPECS.md                 # Spécifications fonctionnelles de l'Api
+│       ├── SPECS.md                 # Spécifications fonctionnelles de l'Api
+│       └── api-class-diagram.drawio / .png             # Diagramme de classes
 ├── Api.Tests/                       # Tests xUnit + Moq de l'Api
 ├── Scripts/                         # Google Apps Script (référence versionnée) — ETL, rapport hebdo, synchro manuelle
 │   └── Docs/
@@ -295,7 +302,9 @@ investment-dashboard/
         └── azure-static-web-apps-white-cliff-055f3f803.yml   # Pipeline GitHub Actions
 ```
 
-Les dossiers `Docs/` portent les fichiers `CLAUDE.md` (casse exacte : la CI tourne sous Linux) et `SPECS.md`. Les bibliothèques techniques `GoogleSheets` et `Shared` n'ont pas de `SPECS.md` (aucune fonctionnalité utilisateur propre).
+Les dossiers `Docs/` portent les fichiers `CLAUDE.md` (casse exacte : la CI tourne sous Linux) et `SPECS.md`. Les bibliothèques techniques `GoogleSheets`, `Shared` et `AgentAI.Core` n'ont pas de `SPECS.md` (aucune fonctionnalité utilisateur propre).
+
+**Diagrammes de classes** : un par projet (`Api`, `Client.Shared`, `Maui`, `AgentAI.Core`), au format draw.io (`.drawio` + `.png`) dans le `Docs/` du projet, nommés `<projet>-class-diagram.*`. Règles communes : une classe = un rectangle à trois zones (titre, séparateur, membres ; `- champ` injecté, `+ membre` public) ; couleurs par couche — vues/Functions/hôtes bleu, ViewModels violet, interfaces jaune (`<<interface>>`), services vert, modèles/utilitaires gris, externe rouge, middleware lavande ; **trait pointillé + triangle creux = implémente une interface**, **trait plein + triangle creux = hérite d'une classe**, **trait pointillé + flèche ouverte = utilise/dépend de** (légende reprise en bas de chaque diagramme). À mettre à jour dans le même geste que toute modification de classe ou de dépendance.
 
 ### 8.3 Règle de contexte pour Claude Code
 
@@ -303,7 +312,7 @@ Les dossiers `Docs/` portent les fichiers `CLAUDE.md` (casse exacte : la CI tour
 > - `CLAUDE.md` et `Docs/SPECS.md` (contexte global)
 > - `<sous-projet>/Docs/CLAUDE.md` et `<sous-projet>/Docs/SPECS.md` (contexte spécifique)
 >
-> Tu ne lis pas les fichiers `Docs/` des autres sous-projets. Sous-projets : `Client` (hôte WASM), `Client.Shared` (dashboard partagé), `Maui`, `Api`, `Scripts`, `GoogleSheets`, `Shared`. Un travail sur le dashboard lit `Client.Shared/Docs/` ; sur l'hôte WASM ou MAUI, le `Docs/` de l'hôte **et** celui de `Client.Shared`.
+> Tu ne lis pas les fichiers `Docs/` des autres sous-projets. Sous-projets : `Client` (hôte WASM), `Client.Shared` (dashboard partagé), `Maui`, `AgentAI.Core` (agents IA), `Api`, `Scripts`, `GoogleSheets`, `Shared`. Un travail sur le dashboard lit `Client.Shared/Docs/` ; sur l'hôte WASM ou MAUI, le `Docs/` de l'hôte **et** celui de `Client.Shared` ; sur les agents, `AgentAI.Core/Docs/` **et** `Maui/Docs/`.
 
 ### 8.4 Pipeline GitHub Actions
 
@@ -481,7 +490,7 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.2bis Maui
 
 - Framework : **xUnit** + **Moq**
-- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; lie `SecureStorageKeyValueStore.cs` au lieu de référencer le projet MAUI)
+- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs` et `AgentRunner.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` (fabrique et agent mockés), `RssNewsService` (filtre des titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
 - Commande : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (Windows)
 
 ### 12.3 Scripts / Apps Script
@@ -500,11 +509,11 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ---
 
-## 14. Agents IA et application MAUI Windows (décisions — projet en préparation)
+## 14. Agents IA et application MAUI Windows (décisions — première version livrée)
 
-> **État d'avancement** : les étapes 3 et 4 du §14.4 sont faites — la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` (BlazorWebView, non packagé) reprend le dashboard à l'identique (voir `Maui/Docs/CLAUDE.md`). Seams : `IKeyValueStore` (`localStorage` côté WASM, `SecureStorage` côté MAUI) et `AddInvestissementsClient(apiBaseUri)` (DI commune). Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. **Reste à faire** : bibliothèque `Agents`, spike d'identité Azure, page Agents, agent `Portfolio`. Rendu de MudBlazor/ApexCharts dans le `BlazorWebView` : à valider visuellement.
+> **État d'avancement (2026-10-09)** : les étapes 1, 3, 4 et 5 du §14.4 sont faites. La bibliothèque `AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` reprend le dashboard (voir `Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par la page **Paramètres** (endpoint Foundry, modèle) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IAgentSettings` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. **Reste à faire** : agent `Portfolio` branché sur le MCP (étape 6), validation de l'identité Azure (`az login`) avec un MSIX packagé, rendu de MudBlazor/ApexCharts dans le `BlazorWebView` à valider visuellement.
 
-> Les agents n'existent pas encore dans cette solution : ils vivent aujourd'hui dans une console séparée, `C:\Users\mbillet.NOVACATH\source\AgentAI` (net10.0, Microsoft Agent Framework + Azure AI Foundry) ; son `CLAUDE.md` détaille les agents (Chat, Weather, Stock, Portfolio, News). Constats sur la doc Microsoft consultés le 2026-10-01.
+> La console de développement `C:\Users\mbillet.NOVACATH\source\AgentAI` (net10.0, Microsoft Agent Framework + Azure AI Foundry) est conservée hors de ce dépôt ; son `CLAUDE.md` détaille les agents (Chat, Weather, Stock, Portfolio, News). **Elle garde sa propre copie de `AgentAI.Core`** : les modifications faites ici (instructions, `AgentFactory`) ne s'y répercutent pas automatiquement. Constats sur la doc Microsoft consultés le 2026-10-01.
 
 ### 14.1 Décision : les agents ne vont ni dans le Blazor WASM ni dans l'Api SWA
 
@@ -536,12 +545,12 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ### 14.4 Plan par étapes (une validation avant chaque suivante)
 
-1. Extraire la bibliothèque `Agents` depuis `AgentAI` (comportement identique ; la console doit continuer à fonctionner) + tests (§12). **Peut démarrer dans le dossier `AgentAI`** sans trancher l'emplacement définitif (question 1 du §14.6) : la bibliothèque pourra être déplacée ou référencée ensuite.
-2. **Spike MAUI Windows minimal, sans Blazor** : un bouton qui lance l'agent `news` de bout en bout. Objectif : valider tôt, à faible coût, l'identité Azure, les chemins de fichiers, les variables d'environnement et les durées dans MAUI (voir §14.5), avant de toucher au site.
+1. ✅ Fait — bibliothèque `AgentAI.Core/` extraite de la console `AgentAI` et ajoutée à `Investissements.Maui.slnx` (tests dans `Maui.Tests/`, §12.2bis).
+2. ✅ Remplacé — pas de spike séparé sans Blazor : l'identité Azure (`az login`), les chemins de fichiers et les durées ont été validés directement dans l'application MAUI **non packagée** avec les agents Stock et Actualités. Reste à valider avec un MSIX packagé (§14.5).
 3. ✅ Fait — bibliothèque Razor partagée `Client.Shared/` extraite de `Client/` (étape la plus risquée : elle a touché le site en production).
-4. ✅ Fait (hors page de paramètres) — projet `Maui/` : `BlazorWebView`, injection de dépendances.
-5. Page Agents.
-6. Agent `Portfolio` branché sur l'Api / le MCP existants.
+4. ✅ Fait — projet `Maui/` : `BlazorWebView`, injection de dépendances, page Paramètres des agents, packaging MSIX.
+5. ✅ Fait — lancement des agents depuis l'interface : choix de l'agent (`AgentPickerDialog`), réponse en un tour (`AgentResultDialog`), `AgentRunner`. Seuls Stock et Actualités sont exposés.
+6. Agent `Portfolio` branché sur l'Api / le MCP existants (`MCP_API_KEY` à stocker dans `SecureStorage`, §14.3).
 
 ### 14.5 Pièges à ne pas oublier
 
