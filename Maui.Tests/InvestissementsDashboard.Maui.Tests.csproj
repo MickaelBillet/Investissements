@@ -31,6 +31,7 @@
     <Compile Include="..\Maui\Services\SecureStorageKeyValueStore.cs" Link="Linked\SecureStorageKeyValueStore.cs" />
     <Compile Include="..\Maui\Services\PreferencesAgentSettings.cs" Link="Linked\PreferencesAgentSettings.cs" />
     <Compile Include="..\Maui\Services\AgentOptionsProvider.cs" Link="Linked\AgentOptionsProvider.cs" />
+    <Compile Include="..\Maui\Services\AgentRunner.cs" Link="Linked\AgentRunner.cs" />
     <ProjectReference Include="..\AgentAI.Core\AgentAI.Core.csproj" />
     <ProjectReference Include="..\Client.Shared\InvestissementsDashboard.Client.Shared.csproj" />
   </ItemGroup>
