@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,9 @@ public sealed class RssNewsService : INewsService
     #region Fields
     private const int MaxArticles = 30;
     private const string YahooSourceName = "Yahoo Finance";
+
+    // Dropped from the end of a company name before matching titles: headlines rarely carry the legal form.
+    private static readonly string[] LegalSuffixes = ["nv", "sa", "se", "ag", "plc", "inc", "ltd", "corp", "corporation", "spa", "srl", "gmbh", "oyj", "ab"];
 
     private readonly HttpClient _httpClient;
     private readonly TimeProvider _timeProvider;
@@ -63,6 +67,14 @@ public sealed class RssNewsService : INewsService
         if (feeds.All(feed => feed is null))
         {
             throw new HttpRequestException($"All news feeds failed for '{company}'. See previous log entries for details.");
+        }
+
+        // Google News matches the phrase anywhere in the article body, so some results never name the company in
+        // their title; the agent only sees titles and would have to flag them as ambiguous. The Yahoo feed is
+        // already scoped by ticker, so it is left untouched.
+        if (feeds[0] is { } googleArticles)
+        {
+            feeds[0] = FilterByCompanyInTitle(googleArticles, company);
         }
 
         var threshold = _timeProvider.GetUtcNow().AddDays(-days);
@@ -171,6 +183,47 @@ public sealed class RssNewsService : INewsService
     private string NormalizeTitle(string title)
     {
         return string.Concat(title.Where(char.IsLetterOrDigit)).ToUpperInvariant();
+    }
+
+    private IReadOnlyList<NewsArticle> FilterByCompanyInTitle(IReadOnlyList<NewsArticle> articles, string company)
+    {
+        var words = NormalizeForMatch(company).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+        while (words.Count > 1 && LegalSuffixes.Contains(words[^1]))
+        {
+            words.RemoveAt(words.Count - 1);
+        }
+
+        if (words.Count == 0)
+        {
+            // Nothing usable to match on: keeping everything beats silently dropping every article.
+            return articles;
+        }
+
+        // Padding with spaces makes the match whole-word, so "ARM" does not match "farm".
+        var needle = $" {string.Join(' ', words)} ";
+        var kept = articles.Where(article => $" {NormalizeForMatch(article.Title)} ".Contains(needle, StringComparison.Ordinal)).ToList();
+
+        _logger.LogDebug("Dropped {Dropped} of {Total} articles whose title does not name '{Company}'.", articles.Count - kept.Count, articles.Count, company);
+        return kept;
+    }
+
+    /// <summary>
+    /// Lowercases, strips accents and turns every non-alphanumeric character into a single space.
+    /// </summary>
+    private static string NormalizeForMatch(string text)
+    {
+        var builder = new StringBuilder(text.Length);
+        foreach (var c in text.Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            builder.Append(char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : ' ');
+        }
+
+        return string.Join(' ', builder.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
     }
     #endregion
 }
