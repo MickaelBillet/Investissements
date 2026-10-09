@@ -110,3 +110,7 @@ SRS_33 Une application Windows (MAUI) affiche le même dashboard, avec les même
 #### Accès par assistant IA
 
 SRS_34 Un endpoint MCP (JSON-RPC, protégé par clé) expose en lecture les données du portefeuille (actifs, répartitions, métriques, snapshots, géographie) à un assistant IA compatible (Claude Code, Claude Desktop, Claude Web)
+
+#### Agents IA (application Windows)
+
+SRS_35 Dans l'application Windows uniquement, une icône sur chaque action (`Stock`) du tableau des actifs permet de lancer un agent IA — analyse de l'action ou actualités de la société — dont la réponse s'affiche en un seul tour dans une boîte de dialogue (progression, résultat ou erreur ; fermer la boîte annule l'exécution). Une page « Paramètres » permet de renseigner l'endpoint du projet Azure AI Foundry et le modèle. Absent du site web (voir `Maui/Docs/SPECS.md`)

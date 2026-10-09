@@ -62,8 +62,9 @@ Api/
 │   ├── SyncService.cs             # Appelle le Web App Apps Script (HttpClient typé, timeout 100 s)
 │   └── Mcp/
 │       └── McpService.cs          # Handler JSON-RPC — route vers les services
-└── Properties/
-    └── AssemblyInfo.cs
+├── Properties/
+│   └── AssemblyInfo.cs
+└── Docs/                       # CLAUDE.md, SPECS.md, clean-code-tips.md, api-class-diagram.drawio/.png
 ```
 
 Les modèles JSON-RPC (`JsonRpcRequest`, `JsonRpcResponse`, etc.) sont dans `Shared/Models/Mcp/McpModels.cs`.

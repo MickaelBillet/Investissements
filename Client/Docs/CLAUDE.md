@@ -23,7 +23,7 @@ Client/
 ├── InvestissementsDashboard.Client.csproj
 ├── Program.cs                  # point d'entrée de l'hôte (voir §4)
 ├── Properties/launchSettings.json
-├── Docs/                       # ce dossier : CLAUDE.md, SPECS.md, charte-graphique.*, clean-code-tips.md, diagramme de classes
+├── Docs/                       # ce dossier : CLAUDE.md, SPECS.md, charte-graphique.*, clean-code-tips.md
 └── wwwroot/
     ├── index.html              # page d'hébergement : CSS MudBlazor, CSS/icône de la RCL, bundle CSS isolé, importmap, scripts
     ├── staticwebapp.config.json# navigationFallback + en-têtes de sécurité globaux
@@ -66,7 +66,7 @@ Ajouter un service au dashboard = l'enregistrer dans `AddInvestissementsClient`,
 
 - `charte-graphique.md` / `.pdf` : charte graphique (la palette est aussi reprise dans `Client.Shared/Docs/CLAUDE.md` §6).
 - `clean-code-tips.md` : conseils de code propre à appliquer.
-- `client-class-diagram.drawio` / `.png` : diagramme de classes.
+- Diagramme de classes : l'hôte ne contient que `Program.cs` ; les classes du dashboard sont dans `Client.Shared/Docs/client-shared-class-diagram.drawio` / `.png`.
 
 ## 9. Git — Règle absolue
 

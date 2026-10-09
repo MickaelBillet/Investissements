@@ -63,7 +63,7 @@ Client.Shared/
 ├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs, SettingsViewModel.cs
 ├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi), Settings.razor (/settings, MAUI uniquement)
 ├── wwwroot/       → css/app.css, icon.svg (servis sous _content/InvestissementsDashboard.Client.Shared/)
-└── Docs/          → CLAUDE.md, SPECS.md (ce dossier)
+└── Docs/          → CLAUDE.md, SPECS.md, client-shared-class-diagram.drawio/.png (ce dossier)
 
 Client.Tests/      (xUnit + bUnit, référence Client.Shared)
 ├── Components/    → KpiHeader, AssetTable, DistributionTable, DrillDownDonut, HistoryChart,

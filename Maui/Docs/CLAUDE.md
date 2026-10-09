@@ -4,7 +4,9 @@
 
 Application **MAUI Windows**, strictement personnelle (PC du propriétaire), qui affiche le dashboard dans un `BlazorWebView`. Elle réutilise **tout** le code Blazor de la bibliothèque `Client.Shared/` (voir `Client.Shared/Docs/CLAUDE.md`) et appelle la même Api que le site. Elle ne contient aucun composant ni logique métier : uniquement l'hôte (DI, stockage sécurisé, page d'hébergement, icône).
 
-Elle prépare l'accueil des agents IA (CLAUDE.md racine §14) : ceux-ci s'exécuteront dans ce processus, sans la limite de 45 s du proxy SWA. Seule l'interface est en place : `AgentAI.Core` est référencé, `Services/PlaceholderAgentRunner.cs` (réponse fictive) est enregistré comme `IAgentRunner` dans `MauiProgram` pour alimenter l'UI de `Client.Shared` (§7.10 de sa doc). L'exécution réelle des agents (`IAgentFactory`, `AddAgentAI`) reste à brancher.
+Elle exécute les agents IA **Stock** et **Actualités** (CLAUDE.md racine §14) dans ce processus, sans la limite de 45 s du proxy SWA : `Services/AgentRunner.cs` implémente `IAgentRunner` (seam de `Client.Shared`, §7.10 de sa doc) et s'appuie sur la bibliothèque `AgentAI.Core` (`AgentAI.Core/Docs/CLAUDE.md`). Les agents Chat, Météo et Portefeuille existent dans la bibliothèque mais ne sont pas encore exposés dans l'interface.
+
+Diagramme de classes : `maui-class-diagram.drawio` / `.png` (ce dossier).
 
 ## 2. Stack
 
@@ -13,7 +15,7 @@ Elle prépare l'accueil des agents IA (CLAUDE.md racine §14) : ceux-ci s'exécu
 | SDK / cible | `Microsoft.NET.Sdk.Razor`, `net10.0-windows10.0.19041.0` (Windows uniquement), `UseMaui`, `SingleProject` |
 | Paquets | `Microsoft.Maui.Controls`, `Microsoft.AspNetCore.Components.WebView.Maui` (versions `$(MauiVersion)`), `Microsoft.Extensions.Logging.Debug` |
 | Packaging | **Non packagé** par défaut (`WindowsPackageType=None`) pour `dotnet run` et les tests ; **MSIX signé** pour l'installation sur le poste (voir §7). Le comportement d'un MSIX avec le futur flux d'identité Azure (`az login`) reste à valider |
-| Référence | `Client.Shared` |
+| Références | `Client.Shared`, `AgentAI.Core` (agents IA) |
 | Tests | `Maui.Tests/` (xUnit + Moq) |
 
 ## 3. Structure
@@ -25,32 +27,41 @@ Maui/
 ├── MainPage.xaml(.cs)          # BlazorWebView : #app → App (Client.Shared), head::after → HeadOutlet
 ├── MauiProgram.cs              # DI et configuration (voir §4)
 ├── Services/SecureStorageKeyValueStore.cs   # IKeyValueStore → ISecureStorage (chiffré par l'OS)
-├── Services/PlaceholderAgentRunner.cs       # IAgentRunner provisoire (réponse fictive)
+├── Services/AgentRunner.cs                  # IAgentRunner → AgentAI.Core : une AgentFactory par lancement (voir §5bis)
 ├── Services/PreferencesAgentSettings.cs     # IAgentSettings → IPreferences (page Paramètres)
-├── Services/AgentOptionsProvider.cs         # IAgentSettings → AgentAIOptions (MCP déduit de l'URL de base stockée, repli sur l'Api ; historique injecté) ; pas encore branché
+├── Services/AgentOptionsProvider.cs         # IAgentSettings → AgentAIOptions (MCP déduit de l'URL de base stockée, repli sur l'Api ; historique injecté)
 ├── Platforms/Windows/          # App.xaml(.cs), app.manifest (boilerplate WinUI), Package.appxmanifest (identité MSIX)
 ├── Scripts/                    # New-DevCertificate.ps1, Publish-Msix.ps1, Install-Msix.ps1 (packaging, voir §7)
 ├── Resources/AppIcon/appicon.svg, Resources/Splash/splash.svg   # même visuel que le favicon du site
 ├── wwwroot/index.html          # page d'hébergement du BlazorWebView
-└── Docs/                       # CLAUDE.md, SPECS.md
+└── Docs/                       # CLAUDE.md, SPECS.md, maui-class-diagram.drawio/.png
 
 Maui.Tests/
 ├── SecureStorageKeyValueStoreTests.cs
 ├── PreferencesAgentSettingsTests.cs
-└── AgentOptionsProviderTests.cs
+├── AgentOptionsProviderTests.cs
+├── AgentRunnerTests.cs          # AgentFactory/agent mockés (Moq.Protected sur AIAgent)
+├── AgentInstructionsTests.cs    # la règle « tour unique » est présente dans les instructions embarquées
+└── RssNewsServiceTests.cs       # filtre sur le titre des résultats Google News (HttpMessageHandler factice)
 ```
 
 ## 4. `MauiProgram.cs`
 
 1. `AddMauiBlazorWebView()` (+ `AddBlazorWebViewDeveloperTools()` et log debug en `DEBUG`).
-2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`, `IAgentRunner` → `PlaceholderAgentRunner` (provisoire), `IAgentSettings` → `PreferencesAgentSettings` (affiche la page Paramètres ; au premier lancement, `https://invest.zapto.fr/` — `ApiBaseUri` — est enregistrée dans les préférences comme URL de base du MCP, sans champ de saisie). `AgentOptionsProvider` + `AddAgentAI(factory)` (configuration lue au premier usage, pas au démarrage) sont prêts mais non enregistrés : le branchement des vrais agents est l'étape suivante.
-3. `AddInvestissementsClient(ApiBaseUri)` — toute la DI du dashboard vient de `Client.Shared`.
-
+2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`, `IAgentSettings` → `PreferencesAgentSettings` (affiche la page Paramètres ; au premier lancement, `https://invest.zapto.fr/` — `ApiBaseUri` — est enregistrée dans les préférences comme URL de base du MCP, sans champ de saisie).
+3. `AddAgents` (méthode privée de `MauiProgram`) : `AgentOptionsProvider` (historique dans `FileSystem.AppDataDirectory/agents-history`, dossier inscriptible même packagé), `INewsService` → `RssNewsService` et `InvestZaptoMcpClient` avec des `HttpClient` **dédiés** (celui du dashboard ajoute le mot de passe du dashboard, qui ne doit pas partir vers des flux RSS ; celui du MCP passe par `ForceContentLengthHandler` + `SocketsHttpHandler`), puis `IAgentRunner` → `AgentRunner`. `AddAgentAI` n'est **pas** utilisé (il enregistre la factory en singleton).
+4. `AddInvestissementsClient(ApiBaseUri)` — toute la DI du dashboard vient de `Client.Shared`.
 **URL de l'Api** : `https://invest.zapto.fr/`, fixée dans `MauiProgram.ApiBaseUri` (l'Api n'est joignable que via le proxy SWA). Aucune surcharge par variable d'environnement : pour développer contre une Api locale, modifier la constante.
 
 ## 5. `SecureStorageKeyValueStore`
 
 Stocke le mot de passe de session et le mode confidentialité chiffrés par l'OS (au lieu du clair du `localStorage` WebView2). `GetAsync` traite une entrée illisible (profil déplacé, clé de chiffrement perdue) comme absente : elle est journalisée (avertissement) puis supprimée, pour que l'utilisateur retombe sur l'écran de connexion au lieu d'être bloqué. `SetAsync` laisse remonter les erreurs.
+
+## 5bis. `AgentRunner` — exécution des agents
+
+`IAgentRunner.RunAsync(AgentChoice, assetName, ct)` : lit les options via `AgentOptionsProvider.Create()` (lève une `InvalidOperationException` si l'endpoint Foundry n'est pas renseigné : l'erreur s'affiche au lancement, pas au démarrage), crée une `AgentFactory` **à chaque lancement** (une modification de la page Paramètres est prise en compte sans redémarrage) via un `Func<AgentAIOptions, IAgentFactory>` injecté (testable sans Foundry), puis `CreateAsync(AgentKind, assetName)` → `CreateSessionAsync` → `RunAsync(message déclencheur)`. `AgentChoice.Stock` → `AgentKind.Stock`, `News` → `AgentKind.News` ; le message déclencheur est le même que celui de la console `AgentAI`. En cas d'échec (hors annulation) l'historique de l'agent est réinitialisé avec sauvegarde (`ResetWithBackup`) puis l'exception est relancée ; une annulation (fermeture du dialogue) laisse l'historique intact. La factory est libérée (`await using`) : elle ferme la connexion MCP éventuelle.
+
+Les agents répondent en **un seul tour** (pas de boucle conversationnelle) : leurs instructions embarquées contiennent la règle « échange à tour unique » (pas de question finale).
 
 ## 6. `wwwroot/index.html`
 
@@ -61,7 +72,7 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 - Les projets MAUI **ne figurent pas dans `Investissements.slnx`** (restauration impossible sur le runner Ubuntu de la CI). Ils sont dans **`Investissements.Maui.slnx`** (Client.Shared, Maui, Maui.Tests, Shared) — Windows uniquement, workload `maui-windows` requis.
 - Build : `dotnet build Investissements.Maui.slnx`
 - Lancer : `dotnet run --project Maui -f net10.0-windows10.0.19041.0` (ou exécuter `Maui/bin/Debug/net10.0-windows10.0.19041.0/win-x64/InvestissementsDashboard.Maui.exe`)
-- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (18 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs` et `AgentOptionsProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
+- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (35 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs` et `AgentRunner.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
 - La CI ne construit ni ne teste ce projet.
 - Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `Maui/obj` (cache de génération des icônes).
 
@@ -82,7 +93,9 @@ Une application packagée est isolée : les données de `SecureStorage` et du pr
 - Le lien « Documentation » (`ClientOptions.DocumentationUri`, URL absolue du site) doit s'ouvrir dans le navigateur — non testé.
 - Le certificat auto-signé expire au bout de 3 ans : en recréer un (`New-DevCertificate.ps1`), republier et réinstaller. Changer son sujet impose de changer le `Publisher` du manifeste, et donc de désinstaller l'ancien package.
 - L'installation du MSIX n'est pas automatisée en CI (poste du propriétaire uniquement).
-- Pas de page de paramètres : l'URL de l'Api est fixe (`MauiProgram.ApiBaseUri`).
+- La page Paramètres n'édite que l'endpoint Foundry et le modèle : l'URL de l'Api reste fixe (`MauiProgram.ApiBaseUri`).
+- Les agents utilisent l'identité Azure du poste (`DefaultAzureCredential`, `az login`) : non vérifié avec un MSIX packagé (voir CLAUDE.md racine §14.5). Ils consomment des tokens Foundry facturés à l'usage.
+- Agents Chat, Météo et Portefeuille non exposés dans l'interface (Portefeuille : étape 6 du §14.4 racine).
 
 ## 9. Git — Règle absolue
 
