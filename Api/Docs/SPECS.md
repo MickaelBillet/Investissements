@@ -428,7 +428,7 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 
 | DTO | Fichier | Champs |
 |---|---|---|
-| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, sector, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio |
+| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, sector, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio, isin (colonne O de `Asset`, `""` si absent) |
 | `DistributionDto` | `Shared/Models/DistributionDto.cs` | id?, name, currentTotal, weightInPortfolio |
 | `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, netCapital, lifeStrategy?, msciWorld?, totalPurchases, totalReturns, totalSales? |
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnCapitalEngaged?, averageRisk? |

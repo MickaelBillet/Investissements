@@ -41,7 +41,7 @@ public class AgentResultDialogTests : BunitContext, IAsyncLifetime
     public void AgentResultDialog_WhileAgentRuns_ShowsProgress()
     {
         var pending = new TaskCompletionSource<string>();
-        _runner.Setup(r => r.RunAsync(AgentChoice.Stock, "Air Liquide", It.IsAny<CancellationToken>()))
+        _runner.Setup(r => r.RunAsync(AgentChoice.Stock, "Air Liquide", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                .Returns(pending.Task);
 
         var provider = Open();
@@ -52,7 +52,7 @@ public class AgentResultDialogTests : BunitContext, IAsyncLifetime
     [Fact]
     public void AgentResultDialog_WhenAgentReplies_ShowsResponse()
     {
-        _runner.Setup(r => r.RunAsync(AgentChoice.Stock, "Air Liquide", It.IsAny<CancellationToken>()))
+        _runner.Setup(r => r.RunAsync(AgentChoice.Stock, "Air Liquide", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                .ReturnsAsync("Analyse terminée");
 
         var provider = Open();
@@ -63,7 +63,7 @@ public class AgentResultDialogTests : BunitContext, IAsyncLifetime
     [Fact]
     public void AgentResultDialog_WhenAgentThrows_ShowsError()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _runner.Setup(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new InvalidOperationException("boom"));
 
         var provider = Open();

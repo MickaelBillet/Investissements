@@ -16,14 +16,16 @@ public sealed class AgentRunner(
     Func<AgentAIOptions, IAgentFactory> factoryCreator,
     ILogger<AgentRunner> logger) : IAgentRunner
 {
-    public async Task<string> RunAsync(AgentChoice agent, string assetName, CancellationToken cancellationToken = default)
+    public async Task<string> RunAsync(AgentChoice agent, string assetName, string? isin, CancellationToken cancellationToken = default)
     {
         var options = optionsProvider.Create();
         AgentKind kind = GetAgentKind(agent);
         string triggerMessage = GetMessage(agent);
 
+        string? optionalInput = string.IsNullOrWhiteSpace(isin) ? null : isin.Trim();
+
         await using var agentFactory = factoryCreator(options);
-        var (aiAgent, historyProvider) = await agentFactory.CreateAsync(kind, assetName);
+        var (aiAgent, historyProvider) = await agentFactory.CreateAsync(kind, assetName, optionalInput);
 
         try
         {

@@ -31,6 +31,11 @@ public static class MauiProgram
         return builder.Build();
     }
 
+    // These clients are captured by singletons (the agent factory, the news service), so their handler is never
+    // recycled by the factory: bounding the connection lifetime keeps DNS changes picked up.
+    private static HttpMessageHandler CreatePrimaryHandler() =>
+        new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) };
+
     private static void AddAgents(IServiceCollection services)
     {
         services.AddSingleton(sp => new AgentOptionsProvider(
@@ -39,14 +44,12 @@ public static class MauiProgram
             // The install folder is read-only for a packaged app, so the history goes to the user's data folder.
             Path.Combine(FileSystem.AppDataDirectory, "agents-history")));
 
-        // Dedicated clients: the dashboard's HttpClient adds the dashboard password header, which must not leak to RSS feeds.
-        services.AddSingleton<INewsService>(sp => new RssNewsService(
-            new HttpClient(),
-            TimeProvider.System,
-            sp.GetRequiredService<ILogger<RssNewsService>>()));
-        services.AddSingleton(sp => new InvestZaptoMcpClient(
-            new HttpClient(new ForceContentLengthHandler { InnerHandler = new SocketsHttpHandler() }),
-            sp.GetRequiredService<ILoggerFactory>()));
+        // Typed clients: each has its own pipeline, so the dashboard password header added to the dashboard
+        // clients never reaches the RSS feeds or the MCP server.
+        services.AddNewsServices();
+        services.AddHttpClient<IRssFeedReader, RssFeedReader>().ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
+        services.AddHttpClient<YahooTickerResolver>().ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
+        services.AddInvestZaptoMcp().ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
 
         services.AddSingleton<IAgentRunner>(sp =>
         {

@@ -197,8 +197,9 @@ Une ligne par actif. Colonnes (index 0-based) :
 | 11 | L | `COL_TOTAL_SALES` | Total ventes en EUR |
 | 12 | M | `COL_DIVIDENDS` | Dividendes perçus en EUR |
 | 13 | N | `COL_CURRENT_TOTAL` | Valeur actuelle en EUR |
+| 14 | O | `COL_ISIN` | Code ISIN (saisie manuelle, jamais écrit par l'ETL ; peut être vide) |
 
-Les colonnes K–N sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
+La colonne O (ISIN) est saisie à la main : `syncCurrentTotal()` et la création automatique d'actifs ne l'écrasent jamais (plage écrite limitée à A–N). Les colonnes K–N sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
 
 ### 6.3 Onglet `Snapshot` (DEST_ID)
 
@@ -490,7 +491,7 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.2bis Maui
 
 - Framework : **xUnit** + **Moq**
-- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs` et `AgentRunner.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` (fabrique et agent mockés), `RssNewsService` (filtre des titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
+- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs` et `AgentRunner.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` (fabrique et agent mockés), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
 - Commande : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (Windows)
 
 ### 12.3 Scripts / Apps Script
@@ -529,7 +530,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ### 14.2 Architecture cible
 
-- **Bibliothèque `Agents`** (extraite de `AgentAI`, net10.0) : `AgentFactory`, fournisseurs de contexte, `RssNewsService`, `InvestZaptoMcpClient`, `ForceContentLengthHandler`, historique. La console `AgentAI` est conservée comme outil de développement.
+- **Bibliothèque `Agents`** (extraite de `AgentAI`, net10.0) : `AgentFactory`, fournisseurs de contexte, `NewsService` (sources d'actualités), `InvestZaptoMcpClient`, `ForceContentLengthHandler`, historique. La console `AgentAI` est conservée comme outil de développement.
 - **Bibliothèque Razor partagée** extraite de `Client/` (composants, ViewModels) pour réutiliser le dashboard dans MAUI via `BlazorWebView` (Blazor Hybrid) ; le projet WASM devient un hôte mince. Compatibilité de MudBlazor et d'ApexCharts dans un `BlazorWebView` : **non vérifiée**, à tester tôt.
 - **Projet MAUI Windows** : `BlazorWebView` + page Agents (choix de l'agent, saisies, réponse en Markdown, durée affichée).
 - **Portfolio** : l'agent appelle le MCP existant (`POST /api/mcp`, protégé par `MCP_API_KEY`) via le `HttpClient` injecté. `ForceContentLengthHandler` est à conserver : le « 500 Backend call failure » sur les POST en chunked vient probablement du proxy SWA (hypothèse, non vérifiée).
@@ -541,7 +542,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 - Configuration (`FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL`, `INVESTZAPTO_MCP_URL`) : page de paramètres, avec repli sur les variables d'environnement.
 - Identité Azure : `DefaultAzureCredential` (`az login`) sur le PC pour commencer ; option ultérieure `InteractiveBrowserCredential` avec cache de jeton (non vérifié en MAUI packagé). **Jamais de secret de principal de service dans l'application** (un binaire se décompile). `ExcludeManagedIdentityCredential` reste actif.
 - Secrets de l'application (`MCP_API_KEY`, mot de passe du dashboard) : `SecureStorage`, jamais dans le code.
-- `HttpClient` **injecté** dans `InvestZaptoMcpClient` (l'hôte choisit ses handlers : `SocketsHttpHandler` sous Windows).
+- `InvestZaptoMcpClient`, `RssFeedReader` et `YahooTickerResolver` sont des **clients typés d'`IHttpClientFactory`** enregistrés par `AgentAI.Core` ; l'hôte choisit le handler primaire (`SocketsHttpHandler` sous Windows).
 
 ### 14.4 Plan par étapes (une validation avant chaque suivante)
 

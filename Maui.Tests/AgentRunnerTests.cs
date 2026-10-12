@@ -57,10 +57,40 @@ public class AgentRunnerTests
     {
         SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "ok"))));
 
-        var result = await CreateRunner().RunAsync(choice, "Air Liquide");
+        var result = await CreateRunner().RunAsync(choice, "Air Liquide", null);
 
         Assert.Equal("ok", result);
         _factory.Verify(f => f.CreateAsync(expected, "Air Liquide", null), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunAsync_StockWithIsin_ForwardsTrimmedIsinAsOptionalInput()
+    {
+        SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "ok"))));
+
+        await CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", " FR0000120073 ");
+
+        _factory.Verify(f => f.CreateAsync(AgentKind.Stock, "Air Liquide", "FR0000120073"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunAsync_NewsWithIsin_ForwardsIsinAsOptionalInput()
+    {
+        SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "ok"))));
+
+        await CreateRunner().RunAsync(AgentChoice.News, "Air Liquide", "FR0000120073");
+
+        _factory.Verify(f => f.CreateAsync(AgentKind.News, "Air Liquide", "FR0000120073"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunAsync_StockWithBlankIsin_ForwardsNoOptionalInput()
+    {
+        SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "ok"))));
+
+        await CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", "  ");
+
+        _factory.Verify(f => f.CreateAsync(AgentKind.Stock, "Air Liquide", null), Times.Once);
     }
 
     [Fact]
@@ -69,7 +99,7 @@ public class AgentRunnerTests
         _settings.SetupGet(s => s.Model).Returns("gpt-x");
         SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "ok"))));
 
-        await CreateRunner().RunAsync(AgentChoice.News, "Air Liquide");
+        await CreateRunner().RunAsync(AgentChoice.News, "Air Liquide", null);
 
         Assert.Equal("https://foundry.test/", _receivedOptions!.FoundryProjectEndpoint);
         Assert.Equal("gpt-x", _receivedOptions.Model);
@@ -80,7 +110,7 @@ public class AgentRunnerTests
     {
         _settings.SetupGet(s => s.FoundryEndpoint).Returns((string?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null));
 
         Assert.Null(_receivedOptions);
     }
@@ -90,7 +120,7 @@ public class AgentRunnerTests
     {
         SetupRun(() => throw new InvalidOperationException("boom"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null));
 
         _history.Verify(h => h.ResetWithBackup(It.IsAny<string>()), Times.Once);
     }
@@ -100,7 +130,7 @@ public class AgentRunnerTests
     {
         SetupRun(() => throw new OperationCanceledException());
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide"));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null));
 
         _history.Verify(h => h.ResetWithBackup(It.IsAny<string>()), Times.Never);
     }
@@ -110,7 +140,7 @@ public class AgentRunnerTests
     {
         SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "ok"))));
 
-        await CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide");
+        await CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null);
 
         _factory.Verify(f => f.DisposeAsync(), Times.Once);
     }

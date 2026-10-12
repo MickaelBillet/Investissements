@@ -113,7 +113,7 @@ public sealed class AgentFactory : IAgentFactory
     /// <see cref="AgentKind.Weather"/>, a stock name for <see cref="AgentKind.Stock"/>); required for
     /// those two kinds (and the company for <see cref="AgentKind.News"/>), ignored otherwise.
     /// </param>
-    /// <param name="optionalInput">The ticker for <see cref="AgentKind.News"/>; ignored otherwise.</param>
+    /// <param name="optionalInput">The ISIN for <see cref="AgentKind.Stock"/> and <see cref="AgentKind.News"/>; ignored otherwise.</param>
     private async Task<AgentDefinition> BuildAgentDefinitionAsync(AgentKind kind, string? contextInput, string? optionalInput)
     {
         return kind switch
@@ -139,7 +139,7 @@ public sealed class AgentFactory : IAgentFactory
                 AIContextProviders: new CompositeContextProvider(new AIContextProvider[]
                 {
                     new DateContextProvider(TimeProvider.System),
-                    new StockContextProvider(RequireContextInput(contextInput, "un nom d'action")),
+                    new StockContextProvider(RequireContextInput(contextInput, "un nom d'action"), optionalInput),
                 })),
 
             AgentKind.Portfolio => await this.BuildPortfolioDefinitionAsync().ConfigureAwait(false),
@@ -171,9 +171,9 @@ public sealed class AgentFactory : IAgentFactory
         return AIFunctionFactory.Create(
             async (
                 [Description("Nom de la société à rechercher.")] string company,
-                [Description("Ticker de la société, ou vide s'il n'est pas connu.")] string? ticker,
+                [Description("ISIN de la société, ou vide s'il n'est pas connu.")] string? isin,
                 CancellationToken cancellationToken) =>
-                    await this._newsService.GetLatestNewsAsync(company, ticker, NewsLookbackDays, cancellationToken).ConfigureAwait(false),
+                    await this._newsService.GetLatestNewsAsync(company, isin, NewsLookbackDays, cancellationToken).ConfigureAwait(false),
             name: "GetLatestNews",
             description: "Récupère les actualités publiées sur une société durant la dernière semaine (titre, source, date, lien), de la plus récente à la plus ancienne.");
     }

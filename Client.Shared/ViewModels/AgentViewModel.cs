@@ -15,7 +15,7 @@ public class AgentViewModel(ILogger<AgentViewModel> logger, IAgentRunner? runner
     public string? Response { get; private set; }
     public string? Error { get; private set; }
 
-    public async Task LaunchAsync(AgentChoice agent, string assetName)
+    public async Task LaunchAsync(AgentChoice agent, string assetName, string? isin = null)
     {
         if (runner is null)
         {
@@ -31,7 +31,7 @@ public class AgentViewModel(ILogger<AgentViewModel> logger, IAgentRunner? runner
         Error = null;
         try
         {
-            Response = await runner.RunAsync(agent, assetName, _cts.Token);
+            Response = await runner.RunAsync(agent, assetName, isin, _cts.Token);
         }
         catch (OperationCanceledException)
         {
