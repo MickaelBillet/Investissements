@@ -14,7 +14,7 @@ Offrir sur le PC du propriétaire une application native affichant le **même da
 
 | # | Exigence |
 |---|---|
-| 1 | Application Windows 10 (1809, build 17763) ou plus récent, installable via un package MSIX signé : entrée « Suivi des Investissements » dans le menu Démarrer, épinglable à la barre des tâches, désinstallable depuis les Paramètres Windows |
+| 1 | Application Windows 10 (1809, build 17763) ou plus récent, installable ou mise à jour en une commande (`Maui/Scripts/Update-App.ps1`) via un package MSIX signé : entrée « Suivi des Investissements » dans le menu Démarrer, épinglable à la barre des tâches, désinstallable depuis les Paramètres Windows |
 | 2 | Fenêtre unique intitulée « Suivi des Investissements », contenant le dashboard |
 | 3 | Les données viennent de l'Api de production (`https://invest.zapto.fr/`)  ; l'URL est fixe (non configurable) |
 | 4 | Le même mot de passe que le site est demandé à la connexion ; session à expiration glissante d'1 h |

@@ -33,7 +33,7 @@ dotnet publish $project -f net10.0-windows10.0.19041.0 -c $Configuration `
     -p:WindowsPackageType=MSIX `
     -p:ApplicationVersion=$buildNumber `
     -p:RuntimeIdentifierOverride=win10-x64 `
-    -p:PackageCertificateThumbprint=$($certificate.Thumbprint)
+    -p:PackageCertificateThumbprint=$($certificate.Thumbprint) | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed (exit code $LASTEXITCODE)." }
 
 $package = Get-ChildItem (Join-Path $PSScriptRoot '..\artifacts') -Recurse -Filter *.msix |
@@ -41,3 +41,6 @@ $package = Get-ChildItem (Join-Path $PSScriptRoot '..\artifacts') -Recurse -Filt
 if (-not $package) { throw 'Publish succeeded but no .msix was found under Maui\artifacts.' }
 
 Write-Host "Package ready: $($package.FullName)"
+
+# Also returned to the caller (Update-App.ps1); the build output above goes to the host, not to the pipeline.
+$package.FullName
