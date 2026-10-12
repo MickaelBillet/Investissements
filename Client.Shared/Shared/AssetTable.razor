@@ -104,7 +104,7 @@
 
         await Dialogs.ShowAsync<AgentResultDialog>(
             asset.Name,
-            new DialogParameters<AgentResultDialog> { { x => x.Agent, choice }, { x => x.AssetName, asset.Name } },
+            new DialogParameters<AgentResultDialog> { { x => x.Agent, choice }, { x => x.AssetName, asset.Name }, { x => x.Isin, asset.Isin } },
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
     }
 

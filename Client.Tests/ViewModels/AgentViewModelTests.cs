@@ -23,7 +23,7 @@ public class AgentViewModelTests
     [Fact]
     public async Task LaunchAsync_WhenRunnerReplies_SetsResponseAndResetsIsRunning()
     {
-        _runner.Setup(r => r.RunAsync(AgentChoice.News, "Air Liquide", It.IsAny<CancellationToken>()))
+        _runner.Setup(r => r.RunAsync(AgentChoice.News, "Air Liquide", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                .ReturnsAsync("Réponse");
         var vm = Create();
 
@@ -35,10 +35,22 @@ public class AgentViewModelTests
     }
 
     [Fact]
+    public async Task LaunchAsync_WithIsin_PassesIsinToRunner()
+    {
+        _runner.Setup(r => r.RunAsync(AgentChoice.Stock, "Air Liquide", "FR0000120073", It.IsAny<CancellationToken>()))
+               .ReturnsAsync("Réponse");
+        var vm = Create();
+
+        await vm.LaunchAsync(AgentChoice.Stock, "Air Liquide", "FR0000120073");
+
+        Assert.Equal("Réponse", vm.Response);
+    }
+
+    [Fact]
     public async Task LaunchAsync_WhileRunnerRuns_IsRunningIsTrue()
     {
         var pending = new TaskCompletionSource<string>();
-        _runner.Setup(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _runner.Setup(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                .Returns(pending.Task);
         var vm = Create();
 
@@ -53,7 +65,7 @@ public class AgentViewModelTests
     [Fact]
     public async Task LaunchAsync_WhenRunnerThrows_SetsErrorAndClearsResponse()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _runner.Setup(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new InvalidOperationException("boom"));
         var vm = Create();
 
@@ -67,7 +79,7 @@ public class AgentViewModelTests
     [Fact]
     public async Task LaunchAsync_AfterFailure_ResetsPreviousError()
     {
-        _runner.SetupSequence(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _runner.SetupSequence(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new InvalidOperationException("boom"))
                .ReturnsAsync("ok");
         var vm = Create();
@@ -82,8 +94,8 @@ public class AgentViewModelTests
     [Fact]
     public async Task Cancel_WhileRunnerRuns_StopsWithoutErrorOrResponse()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-               .Returns<AgentChoice, string, CancellationToken>(async (_, _, ct) =>
+        _runner.Setup(r => r.RunAsync(It.IsAny<AgentChoice>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+               .Returns<AgentChoice, string, string?, CancellationToken>(async (_, _, _, ct) =>
                {
                    await Task.Delay(Timeout.Infinite, ct);
                    return "never";

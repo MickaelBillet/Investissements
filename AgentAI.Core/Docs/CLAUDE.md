@@ -16,7 +16,7 @@ Diagramme de classes : `agentai-class-diagram.drawio` / `.png` (ce dossier).
 | Paquets | `Microsoft.Agents.AI.Foundry`, `Azure.AI.Projects` (préversion), `Azure.Identity`, `Microsoft.Extensions.AI`, `ModelContextProtocol`, abstractions DI et logging |
 | Identité Azure | `DefaultAzureCredential` avec `ExcludeManagedIdentityCredential = true` (`az login` sur le poste). Jamais de secret de principal de service dans l'application |
 | Solution | `Investissements.Maui.slnx` uniquement (pas dans `Investissements.slnx`, restauré par la CI Ubuntu) |
-| Tests | Pas de projet dédié : `AgentRunner`, `RssNewsService` et les instructions sont testés dans `Maui.Tests/` |
+| Tests | Pas de projet dédié : `AgentRunner`, le service d'actualités (`NewsService`, sources, parseur, résolveur de ticker) et les instructions sont testés dans `Maui.Tests/` |
 
 ## 3. Structure
 
@@ -24,7 +24,7 @@ Diagramme de classes : `agentai-class-diagram.drawio` / `.png` (ce dossier).
 AgentAI.Core/
 ├── AgentAI.Core.csproj
 ├── Agents/
-│   ├── IAgentFactory.cs        # CreateAsync(AgentKind, contextInput, optionalInput) → (AIAgent, ICustomChatHistoryProvider)
+│   ├── IAgentFactory.cs        # CreateAsync(AgentKind, contextInput, optionalInput) → (AIAgent, ICustomChatHistoryProvider) ; optionalInput = ISIN (Stock et News)
 │   ├── AgentFactory.cs         # implémentation : un AIAgent par AgentKind, historique client (StoredOutputEnabled = false)
 │   ├── AgentKind.cs            # Chat, Weather, Stock, Portfolio, News
 │   ├── AgentAIOptions.cs       # configuration fournie par l'hôte (voir §4)
@@ -34,8 +34,14 @@ AgentAI.Core/
 ├── Providers/                  # AIContextProvider : Composite, Date, News, Stock, Weather
 ├── History/                    # ICustomChatHistoryProvider, CustomChatHistoryProvider (historique JSON sur disque)
 ├── Mcp/                        # InvestZaptoMcpClient, ForceContentLengthHandler
-├── Services/                   # INewsService/RssNewsService, IWeatherService/WeatherService, NewsArticle
+├── Services/                   # INewsService, IWeatherService/WeatherService, NewsArticle
+│   └── News/                   # NewsService (INewsService), INewsFeedSource, NewsRequest
+│       ├── Google/             # GoogleNewsFeedSource
+│       ├── Yahoo/              # YahooFinanceFeedSource, YahooTickerResolver (ISIN → ticker)
+│       └── Helpers/            # IRssFeedReader/RssFeedReader, RssFeedParser, CompanyTitleFilter
 ├── Hosting/ServiceCollectionExtensions.cs   # AddAgentAI(options) / AddAgentAI(optionsFactory)
+├── Hosting/NewsServiceExtensions.cs            # AddNewsServices() : INewsService + sources + clients typés (flux RSS, résolveur Yahoo)
+├── Hosting/InvestZaptoMcpServiceExtensions.cs  # AddInvestZaptoMcp() : InvestZaptoMcpClient en client typé + ForceContentLengthHandler
 └── Docs/                       # ce dossier : CLAUDE.md, diagramme de classes
 ```
 
@@ -56,8 +62,10 @@ La bibliothèque **ne lit jamais les variables d'environnement** : un hôte MAUI
 
 - **Instructions embarquées** (`EmbeddedResource`, `LogicalName = Instructions.<fichier>`) et non copiées à côté de l'exécutable : un hôte MAUI n'a pas de dossier de base prévisible. Toute modification d'un `.md` impose une recompilation.
 - **Échange à tour unique** : `ActualitesSociete.md` et `AnalyseAction.md` contiennent la règle « pas de question finale, pas de suite proposée » (l'hôte ne propose pas de boucle conversationnelle). La conserver dans tout nouvel agent destiné à Maui. Un test (`Maui.Tests/AgentInstructionsTests.cs`) vérifie sa présence.
-- **`HttpClient` injecté** (`InvestZaptoMcpClient`, `RssNewsService`) : l'hôte choisit ses handlers. Le backend InvestZapto échoue en `500 Backend call failure` sur les POST en `Transfer-Encoding: chunked` ; `ForceContentLengthHandler` (devant un `SocketsHttpHandler`) bufferise le corps pour envoyer un `Content-Length`. Ne pas réutiliser le `HttpClient` du dashboard (il ajoute le mot de passe du dashboard) pour les flux RSS.
-- **Actualités** : `RssNewsService` filtre les résultats **Google News** sur le titre (le titre doit contenir le nom de la société, sans tenir compte de la casse, des accents ni des suffixes juridiques `NV`/`SA`/`SE`…, par mots entiers). Raison : Google cherche la phrase dans tout le texte de l'article, et l'agent ne voit que les titres — il signalait sinon des articles « ambigus ». Le flux Yahoo (ciblé par ticker) n'est pas filtré. Limite : un titre pertinent qui ne nomme pas la société est écarté.
+- **Clients HTTP = clients typés d'`IHttpClientFactory`** (`InvestZaptoMcpClient`, `RssFeedReader`, `YahooTickerResolver`), enregistrés par la bibliothèque (`AddInvestZaptoMcp`, `AddNewsServices`) : plus de `new HttpClient()`. Chaque client a son propre pipeline, donc le mot de passe du dashboard (ajouté aux clients du dashboard) ne part jamais vers les flux RSS ni le MCP. L'hôte choisit le handler **primaire** via `AddHttpClient<T>().ConfigurePrimaryHttpMessageHandler(...)` (un hôte navigateur n'a pas `SocketsHttpHandler`). Le backend InvestZapto échoue en `500 Backend call failure` sur les POST en `Transfer-Encoding: chunked` : `ForceContentLengthHandler` (neutre vis-à-vis de la plateforme) est ajouté par `AddInvestZaptoMcp` et bufferise le corps pour envoyer un `Content-Length`. Ces clients étant capturés par des singletons (`NewsService`, `AgentFactory`), l'hôte borne `PooledConnectionLifetime` pour garder le rafraîchissement DNS. `AddHttpClient<T>` n'est pas un `TryAdd` : substituer `InvestZaptoMcpClient` s'enregistre **après** `AddAgentAI`.
+- **Actualités — architecture :** `NewsService` (façade `INewsService`) interroge en parallèle toutes les `INewsFeedSource` et fusionne : fenêtre de dates, dédoublonnage par URL puis par titre normalisé, tri décroissant, plafond de 30. Contrat d'une source : liste = résultat (vide = « pas d'actualité »), `null` = source non applicable (ignorée, ex. pas d'ISIN), exception = « pas de réponse » (loguée, les autres sources continuent ; si **toutes** les sources applicables échouent, `HttpRequestException`). **Ajouter une source** = implémenter `INewsFeedSource` et l'enregistrer dans le conteneur (`services.AddSingleton<INewsFeedSource, MaSource>()`, depuis l'hôte si besoin) ; `NewsService` reçoit toutes les sources enregistrées et aucune autre classe ne change. `AddNewsServices()` (`Hosting/NewsServiceExtensions.cs`) enregistre `NewsService` et les sources intégrées en `TryAdd`, plus `RssFeedReader` et `YahooTickerResolver` comme clients typés.
+- **Actualités — Google News :** `GoogleNewsFeedSource` (via `CompanyTitleFilter`) filtre les résultats **Google News** sur le titre (le titre doit contenir le nom de la société, sans tenir compte de la casse, des accents ni des suffixes juridiques `NV`/`SA`/`SE`…, par mots entiers). Raison : Google cherche la phrase dans tout le texte de l'article, et l'agent ne voit que les titres — il signalait sinon des articles « ambigus ». Le flux Yahoo (ciblé par ticker) n'est pas filtré. Limite : un titre pertinent qui ne nomme pas la société est écarté.
+  - **ISIN → ticker Yahoo :** le flux `feeds.finance.yahoo.com/rss/2.0/headline?s=` n'accepte qu'un ticker (un ISIN renvoie un flux vide sans erreur). `YahooTickerResolver` résout donc l'ISIN via `query1.finance.yahoo.com/v1/finance/search?q=<ISIN>` (premier résultat `EQUITY`/`ETF`, sinon premier résultat), puis interroge le flux. ISIN absent, mal formé, introuvable ou recherche en échec : Yahoo est ignoré (warning) et Google News répond seul. Endpoint non documenté, comme le flux : peut changer sans préavis.
 - **MCP** : seul le transport Streamable HTTP est géré par le serveur ; `InvestZaptoMcpClient` le force (sinon repli sur un SSE hérité refusé en 404) et réessaie 3 fois sur `HttpRequestException`.
 - **`AgentFactory`** possède la connexion MCP (`McpClient`) : à libérer (`IAsyncDisposable`). `AddAgentAI` l'enregistre en **singleton** ; `Maui` en crée une par lancement pour relire les paramètres (donc n'appelle pas `AddAgentAI`).
 - **Historique** : `CustomChatHistoryProvider` persiste les messages en JSON. En cas d'échec de l'appel (format incompatible après une mise à jour NuGet par exemple), appeler `ResetWithBackup(reason)` : le fichier est sauvegardé puis vidé.

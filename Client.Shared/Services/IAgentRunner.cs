@@ -12,5 +12,9 @@ public enum AgentChoice
 /// </summary>
 public interface IAgentRunner
 {
-    Task<string> RunAsync(AgentChoice agent, string assetName, CancellationToken cancellationToken = default);
+    /// <param name="isin">
+    /// The asset's ISIN, when known; lets the agent disambiguate between securities sharing a name.
+    /// Blank is treated as unknown.
+    /// </param>
+    Task<string> RunAsync(AgentChoice agent, string assetName, string? isin, CancellationToken cancellationToken = default);
 }

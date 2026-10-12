@@ -21,8 +21,8 @@ public interface IAgentFactory : IAsyncDisposable
     /// kinds that don't use a context provider.
     /// </param>
     /// <param name="optionalInput">
-    /// A second, optional piece of user-provided data for kinds that take one (the ticker for
-    /// <see cref="AgentKind.News"/>). Ignored by the other kinds.
+    /// A second, optional piece of user-provided data for kinds that take one (the ISIN for
+    /// <see cref="AgentKind.Stock"/> and <see cref="AgentKind.News"/>). Ignored by the other kinds.
     /// </param>
     /// <remarks>
     /// Asynchronous because some agent kinds (e.g. <see cref="AgentKind.Portfolio"/>) require

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace AgentAI;
 
@@ -14,12 +15,14 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection to add to.</param>
     /// <param name="options">Host-provided configuration.</param>
     /// <remarks>
-    /// The host must also register an <see cref="HttpClient"/> and logging (<c>AddLogging</c>).
-    /// The <see cref="HttpClient"/> is deliberately not registered here: the host owns the handler
-    /// pipeline, and the InvestZapto backend needs <see cref="ForceContentLengthHandler"/> in front of a
-    /// <see cref="SocketsHttpHandler"/> to avoid chunked POSTs.
-    /// Registrations use <c>TryAdd</c> so a host can substitute its own <see cref="INewsService"/>,
-    /// <see cref="TimeProvider"/> or <see cref="InvestZaptoMcpClient"/> by registering them beforehand.
+    /// The host must also register logging (<c>AddLogging</c>).
+    /// The HTTP clients are typed clients of <see cref="IHttpClientFactory"/> (see
+    /// <see cref="InvestZaptoMcpServiceExtensions.AddInvestZaptoMcp"/> and
+    /// <see cref="NewsServiceExtensions.AddNewsServices"/>); the host chooses their primary handler through
+    /// <c>AddHttpClient&lt;T&gt;()</c>.
+    /// Registrations use <c>TryAdd</c> so a host can substitute its own <see cref="INewsService"/> or
+    /// <see cref="TimeProvider"/> by registering them beforehand; <see cref="InvestZaptoMcpClient"/> must be
+    /// substituted after this call.
     /// </remarks>
     public static IServiceCollection AddAgentAI(this IServiceCollection services, AgentAIOptions options)
     {
@@ -45,8 +48,8 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton(optionsFactory);
         services.TryAddSingleton(TimeProvider.System);
-        services.TryAddSingleton<InvestZaptoMcpClient>();
-        services.TryAddSingleton<INewsService, RssNewsService>();
+        services.AddInvestZaptoMcp();
+        services.AddNewsServices();
 
         // Singleton: the factory owns the shared MCP connection, and the container disposes it on shutdown.
         // Built explicitly because AgentFactory has two constructors and IWeatherService is not registered.
@@ -54,7 +57,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<AgentAIOptions>(),
             sp.GetRequiredService<InvestZaptoMcpClient>(),
             sp.GetRequiredService<INewsService>(),
-            sp.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>()));
+            sp.GetRequiredService<ILoggerFactory>()));
 
         return services;
     }

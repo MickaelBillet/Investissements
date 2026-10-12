@@ -42,14 +42,15 @@ Maui.Tests/
 ├── AgentOptionsProviderTests.cs
 ├── AgentRunnerTests.cs          # AgentFactory/agent mockés (Moq.Protected sur AIAgent)
 ├── AgentInstructionsTests.cs    # la règle « tour unique » est présente dans les instructions embarquées
-└── RssNewsServiceTests.cs       # filtre sur le titre des résultats Google News (HttpMessageHandler factice)
+├── NewsServiceRegistrationTests.cs # bout en bout de AddNewsServices (conteneur réel, filtre de titres Google News, Yahoo via ISIN) avec HttpMessageHandler factice
+└── News/                        # tests unitaires : NewsServiceTests (agrégation), GoogleNews/YahooFinanceFeedSource, YahooTickerResolver, RssFeedParser, CompanyTitleFilter
 ```
 
 ## 4. `MauiProgram.cs`
 
 1. `AddMauiBlazorWebView()` (+ `AddBlazorWebViewDeveloperTools()` et log debug en `DEBUG`).
 2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`, `IAgentSettings` → `PreferencesAgentSettings` (affiche la page Paramètres ; au premier lancement, `https://invest.zapto.fr/` — `ApiBaseUri` — est enregistrée dans les préférences comme URL de base du MCP, sans champ de saisie).
-3. `AddAgents` (méthode privée de `MauiProgram`) : `AgentOptionsProvider` (historique dans `FileSystem.AppDataDirectory/agents-history`, dossier inscriptible même packagé), `INewsService` → `RssNewsService` et `InvestZaptoMcpClient` avec des `HttpClient` **dédiés** (celui du dashboard ajoute le mot de passe du dashboard, qui ne doit pas partir vers des flux RSS ; celui du MCP passe par `ForceContentLengthHandler` + `SocketsHttpHandler`), puis `IAgentRunner` → `AgentRunner`. `AddAgentAI` n'est **pas** utilisé (il enregistre la factory en singleton).
+3. `AddAgents` (méthode privée de `MauiProgram`) : `AgentOptionsProvider` (historique dans `FileSystem.AppDataDirectory/agents-history`, dossier inscriptible même packagé), `AddNewsServices()` et `AddInvestZaptoMcp()` (clients typés `IHttpClientFactory` : le mot de passe du dashboard, ajouté aux seuls clients du dashboard, ne part pas vers les flux RSS ni le MCP ; `ForceContentLengthHandler` est fourni par la bibliothèque), avec un `SocketsHttpHandler` à `PooledConnectionLifetime` de 2 min comme handler primaire de ces trois clients, puis `IAgentRunner` → `AgentRunner`. `AddAgentAI` n'est **pas** utilisé (il enregistre la factory en singleton).
 4. `AddInvestissementsClient(ApiBaseUri)` — toute la DI du dashboard vient de `Client.Shared`.
 **URL de l'Api** : `https://invest.zapto.fr/`, fixée dans `MauiProgram.ApiBaseUri` (l'Api n'est joignable que via le proxy SWA). Aucune surcharge par variable d'environnement : pour développer contre une Api locale, modifier la constante.
 

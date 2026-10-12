@@ -29,7 +29,9 @@
     [Parameter, EditorRequired] public AgentChoice Agent { get; set; }
     [Parameter, EditorRequired] public string AssetName { get; set; } = string.Empty;
 
-    protected override Task OnInitializedAsync() => ViewModel.LaunchAsync(Agent, AssetName);
+    [Parameter] public string? Isin { get; set; }
+
+    protected override Task OnInitializedAsync() => ViewModel.LaunchAsync(Agent, AssetName, Isin);
 
     private void Close() => MudDialog.Close();
 

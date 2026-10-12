@@ -48,6 +48,28 @@ public class AssetsServiceTests
     }
 
     [Fact]
+    public async Task GetAllAsync_WhenIsinColumnFilled_ReturnsTrimmedIsin()
+    {
+        IReadOnlyList<object> row = [.. AssetRow(1, "Air Liquide", "Stocks", "PEA", "PEA TR", "Stock", "", "", "", 3, 1000d, 0d, 0d, 1200d), " FR0000120073 "];
+        var mock = MockAssetSheet(row);
+
+        var result = await CreateService(mock).GetAllAsync();
+
+        Assert.Equal("FR0000120073", result[0].Isin);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_WhenRowHasNoIsinColumn_ReturnsEmptyIsin()
+    {
+        var mock = MockAssetSheet(
+            AssetRow(1, "Livret A", "Cash", "Booklet", "Livret A", "Savings", "", "", "", 0, 3000d, 0d, 0d, 3000d));
+
+        var result = await CreateService(mock).GetAllAsync();
+
+        Assert.Equal("", result[0].Isin);
+    }
+
+    [Fact]
     public async Task GetAllAsync_SkipsNotDefinedRows()
     {
         var mock = MockAssetSheet(

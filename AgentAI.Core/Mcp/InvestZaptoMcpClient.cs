@@ -12,7 +12,8 @@ namespace AgentAI;
 /// <see cref="HttpTransportMode.AutoDetect"/> would otherwise fall back to a legacy SSE probe that
 /// this server always rejects with 404, turning any transient Streamable HTTP hiccup into a confusing
 /// dual-error stack trace instead of a clean retry.
-/// The <see cref="HttpClient"/> is injected (and owned by the host) so this class carries no
+/// The <see cref="HttpClient"/> is injected (a typed client, see
+/// <see cref="InvestZaptoMcpServiceExtensions.AddInvestZaptoMcp"/>) so this class carries no
 /// platform-specific handler and can be reused from a browser host.
 /// </remarks>
 public class InvestZaptoMcpClient
@@ -51,7 +52,7 @@ public class InvestZaptoMcpClient
         {
             try
             {
-                // ownsHttpClient: false because the host shares this HttpClient across attempts and callers.
+                // ownsHttpClient: false because this HttpClient is shared across attempts and callers.
                 var transport = new HttpClientTransport(transportOptions, _httpClient, _loggerFactory, ownsHttpClient: false);
                 return await McpClient.CreateAsync(transport, cancellationToken: cancellationToken).ConfigureAwait(false);
             }

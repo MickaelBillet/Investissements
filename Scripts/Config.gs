@@ -48,6 +48,7 @@ const COL_TOTAL_PURCHASES = 10; // K
 const COL_TOTAL_SALES     = 11; // L
 const COL_DIVIDENDS       = 12; // M
 const COL_CURRENT_TOTAL   = 13; // N
+const COL_ISIN            = 14; // O — filled manually, never written by the ETL
 
 // --- AssetClass enumeration ---
 const ASSET_CLASS = {
