@@ -31,7 +31,7 @@ Maui/
 ├── Services/PreferencesAgentSettings.cs     # IAgentSettings → IPreferences (page Paramètres)
 ├── Services/AgentOptionsProvider.cs         # IAgentSettings → AgentAIOptions (MCP déduit de l'URL de base stockée, repli sur l'Api ; historique injecté)
 ├── Platforms/Windows/          # App.xaml(.cs), app.manifest (boilerplate WinUI), Package.appxmanifest (identité MSIX)
-├── Scripts/                    # New-DevCertificate.ps1, Publish-Msix.ps1, Install-Msix.ps1 (packaging, voir §7)
+├── Scripts/                    # Update-App.ps1 (tout-en-un), New-DevCertificate.ps1, Publish-Msix.ps1, Install-Msix.ps1 (packaging, voir §7)
 ├── Resources/AppIcon/appicon.svg, Resources/Splash/splash.svg   # même visuel que le favicon du site
 ├── wwwroot/index.html          # page d'hébergement du BlazorWebView
 └── Docs/                       # CLAUDE.md, SPECS.md, maui-class-diagram.drawio/.png
@@ -77,6 +77,10 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 - Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `Maui/obj` (cache de génération des icônes).
 
 ### Installer l'application (MSIX signé, auto-signé)
+
+**En une commande** (PowerShell normal, depuis la racine du dépôt) : `.\Maui\Scripts\Update-App.ps1`. Le script crée le certificat s'il n'existe pas, construit et signe le MSIX, n'élève les droits **que** pour approuver le certificat (une seule invite UAC, la première fois ou après un renouvellement), puis installe ou met à jour l'application en fermant l'instance en cours. Si la version est déjà installée (même numéro de build), il s'arrête : committer pour obtenir une nouvelle version, ou `-Reinstall` pour réinstaller la même (**efface les données de l'application**, dont le mot de passe du dashboard mémorisé). `-WhatIf` déroule les étapes sans rien modifier.
+
+Les trois étapes ci-dessous restent utilisables séparément (diagnostic, ou installation depuis un PowerShell administrateur) :
 
 À faire dans l'ordre, depuis la racine du dépôt :
 
