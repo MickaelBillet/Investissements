@@ -47,12 +47,13 @@ Api/
 │   ├── IPortfolioMetricsService.cs
 │   ├── ISnapshotService.cs
 │   ├── ISyncService.cs
+│   ├── IWatchlistService.cs
 │   └── Mcp/
 │       └── IMcpService.cs         # Interface du handler JSON-RPC
 ├── Mappers/
 │   └── SheetMappers.cs            # Fonctions pures : lignes brutes Sheets → DTOs (mapping + agrégation)
 ├── Mcp/
-│   └── McpToolRegistry.cs         # Registre statique des 8 outils MCP
+│   └── McpToolRegistry.cs         # Registre statique des 9 outils MCP
 ├── Services/
 │   ├── AssetsService.cs
 │   ├── BondScheduleService.cs
@@ -60,6 +61,7 @@ Api/
 │   ├── PortfolioMetricsService.cs
 │   ├── SnapshotService.cs
 │   ├── SyncService.cs             # Appelle le Web App Apps Script (HttpClient typé, timeout 100 s)
+│   ├── WatchlistService.cs        # Lit l'onglet Watchlist (Name, ISIN), cache 5 min
 │   └── Mcp/
 │       └── McpService.cs          # Handler JSON-RPC — route vers les services
 ├── Properties/
@@ -178,11 +180,11 @@ Voir `CLAUDE.md` (racine) §5.2.4 pour le détail côté Client (écran de conne
 | Méthode JSON-RPC | Rôle |
 |---|---|
 | `initialize` | Poignée de main — retourne version protocole (`2024-11-05`) et capacités |
-| `tools/list` | Retourne les 8 outils disponibles (définis dans `McpToolRegistry`) |
+| `tools/list` | Retourne les 9 outils disponibles (définis dans `McpToolRegistry`) |
 | `tools/call` | Exécute un outil — délègue aux services métier |
 | `notifications/initialized` | Accusé de réception silencieux |
 
-**Outils exposés :** `get_assets`, `get_assets_distribution`, `get_etf_stocks`, `get_portfolio_metrics`, `get_portfolio_history`, `get_snapshot`, `get_snapshot_history`, `get_geography_distribution`.
+**Outils exposés :** `get_assets`, `get_assets_distribution`, `get_etf_stocks`, `get_portfolio_metrics`, `get_portfolio_history`, `get_snapshot`, `get_snapshot_history`, `get_geography_distribution`, `get_watchlist` (actions suivies de l'onglet `Watchlist` — nom et ISIN, hors portefeuille ; exposé uniquement via MCP, pas d'endpoint REST).
 
 **Transport :** Streamable HTTP (POST uniquement). Compatible avec Claude Code, Claude Desktop et Claude Web.
 

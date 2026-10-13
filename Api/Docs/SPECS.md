@@ -323,6 +323,7 @@ Endpoint MCP (Model Context Protocol) — JSON-RPC 2.0. Permet à Claude Code d'
 | `get_snapshot` | — | `ISnapshotService.GetLastAsync` |
 | `get_snapshot_history` | — | `ISnapshotService.GetHistoryAsync` |
 | `get_geography_distribution` | `assetClass` (`Stocks`\|`Bonds`) | `IGeographyService.GetDistributionAsync` |
+| `get_watchlist` | — | `IWatchlistService.GetAllAsync` — liste `{ name, isin }` de l'onglet `Watchlist` (lignes sans nom ignorées) |
 
 **Codes d'erreur JSON-RPC :**
 

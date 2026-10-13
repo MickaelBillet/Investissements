@@ -217,6 +217,17 @@ Une ligne par jour. Colonnes (index 0-based) :
 
 Les cellules du Bilan lues par l'ETL sont des constantes de `Scripts/Config.gs` : `NET_PURCHASES` = C49, `TOTAL_PURCHASES` = F70, `TOTAL_SALES` = F72, `TOTAL_RETURNS` = F62, `CASH_PEA` = B70, `SMART_CASH_MINTOS` = B72 (ces deux dernières sont lues mais non exploitées). Toute insertion ou suppression de ligne dans le Bilan les décale : les mettre à jour dans le même geste.
 
+### 6.3bis Onglet `Watchlist` (DEST_ID)
+
+Une ligne par action suivie (hors portefeuille), maintenue à la main — aucun script ne l'écrit. Ligne 1 = en-tête. Colonnes (index 0-based) :
+
+| Index | Colonne | Description |
+|---|---|---|
+| 0 | A | `Name` — nom de l'action (une ligne sans nom est ignorée) |
+| 1 | B | `ISIN` |
+
+Lue par `WatchlistService` (Api) et exposée uniquement par l'outil MCP `get_watchlist`.
+
 ### 6.4 Valeur sentinelle `"ND"`
 
 Quand une valeur financière n'est pas disponible, la feuille contient la chaîne `"ND"` (Not Defined) à la place d'un nombre. Les fonctions d'agrégation ignorent ces lignes plutôt que de sommer zéro, et posent `hasIncompleteData: true` sur le résultat agrégé. Les métriques calculées (`unrealizedGain`, `yield`, `roi`) sont retournées `null` quand les données sont incomplètes.

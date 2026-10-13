@@ -11,6 +11,7 @@ internal sealed class McpService : IMcpService
     private readonly ISnapshotService         _snapshot;
     private readonly IPortfolioMetricsService _metrics;
     private readonly IGeographyService        _geography;
+    private readonly IWatchlistService        _watchlist;
     private readonly ILogger<McpService>      _logger;
 
     public McpService(
@@ -18,12 +19,14 @@ internal sealed class McpService : IMcpService
         ISnapshotService snapshot,
         IPortfolioMetricsService metrics,
         IGeographyService geography,
+        IWatchlistService watchlist,
         ILogger<McpService> logger)
     {
         _assets    = assets;
         _snapshot  = snapshot;
         _metrics   = metrics;
         _geography = geography;
+        _watchlist = watchlist;
         _logger    = logger;
     }
 
@@ -95,6 +98,9 @@ internal sealed class McpService : IMcpService
                 "get_geography_distribution" =>
                     Serialize(await _geography.GetDistributionAsync(
                         GetRequiredString(arguments, "assetClass"), ct)),
+
+                "get_watchlist" =>
+                    Serialize(await _watchlist.GetAllAsync(ct)),
 
                 _ => null
             };
