@@ -52,7 +52,7 @@ Ajouter un service au dashboard = l'enregistrer dans `AddInvestissementsClient`,
 
 ## 6. `staticwebapp.config.json`
 
-- `navigationFallback` → `/index.html`, avec exclusion de `/api/*`, `/_framework/*`, `/css/*`, `/_content/*`, `/docs/*` et des extensions statiques (`ico, png, svg, webp, woff, woff2, js`).
+- `navigationFallback` → `/index.html`, avec exclusion de `/api/*`, `/_framework/*`, `/css/*`, `/_content/*`, `/docs/*`, `/.well-known/*` et des extensions statiques (`ico, png, svg, webp, woff, woff2, js`). `/.well-known/*` doit renvoyer un vrai `404` : sinon le fallback répond `200` en HTML et les clients qui tentent une découverte OAuth (bouton « Connecter » d'un connecteur MCP de Claude.ai) croient à tort qu'un serveur OAuth existe.
 - En-têtes globaux : `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (géolocalisation, micro, caméra désactivés).
 - Le fichier doit rester dans `Client/wwwroot` pour être copié dans le `publish`.
 
