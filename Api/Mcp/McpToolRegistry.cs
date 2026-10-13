@@ -40,6 +40,10 @@ internal static class McpToolRegistry
         new("get_geography_distribution",
             "Returns geographic distribution of assets for a given asset class.",
             EnumParam("assetClass", "Asset class to filter by", ["Stocks", "Bonds"])),
+
+        new("get_watchlist",
+            "Returns the watchlist: stocks being followed (name and ISIN), not held in the portfolio.",
+            NoParams()),
     ];
 
     private static object NoParams() => new

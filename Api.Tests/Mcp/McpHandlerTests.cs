@@ -15,12 +15,14 @@ public class McpHandlerTests
         Mock<IAssetsService>?           assets    = null,
         Mock<ISnapshotService>?         snapshot  = null,
         Mock<IPortfolioMetricsService>? metrics   = null,
-        Mock<IGeographyService>?        geography = null)
+        Mock<IGeographyService>?        geography = null,
+        Mock<IWatchlistService>?        watchlist = null)
         => new(
             (assets    ?? new Mock<IAssetsService>()).Object,
             (snapshot  ?? new Mock<ISnapshotService>()).Object,
             (metrics   ?? new Mock<IPortfolioMetricsService>()).Object,
             (geography ?? new Mock<IGeographyService>()).Object,
+            (watchlist ?? new Mock<IWatchlistService>()).Object,
             NullLogger<McpService>.Instance);
 
     private static JsonRpcRequest Request(string method, object? @params = null) => new()
@@ -54,13 +56,14 @@ public class McpHandlerTests
     // --- tools/list ---
 
     [Fact]
-    public async Task HandleAsync_ToolsList_ReturnsEightTools()
+    public async Task HandleAsync_ToolsList_ReturnsNineTools()
     {
         var handler  = CreateHandler();
         var response = await handler.HandleAsync(Request("tools/list"), default);
 
         var result = AssertSuccessResult<McpToolsListResult>(response);
-        Assert.Equal(8, result.Tools.Count);
+        Assert.Equal(9, result.Tools.Count);
+        Assert.Contains(result.Tools, t => t.Name == "get_watchlist");
     }
 
     [Fact]
@@ -195,6 +198,22 @@ public class McpHandlerTests
         var result = AssertSuccessResult<McpToolsCallResult>(response);
         Assert.Single(result.Content);
         geography.Verify(s => s.GetDistributionAsync("Stocks", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ToolsCall_GetWatchlist_ReturnsSerializedItems()
+    {
+        var watchlist = new Mock<IWatchlistService>();
+        watchlist.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>()))
+                 .ReturnsAsync([new WatchlistItemDto("Hermes", "FR0000052292")]);
+
+        var handler  = CreateHandler(watchlist: watchlist);
+        var response = await handler.HandleAsync(Request("tools/call", new { name = "get_watchlist", arguments = new { } }), default);
+
+        var result = AssertSuccessResult<McpToolsCallResult>(response);
+        Assert.Single(result.Content);
+        Assert.Contains("Hermes", result.Content[0].Text);
+        Assert.Contains("FR0000052292", result.Content[0].Text);
     }
 
     // --- tools/call error paths ---

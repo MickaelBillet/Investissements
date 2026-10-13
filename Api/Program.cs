@@ -20,6 +20,7 @@ var host = new HostBuilder()
         services.AddScoped<IPortfolioMetricsService, PortfolioMetricsService>();
         services.AddScoped<IGeographyService, GeographyService>();
         services.AddScoped<IBondScheduleService, BondScheduleService>();
+        services.AddScoped<IWatchlistService, WatchlistService>();
         services.AddScoped<IMcpService, McpService>();
         services.AddHttpClient<ISyncService, SyncService>(c => c.Timeout = TimeSpan.FromSeconds(100));
     })

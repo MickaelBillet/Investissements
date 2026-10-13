@@ -32,6 +32,10 @@ internal static class SheetMappers
     private const int ColSnapTotalReturns   = 5;
     private const int ColSnapTotalSales     = 6;
 
+    // --- Watchlist sheet column indexes ---
+    private const int ColWlName = 0;
+    private const int ColWlIsin = 1;
+
     // --- AssetType sheet column indexes ---
     private const int ColAtId                = 0;
     private const int ColAtName              = 1;
@@ -48,6 +52,9 @@ internal static class SheetMappers
 
     public static IReadOnlyList<IReadOnlyList<object>> GetSnapshotRows(IReadOnlyList<IReadOnlyList<object>> rawRows)
         => rawRows.Skip(1).Where(row => !string.IsNullOrEmpty(AsString(Cell(row, ColSnapDate)))).ToList();
+
+    public static IReadOnlyList<IReadOnlyList<object>> GetWatchlistRows(IReadOnlyList<IReadOnlyList<object>> rawRows)
+        => rawRows.Skip(1).Where(row => !string.IsNullOrWhiteSpace(AsString(Cell(row, ColWlName)))).ToList();
 
     // --- Asset ---
 
@@ -104,6 +111,13 @@ internal static class SheetMappers
         TotalPurchases: AsDecimalOrZero(Cell(row, ColSnapTotalPurchases)),
         TotalReturns  : AsDecimalOrZero(Cell(row, ColSnapTotalReturns)),
         TotalSales    : AsDecimalOrNull(Cell(row, ColSnapTotalSales))
+    );
+
+    // --- Watchlist ---
+
+    public static WatchlistItemDto BuildWatchlistItem(IReadOnlyList<object> row) => new(
+        Name: AsString(Cell(row, ColWlName))?.Trim() ?? "",
+        Isin: AsString(Cell(row, ColWlIsin))?.Trim() ?? ""
     );
 
     // --- AssetType reference ---
