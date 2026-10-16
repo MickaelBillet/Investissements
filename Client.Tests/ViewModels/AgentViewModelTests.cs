@@ -35,6 +35,19 @@ public class AgentViewModelTests
     }
 
     [Fact]
+    public async Task LaunchAsync_PortfolioAgentWithoutAsset_PassesNullAssetToRunner()
+    {
+        _runner.Setup(r => r.RunAsync(AgentChoice.Allocation, null, null, It.IsAny<CancellationToken>()))
+               .ReturnsAsync("Rapport");
+        var vm = Create();
+
+        await vm.LaunchAsync(AgentChoice.Allocation, null);
+
+        Assert.Equal("Rapport", vm.Response);
+        Assert.Null(vm.Error);
+    }
+
+    [Fact]
     public async Task LaunchAsync_WithIsin_PassesIsinToRunner()
     {
         _runner.Setup(r => r.RunAsync(AgentChoice.Stock, "Air Liquide", "FR0000120073", It.IsAny<CancellationToken>()))

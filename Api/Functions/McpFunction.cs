@@ -61,6 +61,11 @@ public sealed class McpFunction
             return new ContentResult { Content = JsonSerializer.Serialize(invalidReq, McpJsonOptions.Default), ContentType = "application/json", StatusCode = 200 };
         }
 
+        // A notification must not be answered with a JSON-RPC message (it has no id to answer to): the Streamable HTTP
+        // transport expects an empty 202, and the client otherwise logs "Invalid JSON-RPC message format" on every connection.
+        if (rpcRequest.Method.StartsWith("notifications/", StringComparison.Ordinal))
+            return new StatusCodeResult(StatusCodes.Status202Accepted);
+
         var response = await _handler.HandleAsync(rpcRequest, ct);
         var json = JsonSerializer.Serialize(response, McpJsonOptions.Default);
         return new ContentResult { Content = json, ContentType = "application/json", StatusCode = 200 };

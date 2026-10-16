@@ -5,11 +5,14 @@ namespace InvestissementsDashboard.Client.ViewModels;
 
 /// <summary>
 /// Presentation logic of <c>MainLayout</c>: the manual synchronization (and the message that reports its outcome), the logout
-/// and whether the settings entry is shown (only when the host provides <see cref="IAgentSettings"/>, i.e. MAUI).
+/// and whether the settings and portfolio-agent entries are shown (only when the host provides <see cref="IAgentSettings"/> and <see cref="IAgentRunner"/>, i.e. MAUI).
 /// </summary>
-public class MainViewModel(ISyncService syncService, ISessionService sessionService, ILocalizationService localizer, ILogger<MainViewModel> logger, IAgentSettings? agentSettings = null)
+public class MainViewModel(ISyncService syncService, ISessionService sessionService, ILocalizationService localizer, ILogger<MainViewModel> logger, IAgentSettings? agentSettings = null, IAgentRunner? agentRunner = null)
 {
     public bool IsSettingsAvailable => agentSettings is not null;
+
+    /// <summary>Whether the portfolio-wide agent entry is shown: only the MAUI host registers an <see cref="IAgentRunner"/>.</summary>
+    public bool IsAgentAvailable => agentRunner is not null;
 
     public bool IsSyncing { get; private set; }
 

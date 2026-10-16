@@ -182,7 +182,7 @@ Voir `CLAUDE.md` (racine) §5.2.4 pour le détail côté Client (écran de conne
 | `initialize` | Poignée de main — retourne version protocole (`2024-11-05`) et capacités |
 | `tools/list` | Retourne les 9 outils disponibles (définis dans `McpToolRegistry`) |
 | `tools/call` | Exécute un outil — délègue aux services métier |
-| `notifications/initialized` | Accusé de réception silencieux |
+| `notifications/*` (ex. `notifications/initialized`) | Pas de message JSON-RPC en retour : `McpFunction` répond `202 Accepted` sans corps, avant même d'appeler `McpService` (une réponse JSON ferait journaliser « Invalid JSON-RPC message format » au client MCP) |
 
 **Outils exposés :** `get_assets`, `get_assets_distribution`, `get_etf_stocks`, `get_portfolio_metrics`, `get_portfolio_history`, `get_snapshot`, `get_snapshot_history`, `get_geography_distribution`, `get_watchlist` (actions suivies de l'onglet `Watchlist` — nom et ISIN, hors portefeuille ; exposé uniquement via MCP, pas d'endpoint REST).
 

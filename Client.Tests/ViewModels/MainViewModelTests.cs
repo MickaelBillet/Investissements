@@ -122,6 +122,20 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void IsAgentAvailable_WithoutRunner_IsFalse()
+    {
+        Assert.False(Create().IsAgentAvailable);
+    }
+
+    [Fact]
+    public void IsAgentAvailable_WithRunner_IsTrue()
+    {
+        var vm = new MainViewModel(_sync.Object, _session.Object, _localizer.Object, NullLogger<MainViewModel>.Instance, agentRunner: new Mock<IAgentRunner>().Object);
+
+        Assert.True(vm.IsAgentAvailable);
+    }
+
+    [Fact]
     public void SyncMessage_BeforeAnySync_IsNull()
     {
         Assert.Null(Create().SyncMessage);

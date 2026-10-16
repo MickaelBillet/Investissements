@@ -2,6 +2,7 @@
 
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using OpenAI.Responses;
 
 namespace AgentAI;
 
@@ -12,4 +13,11 @@ namespace AgentAI;
 /// <param name="Instructions">The system prompt for the agent.</param>
 /// <param name="Tools">Tools exposed to the agent, or <see langword="null"/> if none.</param>
 /// <param name="HistoryFileName">File name (relative to the app base directory) used to persist chat history.</param>
-internal sealed record AgentDefinition(string Instructions, IList<AITool>? Tools, string HistoryFileName, CompositeContextProvider? AIContextProviders = null);
+/// <param name="AIContextProviders">Context providers run before each invocation, or <see langword="null"/> if none.</param>
+/// <param name="ReasoningEffort">
+/// Reasoning effort requested from the model, or <see langword="null"/> for the deployment's default. Lowered for
+/// reports that only restate tool data: at the default effort the Allocation report spent ~14,000 reasoning tokens
+/// (158 s), past the 100 s network timeout of the Foundry client, which then retried the call.
+/// </param>
+#pragma warning disable OPENAI001 // OpenAI.Responses types are for evaluation purposes only and subject to change.
+internal sealed record AgentDefinition(string Instructions, IList<AITool>? Tools, string HistoryFileName, CompositeContextProvider? AIContextProviders = null, ResponseReasoningEffortLevel? ReasoningEffort = null);

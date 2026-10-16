@@ -27,7 +27,8 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter, EditorRequired] public AgentChoice Agent { get; set; }
-    [Parameter, EditorRequired] public string AssetName { get; set; } = string.Empty;
+    // Null for the portfolio-wide agent, which is not tied to an asset.
+    [Parameter] public string? AssetName { get; set; }
 
     [Parameter] public string? Isin { get; set; }
 

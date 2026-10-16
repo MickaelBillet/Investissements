@@ -25,7 +25,7 @@
     <div class="win-settings">
         <div class="win-title">@L.Translate("Nav_Settings")</div>
 
-        <form @onsubmit="ViewModel.Save" @onsubmit:preventDefault="true">
+        <form @onsubmit="ViewModel.SaveAsync" @onsubmit:preventDefault="true">
             <div class="win-section">@L.Translate("Settings_Title")</div>
 
             <div class="win-row">
@@ -56,6 +56,23 @@
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
                                   FullWidth="true" />
+                </div>
+            </div>
+
+            <div class="win-row">
+                <span class="win-row-icon"><MudIcon Icon="@Icons.Material.Outlined.Key" /></span>
+                <div class="win-row-text">
+                    <div class="win-row-title">@L.Translate("Settings_McpKey")</div>
+                    <div class="win-row-desc">@L.Translate("Settings_McpKeyHelp")</div>
+                </div>
+                <div class="win-row-control">
+                    <MudTextField T="string"
+                                  @bind-Value="ViewModel.McpApiKey"
+                                  InputType="InputType.Password"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  FullWidth="true"
+                                  AutoComplete="off" />
                 </div>
             </div>
 

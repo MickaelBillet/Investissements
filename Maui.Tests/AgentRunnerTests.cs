@@ -30,14 +30,15 @@ public class AgentRunnerTests
             .ReturnsAsync(new Mock<AgentSession>().Object);
     }
 
-    private AgentRunner CreateRunner() => new(
+    private AgentRunner CreateRunner(TimeSpan? timeout = null) => new(
         new AgentOptionsProvider(_settings.Object, new Uri("https://invest.test/"), @"C:\history"),
         options =>
         {
             _receivedOptions = options;
             return _factory.Object;
         },
-        NullLogger<AgentRunner>.Instance);
+        NullLogger<AgentRunner>.Instance,
+        timeout);
 
     private void SetupRun(Func<Task<AgentResponse>> run) =>
         _agent
@@ -61,6 +62,68 @@ public class AgentRunnerTests
 
         Assert.Equal("ok", result);
         _factory.Verify(f => f.CreateAsync(expected, "Air Liquide", null), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunAsync_AllocationWithoutAsset_CreatesAllocationAgentWithNoInput()
+    {
+        SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "rapport"))));
+
+        var result = await CreateRunner().RunAsync(AgentChoice.Allocation, null, null);
+
+        Assert.Equal("rapport", result);
+        _factory.Verify(f => f.CreateAsync(AgentKind.Allocation, null, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunAsync_McpUnauthorized_ThrowsExplicitErrorWithoutResettingHistory()
+    {
+        _factory
+            .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ThrowsAsync(new HttpRequestException("401", null, System.Net.HttpStatusCode.Unauthorized));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Allocation, null, null));
+
+        Assert.Contains("MCP key", ex.Message);
+        _history.Verify(h => h.ResetWithBackup(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RunAsync_CreationNeverCompletes_TimesOutNamingTheMcpStage()
+    {
+        _factory
+            .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .Returns(new TaskCompletionSource<(AIAgent, ICustomChatHistoryProvider)>().Task);
+
+        var ex = await Assert.ThrowsAsync<TimeoutException>(
+            () => CreateRunner(TimeSpan.FromMilliseconds(50)).RunAsync(AgentChoice.Allocation, null, null));
+
+        Assert.Contains("MCP connection", ex.Message);
+        _history.Verify(h => h.ResetWithBackup(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RunAsync_ModelNeverAnswers_TimesOutNamingTheModelStage()
+    {
+        // Like the real agent, the stalled call stops when the token it received is cancelled.
+        _agent
+            .Protected()
+            .Setup<Task<AgentResponse>>(
+                "RunCoreAsync",
+                ItExpr.IsAny<IEnumerable<ChatMessage>>(),
+                ItExpr.IsAny<AgentSession?>(),
+                ItExpr.IsAny<AgentRunOptions?>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns<IEnumerable<ChatMessage>, AgentSession?, AgentRunOptions?, CancellationToken>(async (_, _, _, ct) =>
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+                return new AgentResponse(new ChatMessage(ChatRole.Assistant, "never"));
+            });
+
+        var ex = await Assert.ThrowsAsync<TimeoutException>(
+            () => CreateRunner(TimeSpan.FromMilliseconds(50)).RunAsync(AgentChoice.Stock, "Air Liquide", null));
+
+        Assert.Contains("model", ex.Message);
     }
 
     [Fact]
@@ -129,8 +192,10 @@ public class AgentRunnerTests
     public async Task RunAsync_Cancelled_KeepsHistory()
     {
         SetupRun(() => throw new OperationCanceledException());
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null, cts.Token));
 
         _history.Verify(h => h.ResetWithBackup(It.IsAny<string>()), Times.Never);
     }
