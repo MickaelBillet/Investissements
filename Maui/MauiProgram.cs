@@ -22,10 +22,8 @@ public static class MauiProgram
         builder.Services.AddInvestissementsClient(ApiBaseUri);
         builder.Services.AddSingleton<IAgentSettings>(_ => new PreferencesAgentSettings(Preferences.Default, ApiBaseUri.ToString()));
         AddAgents(builder.Services);
+        AddLogger(builder.Services);
 
-        builder.Logging.AddProvider(new FileLoggerProvider(Path.Combine(FileSystem.AppDataDirectory, "logs", "maui.log")));
-        builder.Logging.AddFilter<FileLoggerProvider>("Microsoft", LogLevel.Warning);
-        builder.Logging.AddFilter<FileLoggerProvider>("System", LogLevel.Warning);
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
@@ -39,6 +37,16 @@ public static class MauiProgram
     // recycled by the factory: bounding the connection lifetime keeps DNS changes picked up.
     private static HttpMessageHandler CreatePrimaryHandler() =>
         new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) };
+
+    private static void AddLogger(IServiceCollection services)
+    {
+        services.AddLogging(builder =>
+        {
+            builder.AddProvider(new FileLoggerProvider(Path.Combine(FileSystem.AppDataDirectory, "logs", "maui.log")));
+            builder.AddFilter<FileLoggerProvider>("Microsoft", LogLevel.Warning);
+            builder.AddFilter<FileLoggerProvider>("System", LogLevel.Warning);
+        });
+    }
 
     private static void AddAgents(IServiceCollection services)
     {

@@ -502,7 +502,7 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.2bis Maui
 
 - Framework : **xUnit** + **Moq**
-- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs` et `AgentRunner.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` (fabrique et agent mockés), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
+- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `McpApiKeyHandler.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` (fabrique et agent mockés), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
 - Commande : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (Windows)
 
 ### 12.3 Scripts / Apps Script
@@ -523,7 +523,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ## 14. Agents IA et application MAUI Windows (décisions — première version livrée)
 
-> **État d'avancement (2026-10-09)** : les étapes 1, 3, 4 et 5 du §14.4 sont faites. La bibliothèque `AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` reprend le dashboard (voir `Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par la page **Paramètres** (endpoint Foundry, modèle) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IAgentSettings` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. **Reste à faire** : agent `Portfolio` branché sur le MCP (étape 6), validation de l'identité Azure (`az login`) avec un MSIX packagé, rendu de MudBlazor/ApexCharts dans le `BlazorWebView` à valider visuellement.
+> **État d'avancement (2026-10-09)** : les étapes 1, 3, 4 et 5 du §14.4 sont faites. La bibliothèque `AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` reprend le dashboard (voir `Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par la page **Paramètres** (endpoint Foundry, modèle) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IAgentSettings` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. L'agent **Allocation** (rapport descriptif des positions via le MCP, lancé depuis le menu « ⋮ ») est livré ; la clé `MCP_API_KEY` est saisie dans les Paramètres et conservée dans `SecureStorage`. **Reste à faire** : validation de l'identité Azure (`az login`) avec un MSIX packagé, rendu de MudBlazor/ApexCharts dans le `BlazorWebView` à valider visuellement.
 
 > La console de développement `C:\Users\mbillet.NOVACATH\source\AgentAI` (net10.0, Microsoft Agent Framework + Azure AI Foundry) est conservée hors de ce dépôt ; son `CLAUDE.md` détaille les agents (Chat, Weather, Stock, Portfolio, News). **Elle garde sa propre copie de `AgentAI.Core`** : les modifications faites ici (instructions, `AgentFactory`) ne s'y répercutent pas automatiquement. Constats sur la doc Microsoft consultés le 2026-10-01.
 
@@ -544,7 +544,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 - **Bibliothèque `Agents`** (extraite de `AgentAI`, net10.0) : `AgentFactory`, fournisseurs de contexte, `NewsService` (sources d'actualités), `InvestZaptoMcpClient`, `ForceContentLengthHandler`, historique. La console `AgentAI` est conservée comme outil de développement.
 - **Bibliothèque Razor partagée** extraite de `Client/` (composants, ViewModels) pour réutiliser le dashboard dans MAUI via `BlazorWebView` (Blazor Hybrid) ; le projet WASM devient un hôte mince. Compatibilité de MudBlazor et d'ApexCharts dans un `BlazorWebView` : **non vérifiée**, à tester tôt.
 - **Projet MAUI Windows** : `BlazorWebView` + page Agents (choix de l'agent, saisies, réponse en Markdown, durée affichée).
-- **Portfolio** : l'agent appelle le MCP existant (`POST /api/mcp`, protégé par `MCP_API_KEY`) via le `HttpClient` injecté. `ForceContentLengthHandler` est à conserver : le « 500 Backend call failure » sur les POST en chunked vient probablement du proxy SWA (hypothèse, non vérifiée).
+- **Allocation** : l'agent appelle le MCP existant (`POST /api/mcp`, protégé par `MCP_API_KEY`) via le `HttpClient` injecté. `ForceContentLengthHandler` est à conserver : le « 500 Backend call failure » sur les POST en chunked vient probablement du proxy SWA (hypothèse, non vérifiée).
 
 ### 14.3 Adaptations du code agents à prévoir (non faites)
 
@@ -562,7 +562,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 3. ✅ Fait — bibliothèque Razor partagée `Client.Shared/` extraite de `Client/` (étape la plus risquée : elle a touché le site en production).
 4. ✅ Fait — projet `Maui/` : `BlazorWebView`, injection de dépendances, page Paramètres des agents, packaging MSIX.
 5. ✅ Fait — lancement des agents depuis l'interface : choix de l'agent (`AgentPickerDialog`), réponse en un tour (`AgentResultDialog`), `AgentRunner`. Seuls Stock et Actualités sont exposés.
-6. Agent `Portfolio` branché sur l'Api / le MCP existants (`MCP_API_KEY` à stocker dans `SecureStorage`, §14.3).
+6. ✅ Fait — agent `Allocation` branché sur le MCP (`MCP_API_KEY` dans `SecureStorage`, envoyée par `McpApiKeyHandler`). L'ancien agent `Portfolio` a été supprimé de la bibliothèque.
 
 ### 14.5 Pièges à ne pas oublier
 
@@ -581,4 +581,4 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 |---|---|---|
 | 1 | Emplacement du MAUI et de `Agents` : solution séparée (recommandé, ne touche pas au CI) ou dans `Investissements.slnx` avec ajustement du workflow | CI de production — ne bloque pas l'étape 1 |
 | 2 | Identité Azure : `DefaultAzureCredential` (`az login`) ou connexion par navigateur avec cache de jeton | Ergonomie de démarrage |
-| 3 | Durées de `news`, `weather`, `portfolio` non mesurées (chronomètre `[Timing]` disponible dans la console `AgentAI`) | Information seulement : plus de limite de 45 s côté MAUI |
+| 3 | Durées de `news` et `weather` non mesurées (chronomètre `[Timing]` disponible dans la console `AgentAI`) | Information seulement : plus de limite de 45 s côté MAUI |

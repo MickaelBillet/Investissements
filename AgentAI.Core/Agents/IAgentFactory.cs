@@ -25,7 +25,7 @@ public interface IAgentFactory : IAsyncDisposable
     /// <see cref="AgentKind.Stock"/> and <see cref="AgentKind.News"/>). Ignored by the other kinds.
     /// </param>
     /// <remarks>
-    /// Asynchronous because some agent kinds (e.g. <see cref="AgentKind.Portfolio"/>) require
+    /// Asynchronous because some agent kinds (e.g. <see cref="AgentKind.Allocation"/>) require
     /// connecting to an external MCP server before their tools are known.
     /// </remarks>
     Task<(AIAgent Agent, ICustomChatHistoryProvider HistoryProvider)> CreateAsync(AgentKind kind, string? contextInput = null, string? optionalInput = null);

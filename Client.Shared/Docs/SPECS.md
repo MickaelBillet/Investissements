@@ -109,9 +109,9 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 - **Zones géographiques** : alimenté par `ViewModel.GetGeographyForClass(assetClass)`, pré-chargé au démarrage depuis `GET /api/portfolio/geography/{assetClass}`
 - **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, calculé côté client depuis les actifs chargés, filtré aux `AssetType` marqués éligibles (`GeoSectorEligible = TRUE` dans l'onglet `AssetType` du Sheet, exposé via `GET /api/assets/types/reference`)
 
-**Agents IA (MAUI uniquement)** : dans l'application Windows, chaque ligne `Stock` d'un `AssetTable` propose un bouton « Lancer un agent » ; un dialogue demande l'agent (Stock ou News), puis une fenêtre affiche la réponse (progression, résultat ou erreur). Absent du site web. Voir `CLAUDE.md` §7.10.
+**Agents IA (MAUI uniquement)** : dans l'application Windows, chaque ligne `Stock` d'un `AssetTable` propose un bouton « Lancer un agent » ; un dialogue demande l'agent (Stock ou News), puis une fenêtre affiche la réponse (progression, résultat ou erreur). Le menu « ⋮ » propose en plus **Allocation du portefeuille** (rapport descriptif de toutes les positions, lancé sans choix préalable). Absent du site web. Voir `CLAUDE.md` §7.10.
 
-**Paramètres des agents (MAUI uniquement)** : le menu ⋮ propose « Paramètres », une page où l'on saisit l'endpoint du projet Azure AI Foundry (URL https) et le modèle (facultatif). Absente du site web. Voir `CLAUDE.md` §7.12.
+**Paramètres des agents (MAUI uniquement)** : le menu ⋮ propose « Paramètres », une page où l'on saisit l'endpoint du projet Azure AI Foundry (URL https) le modèle (facultatif) et la clé du serveur MCP (champ masqué, jamais réaffichée). Absente du site web. Voir `CLAUDE.md` §7.12.
 
 **Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedZone`.
 
@@ -200,6 +200,7 @@ Barre en haut de page : logo + titre, liens **Portefeuille** (`/`) et **Suivi** 
 | Entrée | Action |
 |---|---|
 | Masquer / Afficher les montants | Bascule le mode confidentialité (§7) |
+| Allocation du portefeuille | *Application Windows uniquement.* Lance l'agent d'allocation et affiche son rapport dans une boîte de dialogue |
 | Synchroniser | Relance l'ETL via `POST /api/sync` ; spinner pendant l'appel, puis notification de succès (avec le nombre d'actifs ajoutés s'il est > 0) ou d'erreur |
 | Documentation | Ouvre `docs/presentation.pdf` du site (lien absolu construit depuis l'URL de l'Api — nouvel onglet / navigateur externe) |
 | Déconnexion | Efface la session et revient à l'écran de connexion |
