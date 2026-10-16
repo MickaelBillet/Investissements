@@ -1,6 +1,6 @@
 # SPECS.md — Maui (application Windows)
 
-**Statut :** Implémenté (parité avec le site + agents IA Stock et Actualités)  
+**Statut :** Implémenté (parité avec le site + agents IA Stock, Actualités et Allocation)  
 **Version :** 1.1  
 **Date :** 2026-10-09
 
@@ -28,11 +28,16 @@ Offrir sur le PC du propriétaire une application native affichant le **même da
 | 12 | Les agents répondent en un seul tour : pas de question finale, pas de conversation. Fermer la boîte de dialogue annule l'exécution |
 | 13 | Si l'endpoint Foundry n'est pas renseigné, ou si l'agent échoue, un message d'erreur est affiché dans la boîte de dialogue (l'application démarre normalement sans configuration) |
 | 14 | Les agents s'exécutent dans le processus de l'application avec l'identité Azure du poste (`az login`) ; aucun secret Azure n'est embarqué. Leur usage consomme des tokens Azure AI Foundry facturés à l'usage |
+| 15 | Le menu « ⋮ » propose **Allocation du portefeuille** : un agent interroge le serveur MCP et affiche, dans une boîte de dialogue, un rapport **descriptif** de toutes les positions (valeur actuelle, poids, plus-value latente, ROI), les 5 meilleures et 5 moins bonnes variations et les données manquantes (« non renseigné »). Aucune recommandation. L'agent met environ une minute à répondre |
+| 16 | La page Paramètres permet de saisir la clé du serveur MCP. Elle est stockée **chiffrée** par l'OS, n'est jamais réaffichée et n'est envoyée qu'au serveur MCP. Sans clé (ou avec une clé refusée), l'agent Allocation affiche un message qui renvoie aux Paramètres |
+| 17 | Un agent qui ne répond pas au bout de 3 minutes est interrompu avec un message nommant l'étape bloquée (connexion MCP ou réponse du modèle) |
+| 18 | L'application journalise son activité dans un fichier texte local (`logs/maui.log`, dossier de données de l'application, 1 Mo maximum) pour diagnostiquer un agent bloqué |
 
 ## 3. Hors périmètre (évolutions prévues)
 
-- Agents Chat, Météo et Portefeuille (déjà dans la bibliothèque `AgentAI.Core`, non exposés dans l'interface) — voir `CLAUDE.md` racine §14.
+- Agents Chat et Météo (déjà dans la bibliothèque `AgentAI.Core`, non exposés dans l'interface) — voir `CLAUDE.md` racine §14.
 - Réglage de l'URL de l'Api et connexion Azure interactive (sans `az login`).
 - Boucle conversationnelle avec les agents (questions de relance).
+- Variation de valeur par période (1 mois, YTD, 1 an) dans le rapport d'allocation : exigerait un historique par actif (Sheet, ETL et outil MCP).
 - Distribution à d'autres postes (certificat de confiance ou signature par une autorité).
 - Exécution des tests et du build MAUI en CI.

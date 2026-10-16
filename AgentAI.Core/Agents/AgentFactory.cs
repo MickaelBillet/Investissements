@@ -130,7 +130,7 @@ public sealed class AgentFactory : IAgentFactory
     /// <summary>
     /// Builds the <see cref="AgentDefinition"/> for exactly the requested <paramref name="kind"/>, and
     /// nothing else. Every kind goes through this same async path for consistency, even though only
-    /// <see cref="AgentKind.Portfolio"/> actually needs to await anything (connecting to the InvestZapto
+    /// <see cref="AgentKind.Allocation"/> actually needs to await anything (connecting to the InvestZapto
     /// MCP server) — this keeps <see cref="CreateAsync"/> from ever building agents nobody asked for.
     /// </summary>
     /// <param name="kind">Which agent configuration to build.</param>
@@ -167,8 +167,6 @@ public sealed class AgentFactory : IAgentFactory
                     new DateContextProvider(TimeProvider.System),
                     new StockContextProvider(RequireContextInput(contextInput, "un nom d'action"), optionalInput),
                 })),
-
-            AgentKind.Portfolio => await this.BuildMcpDefinitionAsync("PortfolioAllocation.md", "chat-history-portfolio.json").ConfigureAwait(false),
 
             AgentKind.Allocation => await this.BuildMcpDefinitionAsync("AllocationPortefeuille.md", "chat-history-allocation.json", withDate: true, reasoningEffort: ResponseReasoningEffortLevel.Low).ConfigureAwait(false),
 

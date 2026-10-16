@@ -11,7 +11,6 @@ public enum AgentKind
     Chat,
     Weather,
     Stock,
-    Portfolio,
     News,
     Allocation
 }

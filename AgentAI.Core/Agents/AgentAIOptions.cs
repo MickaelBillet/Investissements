@@ -18,7 +18,7 @@ public sealed class AgentAIOptions
     /// <summary>Model deployment name used by every agent.</summary>
     public string Model { get; init; } = DefaultModel;
 
-    /// <summary>InvestZapto MCP server URL; only required by <see cref="AgentKind.Portfolio"/>.</summary>
+    /// <summary>InvestZapto MCP server URL; only required by <see cref="AgentKind.Allocation"/>.</summary>
     public string? InvestZaptoMcpUrl { get; init; }
 
     /// <summary>
