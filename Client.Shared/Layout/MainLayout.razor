@@ -5,6 +5,7 @@
 @inject MainViewModel ViewModel
 @inject ISnackbar Snackbar
 @inject ClientOptions Options
+@inject IDialogService Dialogs
 
 <MudLayout>
     <MudAppBar Elevation="0" Dense="false" Color="MudBlazor.Color.Surface"
@@ -39,6 +40,12 @@
                     @L.Translate("Nav_Sync")
                 }
             </MudMenuItem>
+            @if (ViewModel.IsAgentAvailable)
+            {
+                <MudMenuItem Icon="@Icons.Material.Outlined.Insights" OnClick="@LaunchAllocationAsync">
+                    @L.Translate("Nav_Allocation")
+                </MudMenuItem>
+            }
             @if (ViewModel.IsSettingsAvailable)
             {
                 <MudMenuItem Icon="@Icons.Material.Outlined.Settings" Href="/settings">
@@ -70,6 +77,12 @@
     }
 
     public void Dispose() => Privacy.OnChange -= StateHasChanged;
+
+    private Task LaunchAllocationAsync() =>
+        Dialogs.ShowAsync<AgentResultDialog>(
+            L.Translate("Nav_Allocation"),
+            new DialogParameters<AgentResultDialog> { { x => x.Agent, AgentChoice.Allocation } },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
 
     private async Task OnSyncClicked()
     {

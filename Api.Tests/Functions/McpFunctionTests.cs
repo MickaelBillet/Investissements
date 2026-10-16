@@ -110,4 +110,30 @@ public class McpFunctionTests
         Assert.IsType<ContentResult>(result);
         mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Theory]
+    [InlineData("notifications/initialized")]
+    [InlineData("notifications/cancelled")]
+    public async Task McpEndpoint_Notification_ReturnsEmptyAcceptedWithoutCallingService(string method)
+    {
+        var mock = new Mock<IMcpService>();
+
+        var body = $$"""{"jsonrpc":"2.0","method":"{{method}}"}""";
+        var result = await CreateFunction(mock).McpEndpoint(MockRequest(body: body), CancellationToken.None);
+
+        var status = Assert.IsType<StatusCodeResult>(result);
+        Assert.Equal(StatusCodes.Status202Accepted, status.StatusCode);
+        mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task McpEndpoint_NotificationWithWrongApiKey_ReturnsUnauthorized()
+    {
+        var mock = new Mock<IMcpService>();
+
+        var body = """{"jsonrpc":"2.0","method":"notifications/initialized"}""";
+        var result = await CreateFunction(mock, "secret").McpEndpoint(MockRequest(apiKey: "wrong-key", body: body), CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result);
+    }
 }

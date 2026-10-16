@@ -23,6 +23,10 @@ public static class MauiProgram
         builder.Services.AddSingleton<IAgentSettings>(_ => new PreferencesAgentSettings(Preferences.Default, ApiBaseUri.ToString()));
         AddAgents(builder.Services);
 
+        builder.Logging.AddProvider(new FileLoggerProvider(Path.Combine(FileSystem.AppDataDirectory, "logs", "maui.log")));
+        builder.Logging.AddFilter<FileLoggerProvider>("Microsoft", LogLevel.Warning);
+        builder.Logging.AddFilter<FileLoggerProvider>("System", LogLevel.Warning);
+
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
@@ -49,7 +53,9 @@ public static class MauiProgram
         services.AddNewsServices();
         services.AddHttpClient<IRssFeedReader, RssFeedReader>().ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
         services.AddHttpClient<YahooTickerResolver>().ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
-        services.AddInvestZaptoMcp().ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
+        services.AddInvestZaptoMcp()
+            .AddHttpMessageHandler(sp => new McpApiKeyHandler(sp.GetRequiredService<IKeyValueStore>()))
+            .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
 
         services.AddSingleton<IAgentRunner>(sp =>
         {

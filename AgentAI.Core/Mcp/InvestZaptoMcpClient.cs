@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 
@@ -56,7 +57,8 @@ public class InvestZaptoMcpClient
                 var transport = new HttpClientTransport(transportOptions, _httpClient, _loggerFactory, ownsHttpClient: false);
                 return await McpClient.CreateAsync(transport, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
-            catch (HttpRequestException ex) when (attempt < MaxAttempts)
+            // A rejected key will not be accepted on a retry: fail fast so the caller can report it.
+            catch (HttpRequestException ex) when (attempt < MaxAttempts && ex.StatusCode != HttpStatusCode.Unauthorized)
             {
                 _logger.LogWarning(
                     ex,

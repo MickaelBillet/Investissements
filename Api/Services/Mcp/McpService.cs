@@ -36,7 +36,6 @@ internal sealed class McpService : IMcpService
             "initialize"         => HandleInitializeAsync(request),
             "tools/list"         => HandleToolsListAsync(request),
             "tools/call"         => HandleToolsCallAsync(request, ct),
-            "notifications/initialized" => Task.FromResult(Ok(request.Id, new { })),
             _                    => Task.FromResult(MethodNotFound(request.Id))
         };
 

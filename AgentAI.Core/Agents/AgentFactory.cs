@@ -85,9 +85,35 @@ public sealed class AgentFactory : IAgentFactory
                     {
                         var responseOptions = previousFactory?.Invoke(client) as CreateResponseOptions ?? new CreateResponseOptions();
                         responseOptions.StoredOutputEnabled = false;
+                        if (definition.ReasoningEffort is { } effort)
+                        {
+                            responseOptions.ReasoningOptions = new ResponseReasoningOptions { ReasoningEffortLevel = effort };
+                        }
+
                         return responseOptions;
                     };
                 })
+                .Use(async (messages, chatOptions, inner, cancellationToken) =>
+                {
+                    // One line per model call: a stalled agent is otherwise indistinguishable from a slow one.
+                    var logger = this._loggerFactory.CreateLogger<AgentFactory>();
+                    var messageList = messages.ToList();
+                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    logger.LogInformation("Agent {Kind}: model call with {Count} messages", kind, messageList.Count);
+                    try
+                    {
+                        var response = await inner.GetResponseAsync(messageList, chatOptions, cancellationToken).ConfigureAwait(false);
+                        logger.LogInformation(
+                            "Agent {Kind}: model answered in {Seconds:0.0}s (in={In}, out={Out}, reasoning={Reasoning})",
+                            kind, stopwatch.Elapsed.TotalSeconds, response.Usage?.InputTokenCount, response.Usage?.OutputTokenCount, response.Usage?.ReasoningTokenCount);
+                        return response;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Agent {Kind}: model call failed after {Seconds:0.0}s", kind, stopwatch.Elapsed.TotalSeconds);
+                        throw;
+                    }
+                }, null)
                 .Build());
 
         return (agent, historyProvider);
@@ -142,7 +168,9 @@ public sealed class AgentFactory : IAgentFactory
                     new StockContextProvider(RequireContextInput(contextInput, "un nom d'action"), optionalInput),
                 })),
 
-            AgentKind.Portfolio => await this.BuildPortfolioDefinitionAsync().ConfigureAwait(false),
+            AgentKind.Portfolio => await this.BuildMcpDefinitionAsync("PortfolioAllocation.md", "chat-history-portfolio.json").ConfigureAwait(false),
+
+            AgentKind.Allocation => await this.BuildMcpDefinitionAsync("AllocationPortefeuille.md", "chat-history-allocation.json", withDate: true, reasoningEffort: ResponseReasoningEffortLevel.Low).ConfigureAwait(false),
 
             AgentKind.News => new AgentDefinition(
                 Instructions: InstructionLoader.Load("ActualitesSociete.md"),
@@ -178,7 +206,12 @@ public sealed class AgentFactory : IAgentFactory
             description: "Récupère les actualités publiées sur une société durant la dernière semaine (titre, source, date, lien), de la plus récente à la plus ancienne.");
     }
 
-    private async Task<AgentDefinition> BuildPortfolioDefinitionAsync()
+    /// <summary>
+    /// Builds a definition whose tools are those of the InvestZapto MCP server; shared by the agents that read the portfolio.
+    /// </summary>
+    /// <param name="withDate">Adds today's date to the context, for reports that must be dated.</param>
+    /// <param name="reasoningEffort">Reasoning effort requested from the model; <see langword="null"/> keeps the deployment's default.</param>
+    private async Task<AgentDefinition> BuildMcpDefinitionAsync(string instructionsFile, string historyFileName, bool withDate = false, ResponseReasoningEffortLevel? reasoningEffort = null)
     {
         var endpoint = this._options.InvestZaptoMcpUrl
             ?? throw new InvalidOperationException($"{nameof(AgentAIOptions.InvestZaptoMcpUrl)} is not set.");
@@ -187,9 +220,13 @@ public sealed class AgentFactory : IAgentFactory
         var mcpTools = await this._investZaptoMcpClient.ListToolsAsync().ConfigureAwait(false);
 
         return new AgentDefinition(
-            Instructions: InstructionLoader.Load("PortfolioAllocation.md"),
+            Instructions: InstructionLoader.Load(instructionsFile),
             Tools: mcpTools.Cast<AITool>().ToList(),
-            HistoryFileName: "chat-history-portfolio.json");
+            HistoryFileName: historyFileName,
+            AIContextProviders: withDate
+                ? new CompositeContextProvider(new AIContextProvider[] { new DateContextProvider(TimeProvider.System) })
+                : null,
+            ReasoningEffort: reasoningEffort);
     }
 
     #endregion
