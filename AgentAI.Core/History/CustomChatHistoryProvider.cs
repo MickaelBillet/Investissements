@@ -17,7 +17,11 @@ internal sealed class CustomChatHistoryProvider : ChatHistoryProvider, ICustomCh
     private readonly List<ChatMessage> _messages;
     private readonly ILogger<CustomChatHistoryProvider> _logger;
 
-    public CustomChatHistoryProvider(string filePath, ILogger<CustomChatHistoryProvider> logger)
+    /// <param name="loadExisting">
+    /// <see langword="false"/> starts from an empty history without reading the file; the file is then overwritten
+    /// by the next run, so it keeps that run only.
+    /// </param>
+    public CustomChatHistoryProvider(string filePath, ILogger<CustomChatHistoryProvider> logger, bool loadExisting = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ArgumentNullException.ThrowIfNull(logger);
@@ -25,7 +29,7 @@ internal sealed class CustomChatHistoryProvider : ChatHistoryProvider, ICustomCh
         // Assigned before loading: LoadFromDisk logs when it has to reset a corrupted file.
         this._logger = logger;
         this._filePath = filePath;
-        this._messages = this.LoadFromDisk(filePath);
+        this._messages = loadExisting ? this.LoadFromDisk(filePath) : [];
     }
 
     public IReadOnlyList<ChatMessage> GetMessages() => this._messages;

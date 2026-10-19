@@ -2,8 +2,14 @@
   <Folder Name="/AgentAI.Core/">
     <Project Path="AgentAI.Core/AgentAI.Core.csproj" />
   </Folder>
+  <Folder Name="/Api/">
+    <Project Path="Api/InvestissementsDashboard.Api.csproj" />
+  </Folder>
   <Folder Name="/Client.Shared/">
     <Project Path="Client.Shared/InvestissementsDashboard.Client.Shared.csproj" />
+  </Folder>
+  <Folder Name="/GoogleSheets/">
+    <Project Path="GoogleSheets/InvestissementsDashboard.GoogleSheets.csproj" />
   </Folder>
   <Folder Name="/Maui.Tests/">
     <Project Path="Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj" />
