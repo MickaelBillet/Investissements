@@ -58,7 +58,7 @@ public sealed class AgentFactory : IAgentFactory
 
         Directory.CreateDirectory(this._options.HistoryDirectory);
         var chatHistoryFilePath = Path.Combine(this._options.HistoryDirectory, definition.HistoryFileName);
-        var historyProvider = new CustomChatHistoryProvider(chatHistoryFilePath, this._loggerFactory.CreateLogger<CustomChatHistoryProvider>());
+        var historyProvider = new CustomChatHistoryProvider(chatHistoryFilePath, this._loggerFactory.CreateLogger<CustomChatHistoryProvider>(), definition.KeepHistory);
 
         var agent = this._projectClient.AsAIAgent(
             new ChatClientAgentOptions
@@ -168,7 +168,7 @@ public sealed class AgentFactory : IAgentFactory
                     new StockContextProvider(RequireContextInput(contextInput, "un nom d'action"), optionalInput),
                 })),
 
-            AgentKind.Allocation => await this.BuildMcpDefinitionAsync("AllocationPortefeuille.md", "chat-history-allocation.json", withDate: true, reasoningEffort: ResponseReasoningEffortLevel.Low).ConfigureAwait(false),
+            AgentKind.Allocation => await this.BuildMcpDefinitionAsync("AllocationPortefeuille.md", "chat-history-allocation.json", withDate: true, reasoningEffort: ResponseReasoningEffortLevel.Low, keepHistory: false).ConfigureAwait(false),
 
             AgentKind.News => new AgentDefinition(
                 Instructions: InstructionLoader.Load("ActualitesSociete.md"),
@@ -209,7 +209,8 @@ public sealed class AgentFactory : IAgentFactory
     /// </summary>
     /// <param name="withDate">Adds today's date to the context, for reports that must be dated.</param>
     /// <param name="reasoningEffort">Reasoning effort requested from the model; <see langword="null"/> keeps the deployment's default.</param>
-    private async Task<AgentDefinition> BuildMcpDefinitionAsync(string instructionsFile, string historyFileName, bool withDate = false, ResponseReasoningEffortLevel? reasoningEffort = null)
+    /// <param name="keepHistory">See <see cref="AgentDefinition.KeepHistory"/>.</param>
+    private async Task<AgentDefinition> BuildMcpDefinitionAsync(string instructionsFile, string historyFileName, bool withDate = false, ResponseReasoningEffortLevel? reasoningEffort = null, bool keepHistory = true)
     {
         var endpoint = this._options.InvestZaptoMcpUrl
             ?? throw new InvalidOperationException($"{nameof(AgentAIOptions.InvestZaptoMcpUrl)} is not set.");
@@ -224,7 +225,8 @@ public sealed class AgentFactory : IAgentFactory
             AIContextProviders: withDate
                 ? new CompositeContextProvider(new AIContextProvider[] { new DateContextProvider(TimeProvider.System) })
                 : null,
-            ReasoningEffort: reasoningEffort);
+            ReasoningEffort: reasoningEffort,
+            KeepHistory: keepHistory);
     }
 
     #endregion

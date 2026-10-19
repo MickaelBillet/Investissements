@@ -22,7 +22,6 @@ public class InvestZaptoMcpClient
     #region Fields
     private const int MaxAttempts = 3;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(2);
-
     private readonly HttpClient _httpClient;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<InvestZaptoMcpClient> _logger;

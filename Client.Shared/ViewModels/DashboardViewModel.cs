@@ -346,7 +346,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     private static IReadOnlyList<DistributionItem> ComputeDistribution(
         IEnumerable<AssetDto> assets,
         Func<AssetDto, string> groupKey,
-        Func<string, string>? translateKey = null)
+        Func<string, string>? convertKey = null)
     {
         var list  = assets.ToList();
         var total = list.Sum(a => a.CurrentTotal ?? 0);
@@ -357,7 +357,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
                 var groupTotal = g.Sum(a => a.CurrentTotal ?? 0);
                 return new DistributionItem(
                     g.Key,
-                    translateKey?.Invoke(g.Key) ?? g.Key,
+                    convertKey?.Invoke(g.Key) ?? g.Key,
                     groupTotal,
                     total > 0 ? groupTotal / total * 100m : 0m);
             })
