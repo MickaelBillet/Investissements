@@ -330,16 +330,16 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
 
     // --- Variation reference selectors (which past snapshot to compare "today" against) ---
 
-    private static SnapshotDto? RefDaysBack(IReadOnlyList<SnapshotDto> history, int daysBack) =>
+    private SnapshotDto? RefDaysBack(IReadOnlyList<SnapshotDto> history, int daysBack) =>
         daysBack == 1
             ? history[^2]
             : history.LastOrDefault(s => s.Date <= history[^1].Date.AddDays(-daysBack));
 
     // YTD reference: first snapshot of the current year (the latest snapshot's year).
-    private static SnapshotDto? RefYearStart(IReadOnlyList<SnapshotDto> history) =>
+    private SnapshotDto? RefYearStart(IReadOnlyList<SnapshotDto> history) =>
         history.FirstOrDefault(s => s.Date.Year == history[^1].Date.Year);
 
-    private static decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf)
+    private decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf)
     {
         if (history.Count < 2) return null;
         var last      = history[^1];
@@ -349,16 +349,16 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     }
 
     // Reference selectors for PerformancePointDto (TWR series) — same logic as the SnapshotDto overloads above.
-    private static PerformancePointDto? RefDaysBack(IReadOnlyList<PerformancePointDto> history, int daysBack) =>
+    private PerformancePointDto? RefDaysBack(IReadOnlyList<PerformancePointDto> history, int daysBack) =>
         daysBack == 1
             ? history[^2]
             : history.LastOrDefault(s => s.Date <= history[^1].Date.AddDays(-daysBack));
 
-    private static PerformancePointDto? RefYearStart(IReadOnlyList<PerformancePointDto> history) =>
+    private PerformancePointDto? RefYearStart(IReadOnlyList<PerformancePointDto> history) =>
         history.FirstOrDefault(s => s.Date.Year == history[^1].Date.Year);
 
     // Sub-period return of the TWR-chained ROIC series: ratio-invariant to the series' T0 reference date.
-    private static decimal? ComputePerformanceVariation(
+    private decimal? ComputePerformanceVariation(
         IReadOnlyList<PerformancePointDto> history,
         Func<IReadOnlyList<PerformancePointDto>, PerformancePointDto?> referenceOf)
     {
@@ -369,7 +369,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         return (last.ROIC - reference.ROIC) / reference.ROIC * 100m;
     }
 
-    private static IReadOnlyList<DistributionItem> ComputeDistribution(
+    private IReadOnlyList<DistributionItem> ComputeDistribution(
         IEnumerable<AssetDto> assets,
         Func<AssetDto, string> groupKey,
         Func<string, string>? convertKey = null)
