@@ -49,7 +49,9 @@
             Type       = ApexCharts.ChartType.Bar,
             Height     = "100%",
             // Capital and coupons stack into one bar per period, whose height is all that is received.
-            Stacked    = true
+            Stacked    = true,
+            // Animated stacked bars grow each series separately, which reads as bars side by side before they settle.
+            Animations = new Animations { Enabled = false }
         },
         Colors = ["#2383E2", "#F2A93B"],
         PlotOptions = new PlotOptions

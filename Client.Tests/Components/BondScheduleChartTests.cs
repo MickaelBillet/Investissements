@@ -1,3 +1,4 @@
+using ApexCharts;
 using Bunit;
 using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Shared;
@@ -50,6 +51,17 @@ public class BondScheduleChartTests : BunitContext
             .Add(c => c.Items, items));
 
         Assert.DoesNotContain("Aucune donnée", cut.Markup);
+    }
+
+    [Fact]
+    public void BondScheduleChart_Options_StackBarsWithoutAnimation()
+    {
+        var cut = Render<BondScheduleChart>(p => p
+            .Add(c => c.Items, [new BondSchedulePeriodDto(2027, null, 1000m, [], 85m)]));
+
+        var chart = cut.FindComponent<ApexChart<BondSchedulePeriodDto>>().Instance.Options.Chart;
+        Assert.True(chart.Stacked);
+        Assert.False(chart.Animations?.Enabled);
     }
 
     [Fact]
