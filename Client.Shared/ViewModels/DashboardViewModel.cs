@@ -3,14 +3,17 @@ using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Shared;
 using InvestissementsDashboard.Shared.Constants;
 using InvestissementsDashboard.Shared.Models;
+using Microsoft.Extensions.Logging;
 
 namespace InvestissementsDashboard.Client.ViewModels;
 
-public class DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
+public class DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService, ILogger<DashboardViewModel> logger)
 {
     private IReadOnlyList<AssetDto>        _assets           = [];
     private IReadOnlyList<DistributionDto> _geoStocks        = [];
     private IReadOnlyList<DistributionDto> _geoBonds         = [];
+    private IReadOnlyList<DistributionDto> _sectorStocks     = [];
+    private IReadOnlyList<DistributionDto> _sectorBonds      = [];
     private PortfolioMetricsDto?           _metrics;
     private IReadOnlyList<SnapshotDto>     _snapshotHistory  = [];
     private IReadOnlyList<PerformancePointDto> _performanceHistory = [];
@@ -71,19 +74,18 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         ErrorMessage = null;
         try
         {
-            static Task<IReadOnlyList<DistributionDto>> SafeGeo(Task<IReadOnlyList<DistributionDto>> t) =>
-                t.ContinueWith(r => r.IsCompletedSuccessfully ? r.Result : (IReadOnlyList<DistributionDto>)[],
-                               TaskScheduler.Default);
-
             var assetsTask      = portfolioService.GetAssetsAsync(ct);
             var snapshotTask    = portfolioService.GetLastSnapshotAsync(ct);
             var metricsTask     = portfolioService.GetMetricsAsync(ct);
             var historyTask     = portfolioService.GetSnapshotHistoryAsync(ct);
             var performanceTask = portfolioService.GetIndexedHistoryAsync(ct);
-            var geoStocksTask   = SafeGeo(portfolioService.GetGeographyDistributionAsync("Stocks", ct));
-            var geoBondsTask    = SafeGeo(portfolioService.GetGeographyDistributionAsync("Bonds", ct));
+            var geoStocksTask    = LoadDistributionAsync(portfolioService.GetGeographyDistributionAsync, "Geography", AssetClassNames.Stocks, ct);
+            var geoBondsTask     = LoadDistributionAsync(portfolioService.GetGeographyDistributionAsync, "Geography", AssetClassNames.Bonds, ct);
+            var sectorStocksTask = LoadDistributionAsync(portfolioService.GetSectorDistributionAsync, "Sector", AssetClassNames.Stocks, ct);
+            var sectorBondsTask  = LoadDistributionAsync(portfolioService.GetSectorDistributionAsync, "Sector", AssetClassNames.Bonds, ct);
             var assetTypeRefTask = portfolioService.GetAssetTypeReferenceAsync(ct);
-            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, historyTask, performanceTask, geoStocksTask, geoBondsTask, assetTypeRefTask);
+            await Task.WhenAll(assetsTask, snapshotTask, metricsTask, historyTask, performanceTask,
+                               geoStocksTask, geoBondsTask, sectorStocksTask, sectorBondsTask, assetTypeRefTask);
             _assets             = await assetsTask;
             LastSnapshot        = await snapshotTask;
             _metrics            = await metricsTask;
@@ -91,15 +93,34 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
             _performanceHistory = await performanceTask;
             _geoStocks          = await geoStocksTask;
             _geoBonds           = await geoBondsTask;
+            _sectorStocks       = await sectorStocksTask;
+            _sectorBonds        = await sectorBondsTask;
             _assetTypeRef       = await assetTypeRefTask;
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Dashboard data could not be loaded.");
             ErrorMessage = string.Format(localizationService.Translate("Error_LoadingData"), ex.Message);
         }
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    // The geography and sector donuts are secondary: their failure must not block the rest of the dashboard, so it
+    // leaves them empty instead of failing the whole load — but it is logged, an empty donut alone says nothing.
+    private async Task<IReadOnlyList<DistributionDto>> LoadDistributionAsync(
+        Func<string, CancellationToken, Task<IReadOnlyList<DistributionDto>>> load, string kind, string assetClass, CancellationToken ct)
+    {
+        try
+        {
+            return await load(assetClass, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "{Kind} distribution of {AssetClass} could not be loaded; its donut stays empty.", kind, assetClass);
+            return [];
         }
     }
 
@@ -229,15 +250,17 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     private string TranslateAssetType(string assetType) =>
         _assetTypeRef.FirstOrDefault(r => r.Name == assetType)?.LabelFr ?? assetType;
 
-    public IReadOnlyList<DistributionItem> GetSectorForClass(string assetClass) =>
-        ComputeDistribution(
-            ActiveAssets().Where(a => a.AssetClass == assetClass
-                                   && GeoAndSectorEligibleTypes.Contains(a.AssetType)
-                                   && !string.IsNullOrEmpty(a.Sector)),
-            a => a.Sector,
-            localizationService.Translate);
+    // --- Sectors (pre-loaded from API like the geography, filtered client-side for sector drill-down) ---
 
-    // Same eligibility filter as GetSectorForClass so the list's total matches the sector donut.
+    // Computed by the Api (SectorService) rather than here, so the dashboard and the MAUI analysis workflow
+    // share a single rule. The sector name stays the key (used by the drill-down), only its label is translated.
+    public IReadOnlyList<DistributionItem> GetSectorForClass(string assetClass)
+    {
+        var distribution = assetClass == AssetClassNames.Stocks ? _sectorStocks : _sectorBonds;
+        return [.. distribution.Select(d => new DistributionItem(d.Name, localizationService.Translate(d.Name), d.CurrentTotal, d.WeightInPortfolio))];
+    }
+
+    // Same eligibility filter as SectorService (Api) so the list's total matches the sector donut.
     public IReadOnlyList<AssetDto> GetAssetsForSector(string assetClass, string sector) =>
         [.. ActiveAssets()
              .Where(a => a.AssetClass == assetClass

@@ -137,11 +137,12 @@ portfolioService.GetAssetsAsync(ct)            // → _assets
 portfolioService.GetLastSnapshotAsync(ct)      // → LastSnapshot
 portfolioService.GetMetricsAsync(ct)           // → _metrics (ROIC + AverageRisk)
 portfolioService.GetSnapshotHistoryAsync(ct)   // → _snapshotHistory (variations J/S/M/YTD/1A)
-portfolioService.GetGeographyDistributionAsync // → _geoStocks / _geoBonds
+portfolioService.GetGeographyDistributionAsync // → _geoStocks / _geoBonds    } via LoadDistributionAsync : un échec est journalisé en Warning
+portfolioService.GetSectorDistributionAsync    // → _sectorStocks / _sectorBonds } et laisse le donut vide sans bloquer le reste
 portfolioService.GetAssetTypeReferenceAsync    // → _assetTypeRef (labelFr + geoSectorEligible par AssetType)
 ```
 
-`IPortfolioService.GetSectorDistributionAsync(assetClass)` (`GET /api/portfolio/sector/{assetClass}`) n'est **pas** appelé par le dashboard, qui calcule ses donuts de secteurs côté client (`GetSectorForClass`) : il sert au workflow d'analyse de l'application MAUI (`AssetDistributionSource`).
+Les donuts géographie **et** secteurs sont calculés par l'Api (`GeographyService`, `SectorService`) et seulement affichés ici : une seule règle pour le dashboard et pour le workflow d'analyse de l'application MAUI (`AssetDistributionSource`, qui appelle les mêmes routes). `GetSectorForClass` garde le nom du secteur comme clé (utilisée par le drill-down) et n'en traduit que le libellé. Les listes affichées au clic sur une zone ou un secteur (`GetAssetsForZone`, `GetAssetsForSector`) restent filtrées côté client, avec le même filtre `GeoSectorEligible` que l'Api, pour que leur total corresponde au donut.
 
 **Propriétés de variation (calculées côté client depuis `_snapshotHistory`) :**
 
@@ -269,7 +270,7 @@ Le service `ILocalizationService` (implémenté par `LocalizationService`) est l
 
 ```csharp
 // Dans un ViewModel (injection constructeur)
-public DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
+public DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService, ILogger<DashboardViewModel> logger)
 
 // Dans un composant Razor (injection directe)
 @inject ILocalizationService L
@@ -291,7 +292,7 @@ Framework : xUnit + bUnit. Nommage : `[MethodName]_[Scenario]_[ExpectedResult]`.
 - `TestData` dans `Client.Tests/Helpers/` fournit les factories `Asset(...)`, `Snapshot(...)` et `PerformancePoint(...)`
 - `TestData.AddLocalizationMock(this IServiceCollection services)` — extension à appeler dans le constructeur de tout test de composant qui rend un composant injectant `ILocalizationService`. Le mock utilise `ResourceManager` sur les vraies ressources compilées → les assertions peuvent vérifier les chaînes françaises.
 - `TestData.AddPrivacyModeMock(this IServiceCollection services, bool isHidden = false)` — extension à appeler dans le constructeur de tout test de composant qui affiche un montant € (injecte `IPrivacyModeService`). Rappeler avec `isHidden: true` dans un test dédié pour vérifier le masquage.
-- `DashboardViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>` (setup `Translate(key) → key`)
+- `DashboardViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>` (setup `Translate(key) → key`) + `NullLogger<DashboardViewModel>.Instance` (ou un `Mock<ILogger<…>>` pour vérifier la journalisation des échecs)
 - `TrackingViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
 - Les tests de composants héritent de `BunitContext` et appellent `Services.AddMudServices(...)` + `Services.AddLocalizationMock()`
 - `IKeyValueStore` : les tests de services (`SessionService`, `PrivacyModeService`) injectent `Mock<IKeyValueStore>` ; `LocalStorageKeyValueStore` est testé avec `Mock<IJSRuntime>`

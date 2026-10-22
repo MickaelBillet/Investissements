@@ -3,6 +3,8 @@ using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.Tests.Helpers;
 using InvestissementsDashboard.Client.ViewModels;
 using InvestissementsDashboard.Shared.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace InvestissementsDashboard.Client.Tests.ViewModels;
@@ -18,8 +20,42 @@ public class DashboardViewModelTests
         return mock;
     }
 
-    private static DashboardViewModel CreateVm(Mock<IPortfolioService> mock) =>
-        new(mock.Object, _locMock.Object);
+    private static DashboardViewModel CreateVm(Mock<IPortfolioService> mock, ILogger<DashboardViewModel>? logger = null) =>
+        new(mock.Object, _locMock.Object, logger ?? NullLogger<DashboardViewModel>.Instance);
+
+    private static void VerifyLogged(Mock<ILogger<DashboardViewModel>> logger, LogLevel level) =>
+        logger.Verify(l => l.Log(level, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception?>(),
+            (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()), Times.Once);
+
+    [Fact]
+    public async Task InitializeAsync_WhenGeographyFails_LogsWarningAndLoadsTheRest()
+    {
+        var mock = MockWithAssets(TestData.Asset(id: 1, assetClass: "Stocks", currentTotal: 1_000m));
+        mock.Setup(s => s.GetGeographyDistributionAsync("Bonds", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Api unreachable"));
+        var logger = new Mock<ILogger<DashboardViewModel>>();
+        var vm = CreateVm(mock, logger.Object);
+
+        await vm.InitializeAsync();
+
+        Assert.Null(vm.ErrorMessage);
+        Assert.Empty(vm.GetGeographyForClass("Bonds"));
+        VerifyLogged(logger, LogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenAssetsFail_LogsErrorAndSetsErrorMessage()
+    {
+        var mock = new Mock<IPortfolioService>();
+        mock.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException("Api unreachable"));
+        var logger = new Mock<ILogger<DashboardViewModel>>();
+        var vm = CreateVm(mock, logger.Object);
+
+        await vm.InitializeAsync();
+
+        Assert.NotNull(vm.ErrorMessage);
+        VerifyLogged(logger, LogLevel.Error);
+    }
 
     private static Mock<IPortfolioService> MockWithAssets(params AssetDto[] assets)
     {
@@ -35,6 +71,8 @@ public class DashboardViewModelTests
         mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        mock.Setup(s => s.GetSectorDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(TestData.DefaultAssetTypeReference);
@@ -53,6 +91,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        mock.Setup(s => s.GetSectorDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(TestData.DefaultAssetTypeReference);
         return mock;
@@ -69,6 +109,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((IReadOnlyList<PerformancePointDto>)[]);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        mock.Setup(s => s.GetSectorDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(TestData.DefaultAssetTypeReference);
         return mock;
@@ -84,6 +126,8 @@ public class DashboardViewModelTests
             .ReturnsAsync((IReadOnlyList<SnapshotDto>)[]);
         mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>())).ReturnsAsync(history);
         mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
+        mock.Setup(s => s.GetSectorDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<DistributionDto>)[]);
         mock.Setup(s => s.GetAssetTypeReferenceAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(TestData.DefaultAssetTypeReference);
@@ -434,50 +478,57 @@ public class DashboardViewModelTests
     // ── GetSectorForClass ─────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetSectorForClass_GroupsBySectorForGivenAssetClass()
+    public async Task GetSectorForClass_ReturnsTheApiDistributionOfThatClass()
     {
-        var mock = MockWithAssets(
-            TestData.Asset(assetClass: "Stocks", sector: "Technology", currentTotal: 6_000m),
-            TestData.Asset(assetClass: "Stocks", sector: "Finance",    currentTotal: 4_000m),
-            TestData.Asset(assetClass: "Bonds",  sector: "Finance",    currentTotal: 2_000m));
+        var mock = MockWithAssets();
+        mock.Setup(s => s.GetSectorDistributionAsync("Stocks", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new DistributionDto("Technology", 6_000m, 60m), new DistributionDto("Finance", 4_000m, 40m)]);
+        mock.Setup(s => s.GetSectorDistributionAsync("Bonds", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new DistributionDto("Sovereign", 2_000m, 100m)]);
         var vm = CreateVm(mock);
         await vm.InitializeAsync();
 
-        var result = vm.GetSectorForClass("Stocks");
+        var stocks = vm.GetSectorForClass("Stocks");
+        var bonds  = vm.GetSectorForClass("Bonds");
 
-        Assert.Equal(2, result.Count);
-        Assert.Contains(result, d => d.Name == "Technology");
-        Assert.Contains(result, d => d.Name == "Finance");
+        Assert.Equal(["Technology", "Finance"], stocks.Select(d => d.Name));
+        Assert.Equal([6_000m, 4_000m], stocks.Select(d => d.CurrentTotal));
+        Assert.Equal([60m, 40m], stocks.Select(d => d.Weight));
+        Assert.Equal("Sovereign", Assert.Single(bonds).Name);
     }
 
     [Fact]
-    public async Task GetSectorForClass_ExcludesEtfBunds()
+    public async Task GetSectorForClass_TranslatesTheLabelButKeepsTheNameForDrillDown()
     {
-        var mock = MockWithAssets(
-            TestData.Asset(assetClass: "Bonds", assetType: "MarketBonds",  sector: "Finance", currentTotal: 4_000m),
-            TestData.Asset(assetClass: "Bonds", assetType: "ETF_Bunds",    sector: "Finance", currentTotal: 2_000m));
-        var vm = CreateVm(mock);
+        var loc = new Mock<ILocalizationService>();
+        loc.Setup(l => l.Translate(It.IsAny<string>())).Returns((string k) => k == "Technology" ? "Technologie" : k);
+        var mock = MockWithAssets();
+        mock.Setup(s => s.GetSectorDistributionAsync("Stocks", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new DistributionDto("Technology", 6_000m, 100m)]);
+        var vm = new DashboardViewModel(mock.Object, loc.Object, NullLogger<DashboardViewModel>.Instance);
         await vm.InitializeAsync();
 
-        var result = vm.GetSectorForClass("Bonds");
+        var sector = Assert.Single(vm.GetSectorForClass("Stocks"));
 
-        Assert.Single(result);
-        Assert.Equal(4_000m, result[0].CurrentTotal);
+        Assert.Equal("Technology", sector.Name);
+        Assert.Equal("Technologie", sector.Label);
     }
 
     [Fact]
-    public async Task GetSectorForClass_ExcludesAssetsWithEmptySector()
+    public async Task InitializeAsync_WhenSectorsFail_LogsWarningAndLoadsTheRest()
     {
-        var mock = MockWithAssets(
-            TestData.Asset(assetClass: "Stocks", sector: "Technology", currentTotal: 6_000m),
-            TestData.Asset(assetClass: "Stocks", sector: "",            currentTotal: 2_000m));
-        var vm = CreateVm(mock);
+        var mock = MockWithAssets(TestData.Asset(id: 1, assetClass: "Stocks", currentTotal: 1_000m));
+        mock.Setup(s => s.GetSectorDistributionAsync("Stocks", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Api unreachable"));
+        var logger = new Mock<ILogger<DashboardViewModel>>();
+        var vm = CreateVm(mock, logger.Object);
+
         await vm.InitializeAsync();
 
-        var result = vm.GetSectorForClass("Stocks");
-
-        Assert.Single(result);
-        Assert.Equal("Technology", result[0].Name);
+        Assert.Null(vm.ErrorMessage);
+        Assert.Empty(vm.GetSectorForClass("Stocks"));
+        Assert.Equal(1, vm.AssetCount);
+        VerifyLogged(logger, LogLevel.Warning);
     }
 
     // ── GetAssetsForZone / GetZoneCoefficients ────────────────────────────────
@@ -977,7 +1028,7 @@ public class DashboardViewModelTests
         var loc = new Mock<ILocalizationService>();
         loc.Setup(l => l.Translate("Geo_ZonesTitle")).Returns("Zones — {0}");
         loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
-        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object);
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, NullLogger<DashboardViewModel>.Instance);
 
         Assert.Equal("Zones — Classes", vm.GetZonesTitle(vm.AssetClassPanel));
     }
@@ -988,7 +1039,7 @@ public class DashboardViewModelTests
         var loc = new Mock<ILocalizationService>();
         loc.Setup(l => l.Translate("Geo_SectorsTitle")).Returns("Secteurs — {0}");
         loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
-        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object);
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, NullLogger<DashboardViewModel>.Instance);
 
         Assert.Equal("Secteurs — Classes", vm.GetSectorsTitle(vm.AssetClassPanel));
     }
@@ -1001,7 +1052,7 @@ public class DashboardViewModelTests
         var loc = new Mock<ILocalizationService>();
         loc.Setup(l => l.Translate("Panel_SelectionTitle")).Returns("{0} — {1}");
         loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
-        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object);
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, NullLogger<DashboardViewModel>.Instance);
         if (zoneSelected) vm.SelectZone("Europe"); else vm.SelectSector("Technology");
 
         Assert.Equal(expected, vm.GetSelectionTitle(vm.AssetClassPanel));
