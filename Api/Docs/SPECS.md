@@ -288,7 +288,7 @@ Retourne la répartition géographique pondérée pour une classe d'actifs.
 
 ### 2.10bis `GET /api/portfolio/sector/{assetClass}`
 
-Retourne la répartition sectorielle pour une classe d'actifs. Non utilisée par le dashboard (qui calcule ses secteurs côté client) : consommée par le workflow d'analyse de l'application MAUI.
+Retourne la répartition sectorielle pour une classe d'actifs. Consommée par le donut « Secteurs » du dashboard et par le workflow d'analyse de l'application MAUI.
 
 **Paramètre de route** : `assetClass` — valeurs valides : `Stocks`, `Bonds` (sinon `400`)
 

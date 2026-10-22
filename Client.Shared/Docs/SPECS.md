@@ -107,7 +107,8 @@ Footer : total de la colonne Valeur actuelle.
 Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélectionnée est `Stocks` ou `Bonds`, la colonne droite affiche **deux donuts côte à côte** à la place du tableau de distribution habituel :
 
 - **Zones géographiques** : alimenté par `ViewModel.GetGeographyForClass(assetClass)`, pré-chargé au démarrage depuis `GET /api/portfolio/geography/{assetClass}`
-- **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, calculé côté client depuis les actifs chargés, filtré aux `AssetType` marqués éligibles (`GeoSectorEligible = TRUE` dans l'onglet `AssetType` du Sheet, exposé via `GET /api/assets/types/reference`)
+- **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, pré-chargé au démarrage depuis `GET /api/portfolio/sector/{assetClass}` (l'Api ne retient que les `AssetType` marqués éligibles, `GeoSectorEligible = TRUE` dans l'onglet `AssetType` du Sheet ; chaque actif compte pour 100 % dans son secteur)
+- Si l'un de ces appels échoue, son donut reste vide (l'erreur est journalisée) sans empêcher le reste du dashboard de s'afficher
 
 **Agents IA (MAUI uniquement)** : dans l'application Windows, chaque ligne `Stock` d'un `AssetTable` propose un bouton « Lancer un agent » ; un dialogue demande l'agent (Stock ou News), puis une fenêtre affiche la réponse (progression, résultat ou erreur). Le menu « ⋮ » propose en plus **Allocation du portefeuille** (rapport descriptif de toutes les positions, lancé sans choix préalable). Absent du site web. Voir `CLAUDE.md` §7.10.
 

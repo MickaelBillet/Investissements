@@ -167,7 +167,7 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
 
-Valeurs valides pour `/api/portfolio/geography/{assetClass}` et `/api/portfolio/sector/{assetClass}` : `Stocks`, `Bonds`. La route secteur n'est pas appelée par le dashboard (qui calcule ses donuts de secteurs côté client) : elle sert au workflow d'analyse de l'application MAUI.
+Valeurs valides pour `/api/portfolio/geography/{assetClass}` et `/api/portfolio/sector/{assetClass}` : `Stocks`, `Bonds`. Les deux routes alimentent les donuts du dashboard et le workflow d'analyse de l'application MAUI.
 
 ### Authentification du dashboard
 
@@ -207,7 +207,7 @@ Voir `CLAUDE.md` (racine) §5.2.4 pour le détail côté Client (écran de conne
 ## 8. Cache — pattern single-flight
 
 Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.WhenAll` côté Client), et certains appels Sheets identiques sont ainsi redemandés simultanément par plusieurs services :
-- Sheet `Asset` : `AssetsFunction`, `GeographyService` (×2, Stocks/Bonds), `PortfolioMetricsService`, `BondScheduleService`
+- Sheet `Asset` : `AssetsFunction`, `GeographyService` (×2, Stocks/Bonds), `SectorService` (×2, Stocks/Bonds), `PortfolioMetricsService`, `BondScheduleService`
 - Sheet `Snapshot` : `SnapshotFunction`, `PortfolioMetricsService`
 
 `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync`/`GetHistoryAsync` appliquent donc un cache single-flight :
