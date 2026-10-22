@@ -23,6 +23,12 @@
                              SeriesType="SeriesType.Bar"
                              XValue="@(e => e.Label)"
                              YValue="@(e => e.Amount)" />
+            <ApexPointSeries TItem="BondSchedulePeriodDto"
+                             Items="@Items"
+                             Name="@L.Translate("Chart_Series_Coupons")"
+                             SeriesType="SeriesType.Bar"
+                             XValue="@(e => e.Label)"
+                             YValue="@(e => e.Coupons)" />
         </ApexChart>
         </div>
     }
@@ -41,9 +47,11 @@
             Background = "transparent",
             Toolbar    = new Toolbar { Show = false },
             Type       = ApexCharts.ChartType.Bar,
-            Height     = "100%"
+            Height     = "100%",
+            // Capital and coupons stack into one bar per period, whose height is all that is received.
+            Stacked    = true
         },
-        Colors = ["#2383E2"],
+        Colors = ["#2383E2", "#F2A93B"],
         PlotOptions = new PlotOptions
         {
             Bar = new PlotOptionsBar { ColumnWidth = "50%" }
@@ -57,7 +65,7 @@
             }
         },
         Yaxis = [new YAxis { Labels = new YAxisLabels() }],
-        Legend     = new Legend { Show = false },
+        Legend     = new Legend { Show = true, Position = LegendPosition.Bottom },
         Grid       = new Grid { BorderColor = "#E9E9E7" },
         DataLabels = new DataLabels { Enabled = false }
     };

@@ -218,6 +218,44 @@ public class TrackingViewModelTests
     }
 
     [Fact]
+    public async Task BondScheduleDisplayed_ByYear_SumsCouponsSeparatelyFromCapital()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new BondScheduleDto(2027, 2, 0m,    [new BondScheduleItemDto("Renault 2028", 0m, 85m)], 85m),
+                new BondScheduleDto(2027, 9, 500m,  [new BondScheduleItemDto("Orange 2027", 500m, 40m)], 40m)
+            ]);
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var year = Assert.Single(vm.BondScheduleDisplayed);
+
+        Assert.Equal(500m, year.Amount);
+        Assert.Equal(125m, year.Coupons);
+        Assert.Equal(625m, year.Total);
+    }
+
+    [Fact]
+    public async Task BondScheduleDisplayed_WhenQuarterlyView_SumsCouponsPerQuarter()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint());
+        mock.Setup(s => s.GetBondScheduleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new BondScheduleDto(2027, 2, 0m, [new BondScheduleItemDto("Renault 2028", 0m, 85m)], 85m),
+                new BondScheduleDto(2027, 3, 0m, [new BondScheduleItemDto("Orange 2029", 0m, 40m)], 40m),
+                new BondScheduleDto(2027, 7, 0m, [new BondScheduleItemDto("Total 2030", 0m, 30m)], 30m)
+            ]);
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        vm.BondScheduleQuarterlyView = true;
+
+        var displayed = vm.BondScheduleDisplayed;
+
+        Assert.Equal([125m, 30m], displayed.Select(p => p.Coupons));
+    }
+
+    [Fact]
     public async Task BondScheduleDisplayed_WhenQuarterlyView_MergesSameQuarterKeepsOthersSeparate()
     {
         var mock = MockWithHistory(TestData.PerformancePoint());
@@ -318,6 +356,46 @@ public class TrackingViewModelTests
         ]));
 
         Assert.Equal(["Renault 2027"], vm.SelectedPeriodBonds.Select(b => b.Name));
+    }
+
+    [Fact]
+    public void SelectedPeriodBonds_WhenCouponOnly_KeepsTheBond()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.SelectPeriod(new BondSchedulePeriodDto(2027, null, 0m, [new BondScheduleItemDto("Renault 2028", 0m, 85m)], 85m));
+
+        var bond = Assert.Single(vm.SelectedPeriodBonds);
+        Assert.Equal("Renault 2028", bond.Name);
+        Assert.Equal(85m, bond.Coupon);
+    }
+
+    [Fact]
+    public void SelectedPeriodBonds_SameBondOnTwoLines_MergesCapitalAndCoupon()
+    {
+        // In a yearly period, the coupon of one month and the capital of another belong to the same bond.
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.SelectPeriod(new BondSchedulePeriodDto(2027, null, 1000m,
+        [
+            new BondScheduleItemDto("Renault 2027", 0m, 85m),
+            new BondScheduleItemDto("Renault 2027", 1000m, 0m)
+        ], 85m));
+
+        var bond = Assert.Single(vm.SelectedPeriodBonds);
+        Assert.Equal(1000m, bond.Amount);
+        Assert.Equal(85m, bond.Coupon);
+    }
+
+    [Fact]
+    public void SelectedPeriodBonds_WithCoupons_OrdersByCapitalPlusCoupon()
+    {
+        var vm = CreateVm(new Mock<IPortfolioService>());
+        vm.SelectPeriod(new BondSchedulePeriodDto(2027, null, 500m,
+        [
+            new BondScheduleItemDto("Orange 2027", 500m, 0m),
+            new BondScheduleItemDto("Renault 2027", 450m, 100m)
+        ], 100m));
+
+        Assert.Equal(["Renault 2027", "Orange 2027"], vm.SelectedPeriodBonds.Select(b => b.Name));
     }
 
     [Fact]

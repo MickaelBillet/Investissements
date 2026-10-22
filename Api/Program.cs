@@ -15,6 +15,7 @@ var host = new HostBuilder()
     {
         services.AddSingleton<IGoogleSheetsClient, GoogleSheetsClient>();
         services.AddMemoryCache();
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<IAssetsService, AssetsService>();
         services.AddScoped<ISnapshotService, SnapshotService>();
         services.AddScoped<IPortfolioMetricsService, PortfolioMetricsService>();

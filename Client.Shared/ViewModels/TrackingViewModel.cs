@@ -30,11 +30,16 @@ public class TrackingViewModel(IPortfolioService portfolioService, ILocalization
 
     public BondSchedulePeriodDto? SelectedPeriodEntry { get; private set; }
 
-    // Zero-value bonds are already repaid/sold: hiding them keeps the list focused on live positions.
+    // A period merges several months, so a bond can appear on two lines (a coupon in one month, its capital in
+    // another): one line per bond reads better. Lines with nothing to receive are bonds already repaid or sold.
     public IReadOnlyList<BondScheduleItemDto> SelectedPeriodBonds =>
         SelectedPeriodEntry is null
             ? []
-            : [.. SelectedPeriodEntry.Bonds.Where(b => b.Amount > 0).OrderByDescending(b => b.Amount)];
+            : [.. SelectedPeriodEntry.Bonds
+                .GroupBy(b => b.Name)
+                .Select(g => new BondScheduleItemDto(g.Key, g.Sum(b => b.Amount), g.Sum(b => b.Coupon)))
+                .Where(b => b.Total > 0)
+                .OrderByDescending(b => b.Total)];
 
     public void SelectPeriod(BondSchedulePeriodDto entry) => SelectedPeriodEntry = entry;
 
@@ -42,12 +47,12 @@ public class TrackingViewModel(IPortfolioService portfolioService, ILocalization
         BondScheduleQuarterlyView
             ? BondSchedule
                 .GroupBy(s => (s.Year, Quarter: (s.Month - 1) / 3 + 1))
-                .Select(g => new BondSchedulePeriodDto(g.Key.Year, g.Key.Quarter, g.Sum(s => s.Amount), [.. g.SelectMany(s => s.Bonds)]))
+                .Select(g => new BondSchedulePeriodDto(g.Key.Year, g.Key.Quarter, g.Sum(s => s.Amount), [.. g.SelectMany(s => s.Bonds)], g.Sum(s => s.Coupons)))
                 .OrderBy(p => p.Year).ThenBy(p => p.Quarter)
                 .ToArray()
             : BondSchedule
                 .GroupBy(s => s.Year)
-                .Select(g => new BondSchedulePeriodDto(g.Key, null, g.Sum(s => s.Amount), [.. g.SelectMany(s => s.Bonds)]))
+                .Select(g => new BondSchedulePeriodDto(g.Key, null, g.Sum(s => s.Amount), [.. g.SelectMany(s => s.Bonds)], g.Sum(s => s.Coupons)))
                 .OrderBy(p => p.Year)
                 .ToArray();
 

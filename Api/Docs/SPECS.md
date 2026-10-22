@@ -135,7 +135,7 @@ Retourne les métadonnées brutes de l'onglet `AssetType` (id, libellé FR, éli
 
 ### 2.5 `GET /api/assets/bondschedule`
 
-Retourne le capital obligataire à percevoir par mois d'échéance (hors coupons), agrégé depuis tous les actifs. C'est la granularité la plus fine (mois) qui est renvoyée — l'agrégation par trimestre ou par année pour l'affichage est faite côté Client (voir `Client/Docs/SPECS.md` §4.2).
+Retourne, par mois, le capital obligataire remboursé et les coupons à percevoir, agrégés depuis tous les actifs. C'est la granularité la plus fine (mois) qui est renvoyée — l'agrégation par trimestre ou par année pour l'affichage est faite côté Client (voir `Client/Docs/SPECS.md` §4.2).
 
 **Réponse** : `BondScheduleDto[]`
 
@@ -145,12 +145,14 @@ Retourne le capital obligataire à percevoir par mois d'échéance (hors coupons
     "year": 2027,
     "month": 5,
     "amount": 3941.00,
+    "coupons": 412.50,
     "bonds": [
-      { "name": "Obligation Renault 2027", "amount": 2941.00 },
-      { "name": "Obligation Orange 2027",  "amount": 1000.00 }
+      { "name": "Obligation Renault 2027", "amount": 2941.00, "coupon": 250.00 },
+      { "name": "Obligation Orange 2027",  "amount": 1000.00, "coupon": 85.00 },
+      { "name": "Obligation EDF 2029",     "amount": 0.00,    "coupon": 77.50 }
     ]
   },
-  { "year": 2029, "month": 1, "amount": 5200.00, "bonds": [ { "name": "Obligation EDF 2029", "amount": 5200.00 } ] }
+  { "year": 2029, "month": 5, "amount": 5200.00, "coupons": 77.50, "bonds": [ { "name": "Obligation EDF 2029", "amount": 5200.00, "coupon": 77.50 } ] }
 ]
 ```
 
@@ -159,6 +161,9 @@ Retourne le capital obligataire à percevoir par mois d'échéance (hors coupons
 - Regroupe les actifs partageant le même mois et la même année dans `bonds` (`name` + `currentTotal` de chaque actif), et `amount` est la somme de `bonds[].amount` pour cette période
 - **Aucun filtre par `assetClass`** — tout actif dont `information` contient une échéance `MM/YYYY` isolée est inclus, pas seulement `AssetClass = Bonds`
 - Actifs sans échéance détectée ou sans `currentTotal` exclus
+- **Coupons** : le taux annuel vient de la colonne P de `Asset` (`couponRate`, fraction : `8,50 %` → `0.085`). Coupon = `currentTotal × couponRate`, arrondi à 2 décimales. Faute de colonne fréquence, les coupons sont supposés **annuels**, versés à chaque anniversaire du mois d'échéance ; seuls les coupons **à venir** sont comptés (à partir du mois en cours, `TimeProvider`). Le dernier coupon tombe le mois du remboursement : la même ligne de `bonds` porte alors `amount` (capital) et `coupon`. Les autres mois, la ligne a `amount = 0`
+- Pas de coupon si le taux est vide, nul, ou si `currentTotal ≤ 0` ; un taux **supérieur à 100 %** (cellule saisie en texte, ex. `8,5` au lieu de `8,50 %`) est ignoré avec un avertissement dans le journal
+- `coupons` est la somme de `bonds[].coupon` pour la période
 - Résultats triés par année puis par mois croissants
 
 ---
@@ -429,13 +434,13 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 
 | DTO | Fichier | Champs |
 |---|---|---|
-| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, sector, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio, isin (colonne O de `Asset`, `""` si absent) |
+| `AssetDto` | `Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, sector, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio, isin (colonne O de `Asset`, `""` si absent), couponRate? (colonne P, fraction, `null` si vide) |
 | `DistributionDto` | `Shared/Models/DistributionDto.cs` | id?, name, currentTotal, weightInPortfolio |
 | `SnapshotDto` | `Shared/Models/SnapshotDto.cs` | date, netCapital, lifeStrategy?, msciWorld?, totalPurchases, totalReturns, totalSales? |
 | `PortfolioMetricsDto` | `Shared/Models/PortfolioMetricsDto.cs` | roiOnCapitalEngaged?, averageRisk? |
 | `PerformancePointDto` | `Shared/Models/PerformancePointDto.cs` | date, roic, lifeStrategy?, msciWorld? |
-| `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, month, amount, bonds (`BondScheduleItemDto[]`) |
-| `BondScheduleItemDto` | `Shared/Models/BondScheduleDto.cs` | name, amount |
+| `BondScheduleDto` | `Shared/Models/BondScheduleDto.cs` | year, month, amount (capital), bonds (`BondScheduleItemDto[]`), coupons |
+| `BondScheduleItemDto` | `Shared/Models/BondScheduleDto.cs` | name, amount (capital), coupon |
 | `AssetTypeReferenceDto` | `Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
 | `SyncResultDto` | `Shared/Models/SyncResultDto.cs` | success, addedCount, errorMessage? |
 | `AggregateDto` | `Shared/Models/AggregateDto.cs` | agrégat par groupe (name, totalPurchases?, totalSales?, dividends?, currentTotal, hasIncompleteData, unrealizedGain?, yield?, roi?, weightInGroup, weightInPortfolio) |

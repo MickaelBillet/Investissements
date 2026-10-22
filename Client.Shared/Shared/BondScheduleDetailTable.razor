@@ -11,16 +11,30 @@
           Style="border:1px solid #E9E9E7;border-radius:6px;margin-top:8px;">
     <HeaderContent>
         <MudTh Style="color:#787774;font-size:12px;">@L.Translate("Col_Name")</MudTh>
-        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_CurrentValue")</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_Capital")</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Col_Coupons")</MudTh>
+        <MudTh Style="color:#787774;font-size:12px;text-align:right;">@L.Translate("Table_Total")</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="@L.Translate("Col_Name")" Style="font-weight:500;">@context.Name</MudTd>
-        <MudTd DataLabel="@L.Translate("Col_CurrentValue")" Style="text-align:right;">
+        <MudTd DataLabel="@L.Translate("Col_Capital")" Style="text-align:right;">
             @context.Amount.ToEurAmount(Privacy.IsHidden)
+        </MudTd>
+        <MudTd DataLabel="@L.Translate("Col_Coupons")" Style="text-align:right;">
+            @context.Coupon.ToEurAmount(Privacy.IsHidden)
+        </MudTd>
+        <MudTd DataLabel="@L.Translate("Table_Total")" Style="text-align:right;font-weight:500;">
+            @context.Total.ToEurAmount(Privacy.IsHidden)
         </MudTd>
     </RowTemplate>
     <FooterContent>
         <MudTd Style="font-weight:600;">@L.Translate("Table_Total")</MudTd>
+        <MudTd Style="text-align:right;font-weight:600;">
+            @CapitalTotal.ToEurAmount(Privacy.IsHidden)
+        </MudTd>
+        <MudTd Style="text-align:right;font-weight:600;">
+            @CouponsTotal.ToEurAmount(Privacy.IsHidden)
+        </MudTd>
         <MudTd Style="text-align:right;font-weight:600;">
             @Total.ToEurAmount(Privacy.IsHidden)
         </MudTd>
@@ -33,6 +47,8 @@
 @code {
     [Parameter, EditorRequired] public string PeriodLabel { get; set; } = string.Empty;
     [Parameter, EditorRequired] public IReadOnlyList<BondScheduleItemDto> Bonds { get; set; } = [];
+    [Parameter, EditorRequired] public decimal CapitalTotal { get; set; }
+    [Parameter, EditorRequired] public decimal CouponsTotal { get; set; }
     [Parameter, EditorRequired] public decimal Total { get; set; }
 
     protected override void OnInitialized() => Privacy.OnChange += StateHasChanged;
