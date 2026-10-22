@@ -240,7 +240,7 @@ Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.Wh
 
 ## 11. Tests (`Api.Tests/`)
 
-xUnit + Moq, 125 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+xUnit + Moq, 142 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
 - `Functions/` — `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`
 - `Mcp/` — `McpHandlerTests`
 - `Services/` — `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`
