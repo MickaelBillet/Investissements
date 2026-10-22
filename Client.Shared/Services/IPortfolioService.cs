@@ -9,6 +9,7 @@ public interface IPortfolioService
     Task<IReadOnlyList<PerformancePointDto>> GetIndexedHistoryAsync(CancellationToken ct = default);
     Task<IReadOnlyList<SnapshotDto>>         GetSnapshotHistoryAsync(CancellationToken ct = default);
     Task<IReadOnlyList<DistributionDto>>     GetGeographyDistributionAsync(string assetClass, CancellationToken ct = default);
+    Task<IReadOnlyList<DistributionDto>>     GetSectorDistributionAsync(string assetClass, CancellationToken ct = default);
     Task<PortfolioMetricsDto?>       GetMetricsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<BondScheduleDto>>     GetBondScheduleAsync(CancellationToken ct = default);
     Task<IReadOnlyList<AssetTypeReferenceDto>> GetAssetTypeReferenceAsync(CancellationToken ct = default);

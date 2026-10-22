@@ -136,6 +136,20 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void IsAnalysisAvailable_WithoutRunner_IsFalse()
+    {
+        Assert.False(Create().IsAnalysisAvailable);
+    }
+
+    [Fact]
+    public void IsAnalysisAvailable_WithRunner_IsTrue()
+    {
+        var vm = new MainViewModel(_sync.Object, _session.Object, _localizer.Object, NullLogger<MainViewModel>.Instance, reviewRunner: new Mock<IPortfolioReviewRunner>().Object);
+
+        Assert.True(vm.IsAnalysisAvailable);
+    }
+
+    [Fact]
     public void SyncMessage_BeforeAnySync_IsNull()
     {
         Assert.Null(Create().SyncMessage);

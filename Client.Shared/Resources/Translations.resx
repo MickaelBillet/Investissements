@@ -156,6 +156,10 @@
   <data name="Agent_Running"      xml:space="preserve"><value>L'agent travaille…</value></data>
   <data name="Agent_Error"        xml:space="preserve"><value>L'agent a échoué</value></data>
   <data name="Nav_Allocation"     xml:space="preserve"><value>Allocation du portefeuille</value></data>
+  <data name="Nav_Analysis"       xml:space="preserve"><value>Analyse</value></data>
+  <data name="Analysis_Running"   xml:space="preserve"><value>Analyse du portefeuille en cours…</value></data>
+  <data name="Analysis_Done"      xml:space="preserve"><value>Analyse terminée.</value></data>
+  <data name="Analysis_Error"     xml:space="preserve"><value>L'analyse a échoué</value></data>
   <data name="Nav_Settings"      xml:space="preserve"><value>Paramètres</value></data>
   <data name="Settings_Title"     xml:space="preserve"><value>Paramètres des agents</value></data>
   <data name="Settings_Endpoint"  xml:space="preserve"><value>Endpoint du projet Foundry</value></data>

@@ -1,0 +1,32 @@
+@page "/analyse"
+@inject AnalysisViewModel ViewModel
+@inject ILocalizationService L
+@implements IDisposable
+
+<PageTitle>@L.Translate("Nav_AppTitle")</PageTitle>
+
+@if (ViewModel.IsAvailable)
+{
+    <MudStack Spacing="3">
+        @if (ViewModel.IsRunning)
+        {
+            <MudText Typo="Typo.body2">@L.Translate("Analysis_Running")</MudText>
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (ViewModel.Error is not null)
+        {
+            <MudAlert Severity="Severity.Error">@L.Translate("Analysis_Error") — @ViewModel.Error</MudAlert>
+        }
+        else if (ViewModel.IsCompleted)
+        {
+            <MudText Typo="Typo.body2">@L.Translate("Analysis_Done")</MudText>
+        }
+    </MudStack>
+}
+
+@code {
+    // The menu entry is the trigger: opening the page starts the analysis.
+    protected override Task OnInitializedAsync() => ViewModel.IsAvailable ? ViewModel.LaunchAsync() : Task.CompletedTask;
+
+    public void Dispose() => ViewModel.Cancel();
+}

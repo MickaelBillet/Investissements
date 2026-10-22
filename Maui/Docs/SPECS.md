@@ -32,6 +32,7 @@ Offrir sur le PC du propriétaire une application native affichant le **même da
 | 16 | La page Paramètres permet de saisir la clé du serveur MCP. Elle est stockée **chiffrée** par l'OS, n'est jamais réaffichée et n'est envoyée qu'au serveur MCP. Sans clé (ou avec une clé refusée), l'agent Allocation affiche un message qui renvoie aux Paramètres |
 | 17 | Un agent qui ne répond pas au bout de 3 minutes est interrompu avec un message nommant l'étape bloquée (connexion MCP ou réponse du modèle) |
 | 18 | L'application journalise son activité dans un fichier texte local (`logs/maui.log`, dossier de données de l'application, 1 Mo maximum) pour diagnostiquer un agent bloqué |
+| 19 | La barre d'application propose un lien **Analyse**, à côté de **Suivi**, vers une page qui lance immédiatement (sans autre clic) le workflow d'analyse du portefeuille (allocation, contexte et répartitions géographique et sectorielle des actions et obligations en parallèle, puis synthèse) et indique sa fin (« Analyse terminée. ») ; aucun résultat n'est encore affiché. L'exécution est bornée à 3 minutes et s'annule si l'on quitte la page ; sans clé MCP, un message renvoie aux Paramètres |
 
 ## 3. Hors périmètre (évolutions prévues)
 

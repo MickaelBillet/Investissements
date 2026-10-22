@@ -28,6 +28,8 @@ Maui/
 ├── MauiProgram.cs              # DI et configuration (voir §4)
 ├── Services/SecureStorageKeyValueStore.cs   # IKeyValueStore → ISecureStorage (chiffré par l'OS)
 ├── Services/AgentRunner.cs                  # IAgentRunner → AgentAI.Core : une AgentFactory par lancement (voir §5bis)
+├── Services/PortfolioReviewRunner.cs        # IPortfolioReviewRunner → workflow PortfolioReview d'AgentAI.Core (voir §5ter)
+├── Services/AssetDistributionSource.cs      # IAssetDistributionSource → IPortfolioService (répartitions géographique et sectorielle via l'Api)
 ├── Services/PreferencesAgentSettings.cs     # IAgentSettings → IPreferences (page Paramètres)
 ├── Services/AgentOptionsProvider.cs         # IAgentSettings → AgentAIOptions (MCP déduit de l'URL de base stockée, repli sur l'Api ; historique injecté)
 ├── Services/McpApiKeyHandler.cs             # DelegatingHandler du seul client MCP : ajoute x-mcp-api-key lue dans IKeyValueStore
@@ -43,6 +45,13 @@ Maui.Tests/
 ├── PreferencesAgentSettingsTests.cs
 ├── AgentOptionsProviderTests.cs
 ├── AgentRunnerTests.cs          # AgentFactory/agent mockés (Moq.Protected sur AIAgent)
+├── PortfolioReviewRunnerTests.cs # builder mocké renvoyant un workflow d'une étape de test : sortie, fabrique et source du lancement transmises, échec, 401 MCP, délai, annulation
+├── PortfolioReviewWorkflowBuilderTests.cs # vrai builder, AgentFactory/agent/source mockés : agent Allocation demandé, synthèse produite après l'allocation et les répartitions, échec d'une étape sans synthèse, arguments null, annulation
+├── SynthesisExecutorTests.cs     # barrière fan-in réelle, trois sources de test : un seul rapport, attend l'entrée la plus lente
+├── ContextExecutorTests.cs       # squelette : contexte à la date demandée
+├── AssetDistributionExecutorTests.cs # source mockée : Stocks puis Bonds, chaque classe avec ses répartitions, jeton transmis, événement émis, erreur propagée
+├── AssetDistributionSourceTests.cs   # IPortfolioService mocké : géographie et secteurs relayés, erreur propagée
+├── AllocationExecutorTests.cs   # étape d'allocation du workflow : désérialisation JSON, événement émis
 ├── AgentInstructionsTests.cs    # la règle « tour unique » est présente dans les instructions embarquées
 ├── McpApiKeyHandlerTests.cs     # en-tête x-mcp-api-key présent / absent / non écrasé
 ├── FileLoggerProviderTests.cs   # écriture, plafond de taille, échec d'écriture sans exception
@@ -54,7 +63,7 @@ Maui.Tests/
 
 1. `AddMauiBlazorWebView()` (+ `AddBlazorWebViewDeveloperTools()` et log debug en `DEBUG`).
 2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore`, `IAgentSettings` → `PreferencesAgentSettings` (affiche la page Paramètres ; au premier lancement, `https://invest.zapto.fr/` — `ApiBaseUri` — est enregistrée dans les préférences comme URL de base du MCP, sans champ de saisie).
-3. `AddAgents` (méthode privée de `MauiProgram`) : `AgentOptionsProvider` (historique dans `FileSystem.AppDataDirectory/agents-history`, dossier inscriptible même packagé), `AddNewsServices()` et `AddInvestZaptoMcp()` (clients typés `IHttpClientFactory` : le mot de passe du dashboard, ajouté aux seuls clients du dashboard, ne part pas vers les flux RSS ni le MCP ; `ForceContentLengthHandler` est fourni par la bibliothèque ; `McpApiKeyHandler` est ajouté **à ce seul client** pour envoyer la clé du serveur MCP), avec un `SocketsHttpHandler` à `PooledConnectionLifetime` de 2 min comme handler primaire de ces trois clients, puis `IAgentRunner` → `AgentRunner`. `AddAgentAI` n'est **pas** utilisé (il enregistre la factory en singleton).
+3. `AddAgents` (méthode privée de `MauiProgram`) : `AgentOptionsProvider` (historique dans `FileSystem.AppDataDirectory/agents-history`, dossier inscriptible même packagé), `AddNewsServices()` et `AddInvestZaptoMcp()` (clients typés `IHttpClientFactory` : le mot de passe du dashboard, ajouté aux seuls clients du dashboard, ne part pas vers les flux RSS ni le MCP ; `ForceContentLengthHandler` est fourni par la bibliothèque ; `McpApiKeyHandler` est ajouté **à ce seul client** pour envoyer la clé du serveur MCP), avec un `SocketsHttpHandler` à `PooledConnectionLifetime` de 2 min comme handler primaire de ces trois clients, puis `IAgentRunner` → `AgentRunner` et `IPortfolioReviewRunner` → `PortfolioReviewRunner` (même fabrique `AgentFactory`, plus `IPortfolioReviewWorkflowBuilder` → `PortfolioReviewWorkflowBuilder` en singleton et `IAssetDistributionSource` → `AssetDistributionSource` en transient, comme le client typé `IPortfolioService` qu'elle enveloppe ; le runner en demande une par lancement). `AddAgentAI` n'est **pas** utilisé (il enregistre la factory en singleton).
 4. Journal fichier (méthode privée `AddLogger`, via `services.AddLogging`) : `FileLoggerProvider` → `FileSystem.AppDataDirectory/logs/maui.log` (filtres `Microsoft` et `System` à Warning). Une application fenêtrée n'a pas de console : c'est le seul moyen de voir à quelle étape un agent s'est bloqué. Le fichier est vidé au démarrage s'il dépasse 1 Mo ; une erreur d'écriture n'est jamais propagée.
 4. `AddInvestissementsClient(ApiBaseUri)` — toute la DI du dashboard vient de `Client.Shared`.
 **URL de l'Api** : `https://invest.zapto.fr/`, fixée dans `MauiProgram.ApiBaseUri` (l'Api n'est joignable que via le proxy SWA). Aucune surcharge par variable d'environnement : pour développer contre une Api locale, modifier la constante.
@@ -73,6 +82,14 @@ Stocke le mot de passe de session et le mode confidentialité chiffrés par l'OS
 
 Les agents répondent en **un seul tour** (pas de boucle conversationnelle) : leurs instructions embarquées contiennent la règle « échange à tour unique » (pas de question finale).
 
+## 5ter. `PortfolioReviewRunner` — exécution du workflow d'analyse
+
+`IPortfolioReviewRunner.RunAsync(date, ct)` : comme `AgentRunner`, lit les options, crée une `AgentFactory` **par lancement** (libérée par `await using`) et borne l'exécution à `DefaultTimeout` (3 min). Il fait construire le workflow par l'`IPortfolioReviewWorkflowBuilder` injecté (`BuildAsync(agentFactory, distributionSource, token)` : le jeton interrompt la connexion MCP ; la source vient d'un `Func<IAssetDistributionSource>` injecté, appelé à chaque lancement pour que ce singleton ne retienne pas le client HTTP du dashboard), le lance en processus (`InProcessExecution.RunStreamingAsync` avec `AnalysisRequest(date)`) et parcourt `WatchStreamAsync` : `AllocationRetrievedEvent`, `AssetDistributionRetrievedEvent` et `SynthesisWrittenEvent` sont journalisés, le premier `WorkflowOutputEvent` portant un `SynthesisReport` (seule sortie du workflow) marque la fin — rien n'est renvoyé tant que la synthèse est un squelette —, `ExecutorFailedEvent`/`WorkflowErrorEvent` deviennent une `InvalidOperationException` (le framework signale l'échec d'une étape par un événement, pas par une exception). Un `401` MCP donne le même message qu'`AgentRunner` ; un dépassement de délai, une `TimeoutException`.
+
+**Répartitions (`AssetDistributionSource`).** L'étape `AssetDistributionExecutor` d'AgentAI.Core lit les répartitions géographique et sectorielle via `IAssetDistributionSource` ; son implémentation MAUI relaie `IPortfolioService.GetGeographyDistributionAsync`/`GetSectorDistributionAsync` (Client.Shared), donc le même client que le dashboard, qui ajoute déjà le mot de passe (`DashboardPasswordHandler`). Une erreur de l'Api (dont un `401` sur mauvais mot de passe) fait échouer cette étape (`ExecutorFailedEvent`) et donc l'analyse.
+
+**Piège — annulation silencieuse.** Un run annulé termine le flux d'événements **sans lever d'exception** : après la boucle, `token.ThrowIfCancellationRequested()` transforme ce cas en annulation (ou en délai dépassé) au lieu d'un faux « workflow sans sortie ». Dans les tests, un faux agent doit honorer son jeton (`Task.Delay(Infinite, ct)`) : un délai qui l'ignore garde la tâche de fond du workflow en vie et fait planter l'hôte de test.
+
 ## 6. `wwwroot/index.html`
 
 Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/InvestissementsDashboard.Client.Shared/css/app.css`, `InvestissementsDashboard.Maui.styles.css` (qui importe le CSS isolé de la RCL), puis `_framework/blazor.webview.js` (`autostart="false"`) et `_content/MudBlazor/MudBlazor.min.js`. Pas d'`importmap`, pas de favicon (`data:,`).
@@ -82,7 +99,7 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 - Les projets MAUI **ne figurent pas dans `Investissements.slnx`** (restauration impossible sur le runner Ubuntu de la CI). Ils sont dans **`Investissements.Maui.slnx`** (Client.Shared, Maui, Maui.Tests, Shared) — Windows uniquement, workload `maui-windows` requis.
 - Build : `dotnet build Investissements.Maui.slnx`
 - Lancer : `dotnet run --project Maui -f net10.0-windows10.0.19041.0` (ou exécuter `Maui/bin/Debug/net10.0-windows10.0.19041.0/win-x64/InvestissementsDashboard.Maui.exe`)
-- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (112 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `McpApiKeyHandler.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
+- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (148 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `McpApiKeyHandler.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
 - La CI ne construit ni ne teste ce projet.
 - Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `Maui/obj` (cache de génération des icônes).
 

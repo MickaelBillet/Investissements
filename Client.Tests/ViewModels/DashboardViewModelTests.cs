@@ -544,6 +544,21 @@ public class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task GetAssetsForSector_ExcludesTypeNotGeoSectorEligible()
+    {
+        var mock = MockWithAssets(
+            TestData.Asset(id: 1, assetClass: "Bonds", assetType: "MarketBonds", sector: "Sovereign", currentTotal: 4_000m),
+            TestData.Asset(id: 2, assetClass: "Bonds", assetType: "ETF_Bunds",   sector: "Sovereign", currentTotal: 2_000m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+
+        var result = vm.GetAssetsForSector("Bonds", "Sovereign");
+
+        Assert.Single(result);
+        Assert.Equal(4_000m, result[0].CurrentTotal);
+    }
+
+    [Fact]
     public async Task GetAssetsForSector_IsSortedByCurrentTotalDescending()
     {
         var mock = MockWithAssets(

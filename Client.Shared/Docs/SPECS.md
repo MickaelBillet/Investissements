@@ -111,11 +111,13 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 
 **Agents IA (MAUI uniquement)** : dans l'application Windows, chaque ligne `Stock` d'un `AssetTable` propose un bouton « Lancer un agent » ; un dialogue demande l'agent (Stock ou News), puis une fenêtre affiche la réponse (progression, résultat ou erreur). Le menu « ⋮ » propose en plus **Allocation du portefeuille** (rapport descriptif de toutes les positions, lancé sans choix préalable). Absent du site web. Voir `CLAUDE.md` §7.10.
 
+**Analyse du portefeuille (MAUI uniquement)** : le lien « Analyse » de la barre d'application ouvre une page qui lance aussitôt le workflow d'analyse du portefeuille (allocation et contexte en parallèle, puis synthèse) et affiche la progression puis « Analyse terminée. ». Aucun résultat n'est encore affiché : le contexte et la synthèse ne sont que des squelettes. Absente du site web. Voir `CLAUDE.md` §7.13.
+
 **Paramètres des agents (MAUI uniquement)** : le menu ⋮ propose « Paramètres », une page où l'on saisit l'endpoint du projet Azure AI Foundry (URL https) le modèle (facultatif) et la clé du serveur MCP (champ masqué, jamais réaffichée). Absente du site web. Voir `CLAUDE.md` §7.12.
 
 **Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedZone`.
 
-**Navigation secteur** : cliquer sur un secteur remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForSector(assetClass, sector)` — actifs dont le champ `sector` correspond au secteur. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedSector`.
+**Navigation secteur** : cliquer sur un secteur remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForSector(assetClass, sector)` — actifs dont le champ `sector` correspond au secteur, avec le même filtre d'éligibilité (`GeoSectorEligible`) que le donut pour que les totaux concordent. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedSector`.
 
 `SelectedZone` et `SelectedSector` (`DashboardViewModel`) sont mutuellement exclusifs — en sélectionner un efface l'autre. Les deux sont indépendants de `PanelState`.
 
@@ -195,7 +197,7 @@ Tant que l'utilisateur n'est pas authentifié, seul `LoginGate` est affiché (lo
 
 ## 9. Barre d'application et menu « ⋮ »
 
-Barre en haut de page : logo + titre, liens **Portefeuille** (`/`) et **Suivi** (`/suivi`), puis le menu « ⋮ » :
+Barre en haut de page : logo + titre, liens **Portefeuille** (`/`), **Suivi** (`/suivi`) et, dans l'application Windows uniquement, **Analyse** (`/analyse`), puis le menu « ⋮ » :
 
 | Entrée | Action |
 |---|---|
