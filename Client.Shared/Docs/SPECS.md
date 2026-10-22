@@ -141,7 +141,7 @@ Les données sont fournies par `GET /api/portfolio/metrics/history` (`Performanc
 
 ### 4.2 Onglet "Échéancier"
 
-Graphique en barres **empilées** (ApexCharts, `BondScheduleChart.razor`, `Chart.Stacked`) représentant, par période, le capital obligataire remboursé (série `Chart_Series_BondSchedule`, bleu `#2383E2`) et les coupons à percevoir (série `Chart_Series_Coupons`, orange `#F2A93B`) ; la légende est affichée sous le graphique. La hauteur d'une barre est donc tout ce qui est perçu sur la période. Les coupons sont calculés par l'Api (taux annuel en colonne P de `Asset`, voir `Api/Docs/SPECS.md` §2.5).
+Graphique en barres **empilées** (ApexCharts, `BondScheduleChart.razor`, `Chart.Stacked`) représentant, par période, le capital obligataire remboursé (série `Chart_Series_BondSchedule`, bleu `#2383E2`) et les coupons à percevoir (série `Chart_Series_Coupons`, orange `#F2A93B`) ; la légende est affichée sous le graphique. **Sans animation** (`Chart.Animations.Enabled = false`) : animées, les deux séries montent séparément et semblent côte à côte avant de s'empiler ; les barres s'affichent donc directement à leur taille finale. La hauteur d'une barre est donc tout ce qui est perçu sur la période. Les coupons sont calculés par l'Api (taux annuel en colonne P de `Asset`, voir `Api/Docs/SPECS.md` §2.5).
 
 Les données sont fournies par `GET /api/assets/bondschedule` (`BondScheduleDto[]`), agrégées **par mois** par l'Api (granularité la plus fine), avec le détail par obligation (`bonds[]`) — voir `Api/Docs/SPECS.md` §2.5 pour la logique de calcul. C'est le Client qui ré-agrège ensuite ces données mensuelles en trimestre ou en année pour l'affichage (`TrackingViewModel.BondScheduleDisplayed`), sans nouvel appel réseau.
 
