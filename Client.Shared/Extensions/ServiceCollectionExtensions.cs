@@ -3,6 +3,7 @@ using ApexCharts;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MudBlazor.Services;
 
 namespace InvestissementsDashboard.Client.Extensions;
@@ -21,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(new ClientOptions(apiBaseUri));
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IPrivacyModeService, PrivacyModeService>();
+        services.TryAddSingleton(TimeProvider.System);
 
         CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("fr-FR");
         CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("fr-FR");
@@ -42,6 +44,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MainViewModel>();
         services.AddScoped<AssetViewModel>();
         services.AddScoped<AgentViewModel>();
+        services.AddScoped<AnalysisViewModel>();
         services.AddScoped<SettingsViewModel>();
 
         return services;

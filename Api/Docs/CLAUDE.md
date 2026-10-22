@@ -36,6 +36,7 @@ Api/
 │   ├── GeographyFunction.cs
 │   ├── McpFunction.cs             # Endpoint MCP POST /api/mcp
 │   ├── PortfolioMetricsFunction.cs
+│   ├── SectorFunction.cs          # GET /api/portfolio/sector/{assetClass}
 │   ├── SnapshotFunction.cs
 │   └── SyncFunction.cs            # POST /api/sync — déclenche la synchro manuelle (Apps Script)
 ├── Middleware/
@@ -45,6 +46,7 @@ Api/
 │   ├── IBondScheduleService.cs
 │   ├── IGeographyService.cs
 │   ├── IPortfolioMetricsService.cs
+│   ├── ISectorService.cs
 │   ├── ISnapshotService.cs
 │   ├── ISyncService.cs
 │   ├── IWatchlistService.cs
@@ -59,6 +61,7 @@ Api/
 │   ├── BondScheduleService.cs
 │   ├── GeographyService.cs
 │   ├── PortfolioMetricsService.cs
+│   ├── SectorService.cs           # Répartition sectorielle (un actif = 100 % de son secteur)
 │   ├── SnapshotService.cs
 │   ├── SyncService.cs             # Appelle le Web App Apps Script (HttpClient typé, timeout 100 s)
 │   ├── WatchlistService.cs        # Lit l'onglet Watchlist (Name, ISIN), cache 5 min
@@ -157,13 +160,14 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/portfolio/metrics/history` | `PortfolioMetricsService.GetIndexedHistoryAsync` — historique `Snapshot`, normalisé base 100 |
 | GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège les assets par mois/année extrait du champ `information` (format `MM/YYYY`), avec le détail par actif (`bonds[]`) |
 | GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis les assets |
+| GET | `/api/portfolio/sector/{assetClass}` | `SectorService` — somme des assets par `sector` (types `GeoSectorEligible`) |
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
 | GET | `/api/auth/verify` | Teste le mot de passe du dashboard — `AuthFunction` |
 | POST | `/api/sync` | Déclenche `snapshotQuotidien()` via le Web App Apps Script protégé — `SyncFunction` / `SyncService` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
 
-Valeurs valides pour `/api/portfolio/geography/{assetClass}` : `Stocks`, `Bonds`.
+Valeurs valides pour `/api/portfolio/geography/{assetClass}` et `/api/portfolio/sector/{assetClass}` : `Stocks`, `Bonds`. La route secteur n'est pas appelée par le dashboard (qui calcule ses donuts de secteurs côté client) : elle sert au workflow d'analyse de l'application MAUI.
 
 ### Authentification du dashboard
 
@@ -236,10 +240,10 @@ Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.Wh
 
 ## 11. Tests (`Api.Tests/`)
 
-xUnit + Moq, 96 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
-- `Functions/` — `AssetsFunction`, `AuthFunction`, `McpFunction`
+xUnit + Moq, 125 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+- `Functions/` — `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`
 - `Mcp/` — `McpHandlerTests`
-- `Services/` — `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SnapshotService`, `SyncService`
+- `Services/` — `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`
 
 Commande : `dotnet test "Api.Tests/InvestissementsDashboard.Api.Tests.csproj"` (seule suite exécutée par la CI).
 

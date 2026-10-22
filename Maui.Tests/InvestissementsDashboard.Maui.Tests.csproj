@@ -32,6 +32,8 @@
     <Compile Include="..\Maui\Services\PreferencesAgentSettings.cs" Link="Linked\PreferencesAgentSettings.cs" />
     <Compile Include="..\Maui\Services\AgentOptionsProvider.cs" Link="Linked\AgentOptionsProvider.cs" />
     <Compile Include="..\Maui\Services\AgentRunner.cs" Link="Linked\AgentRunner.cs" />
+    <Compile Include="..\Maui\Services\PortfolioReviewRunner.cs" Link="Linked\PortfolioReviewRunner.cs" />
+    <Compile Include="..\Maui\Services\AssetDistributionSource.cs" Link="Linked\AssetDistributionSource.cs" />
     <Compile Include="..\Maui\Services\McpApiKeyHandler.cs" Link="Linked\McpApiKeyHandler.cs" />
     <Compile Include="..\Maui\Services\FileLoggerProvider.cs" Link="Linked\FileLoggerProvider.cs" />
     <ProjectReference Include="..\AgentAI.Core\AgentAI.Core.csproj" />

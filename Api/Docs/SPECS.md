@@ -274,10 +274,39 @@ Retourne la répartition géographique pondérée pour une classe d'actifs.
 ```
 
 **Notes :**
-- Seuls les actifs de types `Stock`, `ETF_Stocks`, `ETF_Bunds`, `MarketBonds`, `UnlistedBonds` sont pris en compte
+- Seuls les actifs de la classe demandée, dont l'`AssetType` est marqué `GeoSectorEligible` dans l'onglet `AssetType` et dont `currentTotal` est strictement positif, sont pris en compte (même filtre que §2.10bis)
 - Le champ `geography` de chaque actif est parsé depuis le format `Zone1 : X% - Zone2 : Y%` — la valeur courante de l'actif est ventilée proportionnellement par zone
 - `id` est toujours `null` (les zones géographiques sont des valeurs libres sans table de référence)
 - Résultats triés par `currentTotal` décroissant
+
+---
+
+### 2.10bis `GET /api/portfolio/sector/{assetClass}`
+
+Retourne la répartition sectorielle pour une classe d'actifs. Non utilisée par le dashboard (qui calcule ses secteurs côté client) : consommée par le workflow d'analyse de l'application MAUI.
+
+**Paramètre de route** : `assetClass` — valeurs valides : `Stocks`, `Bonds` (sinon `400`)
+
+**Réponse** : `DistributionDto[]`
+
+```json
+[
+  {
+    "id": null,
+    "name": "Technology",
+    "currentTotal": 8000.00,
+    "weightInPortfolio": 41.03
+  }
+]
+```
+
+**Notes :**
+- Seuls les actifs de la classe demandée, dont l'`AssetType` est marqué `GeoSectorEligible` dans l'onglet `AssetType` et dont `currentTotal` est strictement positif, sont pris en compte
+- Contrairement à la géographie, il n'y a pas de ventilation : chaque actif compte pour 100 % de sa valeur dans **son** secteur (colonne `Sector`, valeur libre) ; les actifs sans secteur sont ignorés
+- `weightInPortfolio` est rapporté au total des secteurs retenus (pas au total du portefeuille)
+- `id` est toujours `null` (les secteurs sont des valeurs libres sans table de référence)
+- Résultats triés par `currentTotal` décroissant
+- Erreurs : `502` si la lecture du Sheet échoue (`HttpRequestException`), `500` pour toute autre erreur
 
 ---
 

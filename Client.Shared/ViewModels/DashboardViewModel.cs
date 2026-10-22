@@ -237,9 +237,12 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
             a => a.Sector,
             localizationService.Translate);
 
+    // Same eligibility filter as GetSectorForClass so the list's total matches the sector donut.
     public IReadOnlyList<AssetDto> GetAssetsForSector(string assetClass, string sector) =>
         [.. ActiveAssets()
-             .Where(a => a.AssetClass == assetClass && a.Sector == sector)
+             .Where(a => a.AssetClass == assetClass
+                      && GeoAndSectorEligibleTypes.Contains(a.AssetType)
+                      && a.Sector == sector)
              .OrderByDescending(a => a.CurrentTotal)];
 
     // --- Private distribution methods ---
