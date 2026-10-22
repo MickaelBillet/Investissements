@@ -198,8 +198,9 @@ Une ligne par actif. Colonnes (index 0-based) :
 | 12 | M | `COL_DIVIDENDS` | Dividendes perçus en EUR |
 | 13 | N | `COL_CURRENT_TOTAL` | Valeur actuelle en EUR |
 | 14 | O | `COL_ISIN` | Code ISIN (saisie manuelle, jamais écrit par l'ETL ; peut être vide) |
+| 15 | P | — | Taux de coupon annuel des obligations (format pourcentage, saisie manuelle, jamais écrit par l'ETL ; vide = pas de coupon) — lu par l'Api pour l'échéancier |
 
-La colonne O (ISIN) est saisie à la main : `syncCurrentTotal()` et la création automatique d'actifs ne l'écrasent jamais (plage écrite limitée à A–N). Les colonnes K–N sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
+Les colonnes O (ISIN) et P (taux de coupon) sont saisies à la main : `syncCurrentTotal()` et la création automatique d'actifs ne les écrasent jamais (plage écrite limitée à A–N). La colonne P n'a pas de constante dans `Config.gs` : aucun script ne la lit. Les colonnes K–N sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
 
 ### 6.3 Onglet `Snapshot` (DEST_ID)
 

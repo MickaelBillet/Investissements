@@ -38,6 +38,21 @@ public class BondScheduleChartTests : BunitContext
     }
 
     [Fact]
+    public void BondScheduleChart_WhenItemsHaveCoupons_RendersWithoutError()
+    {
+        var items = new[]
+        {
+            new BondSchedulePeriodDto(2027, null, 0m, [], 85m),
+            new BondSchedulePeriodDto(2028, null, 1000m, [], 85m)
+        };
+
+        var cut = Render<BondScheduleChart>(p => p
+            .Add(c => c.Items, items));
+
+        Assert.DoesNotContain("Aucune donnée", cut.Markup);
+    }
+
+    [Fact]
     public void BondScheduleChart_WhenPrivacyModeIsHidden_RendersWithoutError()
     {
         Services.AddPrivacyModeMock(isHidden: true);

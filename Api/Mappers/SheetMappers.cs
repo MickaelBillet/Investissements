@@ -22,6 +22,7 @@ internal static class SheetMappers
     private const int ColDividends      = 12;
     private const int ColCurrentTotal   = 13;
     private const int ColIsin           = 14;
+    private const int ColCouponRate     = 15;
 
     // --- Snapshot sheet column indexes ---
     private const int ColSnapDate           = 0;
@@ -97,7 +98,9 @@ internal static class SheetMappers
             Yield         : hasFinancialData && netInvested != 0 ? Math.Round(div / netInvested * 10000m, 0) / 100m : null,
             Roi           : hasFinancialData && tp != 0 ? Math.Round((ct.GetValueOrDefault() + ts + div - tp) / tp * 10000m, 0) / 100m : null,
             WeightInPortfolio: portfolioTotal != 0 ? Math.Round(AsDecimalOrZero(currentTotalCell) / portfolioTotal * 10000m, 0) / 100m : 0m,
-            Isin             : AsString(Cell(row, ColIsin))?.Trim() ?? ""
+            Isin             : AsString(Cell(row, ColIsin))?.Trim() ?? "",
+            // A percent-formatted cell comes back as a fraction with UNFORMATTED_VALUE ("8,50%" → 0.085).
+            CouponRate       : AsDecimalOrNull(Cell(row, ColCouponRate))
         );
     }
 

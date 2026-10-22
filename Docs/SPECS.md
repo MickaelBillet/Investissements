@@ -77,11 +77,11 @@ SRS_19 En mode Master-Detail (drill-down actif), le graphique à secteurs occupe
 
 SRS_11 Afficher un graphique en courbe représentant l’évolution de la performance du portefeuille dans le temps, comparée aux références LifeStrategy 40 et MSCI World. Les 3 courbes sont indexées à une base commune à la date T0 (première date disponible dans l’historique) afin de permettre une comparaison relative de la performance.
 
-SRS_24 Afficher un graphique en barres représentant le capital obligataire à percevoir par période d’échéance (hors coupons), agrégé depuis les actifs dont le champ `information` contient une échéance au format `MM/AAAA`. La granularité est l'année par défaut ; un interrupteur permet de passer au trimestre (SRS_28).
+SRS_24 Afficher un graphique en barres empilées représentant, par période, le capital obligataire remboursé et les coupons à percevoir, agrégés depuis les actifs dont le champ `information` contient une échéance au format `MM/AAAA`. Les coupons sont calculés à partir du taux annuel saisi en colonne P de l'onglet `Asset` (coupon annuel, versé à chaque anniversaire du mois d'échéance, seuls les coupons à venir sont comptés). La granularité est l'année par défaut ; un interrupteur permet de passer au trimestre (SRS_28).
 
 SRS_25 La vue Suivi présente le graphique de performance (SRS_11) et l'échéancier obligataire (SRS_24) sous forme de 2 onglets, chacun occupant toute la hauteur disponible, plutôt qu'empilés verticalement avec défilement.
 
-SRS_26 Lorsque l'utilisateur clique sur une barre (année ou trimestre selon la granularité) de l'échéancier obligataire, un tableau affiche la liste des obligations de cette année avec leur nom et leur montant, ainsi qu'une ligne de total.
+SRS_26 Lorsque l'utilisateur clique sur une barre (année ou trimestre selon la granularité) de l'échéancier obligataire, un tableau affiche la liste des obligations de cette période avec leur nom, le capital remboursé, les coupons et leur somme, ainsi qu'une ligne de total pour chacune de ces colonnes.
 
 SRS_27 Sur écran large, le tableau du détail par obligation (SRS_26) s'affiche à droite du graphique de l'échéancier, côte à côte, plutôt qu'empilé en dessous — sur écran étroit il reste empilé sous le graphique.
 

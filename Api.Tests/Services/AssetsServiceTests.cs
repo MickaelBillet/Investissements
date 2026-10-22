@@ -48,6 +48,31 @@ public class AssetsServiceTests
     }
 
     [Fact]
+    public async Task GetAllAsync_WhenCouponRateColumnFilled_ReturnsRateAsFraction()
+    {
+        IReadOnlyList<object> row = [.. AssetRow(1, "Renault 2028", "Bonds", "CTO", "CTO TR", "MarketBonds", "", "05/2028", "", 2, 1000d, 0d, 0d, 1000d), "", 0.085d];
+        var mock = MockAssetSheet(row);
+
+        var result = await CreateService(mock).GetAllAsync();
+
+        Assert.Equal(0.085m, result[0].CouponRate);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetAllAsync_WhenCouponRateMissingOrEmpty_ReturnsNullRate(bool withEmptyCell)
+    {
+        var baseRow = AssetRow(1, "Renault 2028", "Bonds", "CTO", "CTO TR", "MarketBonds", "", "05/2028", "", 2, 1000d, 0d, 0d, 1000d);
+        IReadOnlyList<object> row = withEmptyCell ? [.. baseRow, "", ""] : baseRow;
+        var mock = MockAssetSheet(row);
+
+        var result = await CreateService(mock).GetAllAsync();
+
+        Assert.Null(result[0].CouponRate);
+    }
+
+    [Fact]
     public async Task GetAllAsync_WhenIsinColumnFilled_ReturnsTrimmedIsin()
     {
         IReadOnlyList<object> row = [.. AssetRow(1, "Air Liquide", "Stocks", "PEA", "PEA TR", "Stock", "", "", "", 3, 1000d, 0d, 0d, 1200d), " FR0000120073 "];

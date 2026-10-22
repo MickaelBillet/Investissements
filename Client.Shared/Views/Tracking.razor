@@ -47,7 +47,8 @@ else
                         @if (ViewModel.SelectedPeriodEntry is { } selected)
                         {
                             <MudItem xs="12" md="5">
-                                <BondScheduleDetailTable PeriodLabel="@selected.Label" Bonds="@ViewModel.SelectedPeriodBonds" Total="@selected.Amount" />
+                                <BondScheduleDetailTable PeriodLabel="@selected.Label" Bonds="@ViewModel.SelectedPeriodBonds"
+                                                         CapitalTotal="@selected.Amount" CouponsTotal="@selected.Coupons" Total="@selected.Total" />
                             </MudItem>
                         }
                     </MudGrid>
