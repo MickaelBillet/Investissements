@@ -36,6 +36,7 @@ public class ServiceCollectionExtensionsTests
         using var provider = BuildProvider(new Uri("https://example.test/"));
         using var scope = provider.CreateScope();
 
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<IPanelDistributionService>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<DashboardViewModel>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<TrackingViewModel>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<LoginGateViewModel>());

@@ -109,7 +109,7 @@
     protected override async Task OnParametersSetAsync()
     {
         if (_options.Colors is null || !_options.Colors.SequenceEqual(Colors))
-            _options.Colors = [.. Colors];
+            _options.Colors = Colors.ToList();
 
         if (_chart is not null && !Items.SequenceEqual(_renderedItems))
         {

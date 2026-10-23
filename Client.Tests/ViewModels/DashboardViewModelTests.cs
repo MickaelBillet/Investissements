@@ -21,7 +21,7 @@ public class DashboardViewModelTests
     }
 
     private static DashboardViewModel CreateVm(Mock<IPortfolioService> mock, ILogger<DashboardViewModel>? logger = null) =>
-        new(mock.Object, _locMock.Object, logger ?? NullLogger<DashboardViewModel>.Instance);
+        new(mock.Object, _locMock.Object, new PanelDistributionService(_locMock.Object), logger ?? NullLogger<DashboardViewModel>.Instance);
 
     private static void VerifyLogged(Mock<ILogger<DashboardViewModel>> logger, LogLevel level) =>
         logger.Verify(l => l.Log(level, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception?>(),
@@ -505,7 +505,7 @@ public class DashboardViewModelTests
         var mock = MockWithAssets();
         mock.Setup(s => s.GetSectorDistributionAsync("Stocks", It.IsAny<CancellationToken>()))
             .ReturnsAsync([new DistributionDto("Technology", 6_000m, 100m)]);
-        var vm = new DashboardViewModel(mock.Object, loc.Object, NullLogger<DashboardViewModel>.Instance);
+        var vm = new DashboardViewModel(mock.Object, loc.Object, new PanelDistributionService(loc.Object), NullLogger<DashboardViewModel>.Instance);
         await vm.InitializeAsync();
 
         var sector = Assert.Single(vm.GetSectorForClass("Stocks"));
@@ -1028,7 +1028,7 @@ public class DashboardViewModelTests
         var loc = new Mock<ILocalizationService>();
         loc.Setup(l => l.Translate("Geo_ZonesTitle")).Returns("Zones — {0}");
         loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
-        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, NullLogger<DashboardViewModel>.Instance);
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, new PanelDistributionService(loc.Object), NullLogger<DashboardViewModel>.Instance);
 
         Assert.Equal("Zones — Classes", vm.GetZonesTitle(vm.AssetClassPanel));
     }
@@ -1039,7 +1039,7 @@ public class DashboardViewModelTests
         var loc = new Mock<ILocalizationService>();
         loc.Setup(l => l.Translate("Geo_SectorsTitle")).Returns("Secteurs — {0}");
         loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
-        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, NullLogger<DashboardViewModel>.Instance);
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, new PanelDistributionService(loc.Object), NullLogger<DashboardViewModel>.Instance);
 
         Assert.Equal("Secteurs — Classes", vm.GetSectorsTitle(vm.AssetClassPanel));
     }
@@ -1052,7 +1052,7 @@ public class DashboardViewModelTests
         var loc = new Mock<ILocalizationService>();
         loc.Setup(l => l.Translate("Panel_SelectionTitle")).Returns("{0} — {1}");
         loc.Setup(l => l.Translate("Panel_AssetClass")).Returns("Classes");
-        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, NullLogger<DashboardViewModel>.Instance);
+        var vm = new DashboardViewModel(new Mock<IPortfolioService>().Object, loc.Object, new PanelDistributionService(loc.Object), NullLogger<DashboardViewModel>.Instance);
         if (zoneSelected) vm.SelectZone("Europe"); else vm.SelectSector("Technology");
 
         Assert.Equal(expected, vm.GetSelectionTitle(vm.AssetClassPanel));

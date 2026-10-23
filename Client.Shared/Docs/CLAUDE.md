@@ -13,7 +13,7 @@ Elle consomme les endpoints Azure Functions (`/api/*`), n'embarque aucune clé A
 ### Contrat avec les hôtes
 Un hôte doit :
 1. enregistrer une implémentation de `IKeyValueStore` (stockage persistant de la session et du mode confidentialité) — `LocalStorageKeyValueStore` (fournie, WASM) ou `SecureStorageKeyValueStore` (`Maui/`) ;
-2. appeler `services.AddInvestissementsClient(apiBaseUri)` (`Extensions/ServiceCollectionExtensions.cs`) : enregistre MudBlazor, ApexCharts, la localisation, `ClientOptions`, `ILocalizationService`, `IPrivacyModeService`, `ISessionService` (avec son propre `HttpClient` sans handler de mot de passe), `DashboardPasswordHandler`, les `HttpClient` typés `IPortfolioService`/`ISyncService`, les huit ViewModels (scoped) et force la culture `fr-FR` ;
+2. appeler `services.AddInvestissementsClient(apiBaseUri)` (`Extensions/ServiceCollectionExtensions.cs`) : enregistre MudBlazor, ApexCharts, la localisation, `ClientOptions`, `ILocalizationService`, `IPrivacyModeService`, `ISessionService` (avec son propre `HttpClient` sans handler de mot de passe), `DashboardPasswordHandler`, les `HttpClient` typés `IPortfolioService`/`ISyncService`, `IPanelDistributionService`, les neuf ViewModels (scoped) et force la culture `fr-FR` ;
 3. monter `App` sur `#app` et `HeadOutlet` sur `head::after`, et lier dans sa page d'hébergement le CSS de MudBlazor, `_content/InvestissementsDashboard.Client.Shared/css/app.css` et le bundle CSS isolé.
 
 L'URL de l'Api est toujours fournie par l'hôte (`ClientOptions.ApiBaseUri`) — jamais déduite de `NavigationManager.BaseUri`, qui n'a aucun sens dans un `BlazorWebView`. Assets de la RCL : `_content/InvestissementsDashboard.Client.Shared/` (`css/app.css`, `icon.svg`).
@@ -34,7 +34,10 @@ L'URL de l'Api est toujours fournie par l'hôte (`ClientOptions.ApiBaseUri`) —
 - **ViewModels** (`Client.Shared/ViewModels/`) — agrégation et calculs de présentation, pas de logique UI
 - **Model** (`Client.Shared/Model/`) — modèles de données côté client uniquement
 - **Shared** (`Client.Shared/Shared/`) — composants réutilisables transverses
-- **Services** (`Client.Shared/Services/`) — appels HTTP vers les Azure Functions
+- **Services** (`Client.Shared/Services/`) — appels HTTP vers les Azure Functions, et calculs de présentation qui ont besoin d'une dépendance (`PanelDistributionService`, qui traduit)
+- **Utils** (`Client.Shared/Utils/`) — calculateurs purs et statiques, sans état ni dépendance (`DistributionCalculator`, `VariationCalculator`, `GeographySectorFilter`), testés directement
+
+Un ViewModel délègue ses calculs à ces classes et ne garde que le chargement, l'état et les commandes (voir §7.2).
 
 Les modèles partagés Client + Api sont dans `Shared/Models/` à la racine du repo.
 
@@ -55,11 +58,13 @@ Client.Shared/
 │                    ILocalizationService.cs, LocalizationService.cs,
 │                    IPrivacyModeService.cs, PrivacyModeService.cs,
 │                    ISessionService.cs, SessionService.cs, DashboardPasswordHandler.cs,
+│                    IPanelDistributionService.cs, PanelDistributionService.cs (répartitions des panneaux du dashboard),
 │                    IAgentRunner.cs, IAgentSettings.cs, IPortfolioReviewRunner.cs (seams optionnels, voir §7.10, §7.12 et §7.13)
 ├── Shared/        → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                    KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
 │                    BondScheduleDetailTable.razor, LoginGate.razor,
 │                    Dialogs/AgentPickerDialog.razor, Dialogs/AgentResultDialog.razor
+├── Utils/         → DistributionCalculator.cs, VariationCalculator.cs, GeographySectorFilter.cs (namespace `…Client.Utils`)
 ├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs, AnalysisViewModel.cs, SettingsViewModel.cs
 ├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi), Settings.razor (/settings, MAUI uniquement)
 ├── wwwroot/       → css/app.css, icon.svg (servis sous _content/InvestissementsDashboard.Client.Shared/)
@@ -71,7 +76,8 @@ Client.Tests/      (xUnit + bUnit, référence Client.Shared)
 ├── Extensions/    → DecimalExtensionsTests, ServiceCollectionExtensionsTests
 ├── Helpers/       → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + mocks)
 ├── Models/        → PanelStateTests
-├── Services/      → SessionServiceTests, PrivacyModeServiceTests, LocalStorageKeyValueStoreTests
+├── Services/      → SessionServiceTests, PrivacyModeServiceTests, LocalStorageKeyValueStoreTests, PanelDistributionServiceTests
+├── Utils/         → DistributionCalculatorTests, VariationCalculatorTests, GeographySectorFilterTests
 └── ViewModels/    → DashboardViewModelTests, TrackingViewModelTests, LoginGateViewModelTests, AppViewModelTests, MainViewModelTests, AssetViewModelTests, AgentViewModelTests, AnalysisViewModelTests, SettingsViewModelTests
 ```
 
@@ -129,6 +135,17 @@ Règle commune aux tableaux : le total du pied est toujours fourni au composant 
 
 `GetDistribution` sélectionne automatiquement le bon filtre et le bon groupement selon `panel.Type`, `panel.Level` et `EtfStocksGroupByInformation`.
 
+**`DashboardViewModel` est une façade** : son API publique ci-dessus est celle que lit `Dashboard.razor`, mais il ne calcule rien lui-même. Il garde le chargement (`InitializeAsync`), l'état de navigation, les commandes et les titres, et délègue en passant `ActiveAssets()` (actifs à valeur > 0, filtre tenu à un seul endroit) et `_assetTypeRef` :
+
+| Méthode(s) du ViewModel | Déléguée(s) à |
+|---|---|
+| `GetDistribution`, `GetAssetsForPanel`, libellé `AssetType` de `GetPanelTitle` | `IPanelDistributionService` (`GetDistribution`, `GetLeafAssets`, `TranslateAssetType`) |
+| `GetAssetsForZone`, `GetZoneCoefficients`, `GetAssetsForSector` | `GeographySectorFilter` |
+| `GetGeographyForClass`, `GetSectorForClass` | `DistributionCalculator.FromApi` |
+| Les 10 propriétés de variation | `VariationCalculator` |
+
+`DistributionCalculator.Compute(assets, groupBy, toLabel)` est le moteur commun des donuts calculés côté client : regroupement par `groupBy`, somme de `CurrentTotal`, poids en % du total, tri décroissant.
+
 `EtfStocksGroupByInformation` (bool, bindable via `@bind-Value`) active le regroupement des ETF_Stocks par champ `information` et ajoute un niveau intermédiaire dans la hiérarchie Classes d'actifs.
 
 **Services appelés à l'initialisation (en parallèle) :**
@@ -156,7 +173,7 @@ Deux familles de métriques (capital net engagé, ROIC Capital Engagé) × cinq 
 Préfixes de période : `Daily` (J−1), `Weekly` (≤ J−7), `Monthly` (≤ J−30), `Ytd` (1er snapshot de l'année courante), `Yearly` (≤ J−365).
 Ex. : `MonthlyVariationPercent`, `YtdROICapitalEngagedVariation`, `YearlyROICapitalEngagedVariation`.
 
-La référence à comparer est fournie par un sélecteur : `RefDaysBack(history, n)` pour J/S/M/1A, `RefYearStart(history)` pour YTD (surchargés pour `SnapshotDto` et `PerformancePointDto`). L'helper `ComputeVariation` (sur `_snapshotHistory`, base `NetCapital`) calcule la variation du capital net ; `ComputePerformanceVariation` (sur `_performanceHistory`, la série TWR de `GetIndexedHistoryAsync`) calcule la variation du `ROIC` — c'est ce dernier qui alimente les puces `*ROICapitalEngagedVariation` sous la carte "ROI (Capital Engagé)", pour refléter la vraie performance du portefeuille plutôt qu'une variation relative du ratio ROI (petit dénominateur, amplifiait artificiellement l'écart).
+Le calcul est fait par `VariationCalculator` (`Client.Shared/Utils/`) : `SinceDaysBack(history, n)` pour J/S/M/1A, `SinceYearStart(history)` pour YTD, chacun surchargé pour `SnapshotDto` (sur `_snapshotHistory`, base `NetCapital` : variation du capital net) et `PerformancePointDto` (sur `_performanceHistory`, la série TWR de `GetIndexedHistoryAsync` : variation du `ROIC`). Les deux surcharges partagent une même implémentation générique privée. Pour J−1, la référence est le point précédent quelle que soit sa date (pas de snapshot le week-end). La variation du `ROIC` — c'est ce dernier qui alimente les puces `*ROICapitalEngagedVariation` sous la carte "ROI (Capital Engagé)", pour refléter la vraie performance du portefeuille plutôt qu'une variation relative du ratio ROI (petit dénominateur, amplifiait artificiellement l'écart).
 
 Retournent `null` si historique insuffisant, si aucune référence n'est trouvée pour la période, ou si la valeur de référence (`NetCapital` ou `ROIC`) vaut `0`. Pour YTD avec un seul point dans l'année, la référence est ce point → `0 %`.
 
@@ -270,7 +287,8 @@ Le service `ILocalizationService` (implémenté par `LocalizationService`) est l
 
 ```csharp
 // Dans un ViewModel (injection constructeur)
-public DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService, ILogger<DashboardViewModel> logger)
+public DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService,
+    IPanelDistributionService panelDistributionService, ILogger<DashboardViewModel> logger)
 
 // Dans un composant Razor (injection directe)
 @inject ILocalizationService L
@@ -281,7 +299,7 @@ public DashboardViewModel(IPortfolioService portfolioService, ILocalizationServi
 
 Fallback : si une clé n'existe pas dans le `.resx`, `Translate()` retourne la clé brute (jamais d'exception).
 
-**Exception — libellés `AssetType`** : ne passent pas par `Translations.resx` ni `ILocalizationService`. Ils sont lus depuis l'onglet `AssetType` du Sheet (colonne `LabelFR`) via `GET /api/assets/types/reference`, résolus dans `DashboardViewModel.TranslateAssetType(assetType)` (fallback : nom brut si `labelFr` absent). Ajouter un nouveau `AssetType` ne nécessite donc aucune entrée `.resx`.
+**Exception — libellés `AssetType`** : ne passent pas par `Translations.resx` ni `ILocalizationService`. Ils sont lus depuis l'onglet `AssetType` du Sheet (colonne `LabelFR`) via `GET /api/assets/types/reference`, résolus dans `PanelDistributionService.TranslateAssetType(assetTypes, assetType)` (fallback : nom brut si `labelFr` absent). Ajouter un nouveau `AssetType` ne nécessite donc aucune entrée `.resx`.
 
 ---
 
@@ -292,7 +310,8 @@ Framework : xUnit + bUnit. Nommage : `[MethodName]_[Scenario]_[ExpectedResult]`.
 - `TestData` dans `Client.Tests/Helpers/` fournit les factories `Asset(...)`, `Snapshot(...)` et `PerformancePoint(...)`
 - `TestData.AddLocalizationMock(this IServiceCollection services)` — extension à appeler dans le constructeur de tout test de composant qui rend un composant injectant `ILocalizationService`. Le mock utilise `ResourceManager` sur les vraies ressources compilées → les assertions peuvent vérifier les chaînes françaises.
 - `TestData.AddPrivacyModeMock(this IServiceCollection services, bool isHidden = false)` — extension à appeler dans le constructeur de tout test de composant qui affiche un montant € (injecte `IPrivacyModeService`). Rappeler avec `isHidden: true` dans un test dédié pour vérifier le masquage.
-- `DashboardViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>` (setup `Translate(key) → key`) + `NullLogger<DashboardViewModel>.Instance` (ou un `Mock<ILogger<…>>` pour vérifier la journalisation des échecs)
+- `DashboardViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>` (setup `Translate(key) → key`) + un **vrai** `PanelDistributionService` construit sur ce même mock (les tests du ViewModel couvrent ainsi la façade de bout en bout) + `NullLogger<DashboardViewModel>.Instance` (ou un `Mock<ILogger<…>>` pour vérifier la journalisation des échecs)
+- `PanelDistributionService` — instancier avec un `Mock<ILocalizationService>` ; les calculateurs statiques de `Utils/` se testent sans aucun mock
 - `TrackingViewModel` — instancier avec `Mock<IPortfolioService>` + `Mock<ILocalizationService>`
 - Les tests de composants héritent de `BunitContext` et appellent `Services.AddMudServices(...)` + `Services.AddLocalizationMock()`
 - `IKeyValueStore` : les tests de services (`SessionService`, `PrivacyModeService`) injectent `Mock<IKeyValueStore>` ; `LocalStorageKeyValueStore` est testé avec `Mock<IJSRuntime>`

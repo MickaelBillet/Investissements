@@ -37,6 +37,8 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<ISyncService, SyncService>(client => client.BaseAddress = apiBaseUri)
             .AddHttpMessageHandler<DashboardPasswordHandler>();
 
+        services.AddScoped<IPanelDistributionService, PanelDistributionService>();
+
         services.AddScoped<DashboardViewModel>();
         services.AddScoped<TrackingViewModel>();
         services.AddScoped<LoginGateViewModel>();
