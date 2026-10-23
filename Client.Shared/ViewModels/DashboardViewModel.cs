@@ -1,13 +1,14 @@
 using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
-using InvestissementsDashboard.Shared;
+using InvestissementsDashboard.Client.Utils;
 using InvestissementsDashboard.Shared.Constants;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Logging;
 
 namespace InvestissementsDashboard.Client.ViewModels;
 
-public class DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService, ILogger<DashboardViewModel> logger)
+public class DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService,
+    IPanelDistributionService panelDistributionService, ILogger<DashboardViewModel> logger)
 {
     private IReadOnlyList<AssetDto>        _assets           = [];
     private IReadOnlyList<DistributionDto> _geoStocks        = [];
@@ -54,17 +55,17 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
 
     public decimal? PortfolioRoiOnCapitalEngaged => _metrics?.RoiOnCapitalEngaged;
     public decimal? AverageRisk                  => _metrics?.AverageRisk;
-    public decimal? DailyVariationPercent                => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 1));
-    public decimal? WeeklyVariationPercent               => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 7));
-    public decimal? MonthlyVariationPercent              => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 30));
-    public decimal? YtdVariationPercent                  => ComputeVariation(_snapshotHistory, RefYearStart);
-    public decimal? YearlyVariationPercent               => ComputeVariation(_snapshotHistory, h => RefDaysBack(h, 365));
+    public decimal? DailyVariationPercent                => VariationCalculator.SinceDaysBack(_snapshotHistory, 1);
+    public decimal? WeeklyVariationPercent               => VariationCalculator.SinceDaysBack(_snapshotHistory, 7);
+    public decimal? MonthlyVariationPercent              => VariationCalculator.SinceDaysBack(_snapshotHistory, 30);
+    public decimal? YtdVariationPercent                  => VariationCalculator.SinceYearStart(_snapshotHistory);
+    public decimal? YearlyVariationPercent               => VariationCalculator.SinceDaysBack(_snapshotHistory, 365);
 
-    public decimal? DailyROICapitalEngagedVariation      => ComputePerformanceVariation(_performanceHistory, h => RefDaysBack(h, 1));
-    public decimal? WeeklyROICapitalEngagedVariation     => ComputePerformanceVariation(_performanceHistory, h => RefDaysBack(h, 7));
-    public decimal? MonthlyROICapitalEngagedVariation    => ComputePerformanceVariation(_performanceHistory, h => RefDaysBack(h, 30));
-    public decimal? YtdROICapitalEngagedVariation        => ComputePerformanceVariation(_performanceHistory, RefYearStart);
-    public decimal? YearlyROICapitalEngagedVariation     => ComputePerformanceVariation(_performanceHistory, h => RefDaysBack(h, 365));
+    public decimal? DailyROICapitalEngagedVariation      => VariationCalculator.SinceDaysBack(_performanceHistory, 1);
+    public decimal? WeeklyROICapitalEngagedVariation     => VariationCalculator.SinceDaysBack(_performanceHistory, 7);
+    public decimal? MonthlyROICapitalEngagedVariation    => VariationCalculator.SinceDaysBack(_performanceHistory, 30);
+    public decimal? YtdROICapitalEngagedVariation        => VariationCalculator.SinceYearStart(_performanceHistory);
+    public decimal? YearlyROICapitalEngagedVariation     => VariationCalculator.SinceDaysBack(_performanceHistory, 365);
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -134,7 +135,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
             .Select(s => (panel.Type, s.Index) switch
             {
                 (PanelType.Risk, _)       => localizationService.Translate($"Risk_{s.Key}"),
-                (PanelType.AssetClass, 1) => TranslateAssetType(s.Key),
+                (PanelType.AssetClass, 1) => panelDistributionService.TranslateAssetType(_assetTypeRef, s.Key),
                 _                         => localizationService.Translate(s.Key)
             });
 
@@ -176,7 +177,7 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     {
         if (panel.Type == PanelType.AssetClass
             && EtfStocksGroupByInformation
-            && panel.Selected(1) == "ETF_Stocks")
+            && panel.Selected(1) == AssetTypeNames.EtfStocks)
             return panel.Level >= 3;
 
         return panel.Type == PanelType.Risk ? panel.Level >= 1 : panel.Level >= 2;
@@ -195,198 +196,30 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         string.Format(localizationService.Translate("Panel_SelectionTitle"), GetPanelTitle(panel), SelectedZone ?? SelectedSector);
 
     public IReadOnlyList<DistributionItem> GetDistribution(PanelState panel) =>
-        panel.Type switch
-        {
-            PanelType.AssetClass  => GetAssetClassDistribution(panel),
-            PanelType.SupportType => GetSupportTypeDistribution(panel),
-            PanelType.Risk        => GetRiskDistribution(panel),
-            _                     => []
-        };
+        panelDistributionService.GetDistribution(ActiveAssets(), _assetTypeRef, panel, EtfStocksGroupByInformation);
 
-    public IReadOnlyList<AssetDto> GetAssetsForPanel(PanelState panel)
-    {
-        if (!panel.IsAtLeafLevel) return [];
-        return panel.Type switch
-        {
-            PanelType.AssetClass  => GetLeafAssetsForAssetClass(
-                panel.Selected(0)!,
-                panel.Selected(1)!,
-                EtfStocksGroupByInformation && panel.Selected(1) == "ETF_Stocks" ? panel.Selected(2) : null),
-            PanelType.SupportType => GetLeafAssetsForSupport(panel.Selected(1)!),
-            PanelType.Risk        => GetLeafAssetsForRisk(panel.Selected(0)!),
-            _                     => []
-        };
-    }
+    public IReadOnlyList<AssetDto> GetAssetsForPanel(PanelState panel) =>
+        panelDistributionService.GetLeafAssets(ActiveAssets(), panel, EtfStocksGroupByInformation);
 
-    // --- Geography (pre-loaded from API, filtered client-side for zone drill-down) ---
+    // --- Geography and sectors (distributions computed by the Api, assets filtered here for the drill-down) ---
 
-    public IReadOnlyList<DistributionItem> GetGeographyForClass(string assetClass)
-    {
-        var distribution = assetClass == "Stocks" ? _geoStocks : _geoBonds;
-        return [.. distribution.Select(d => new DistributionItem(d.Name, d.Name, d.CurrentTotal, d.WeightInPortfolio))];
-    }
-
-    public IReadOnlyList<AssetDto> GetAssetsForZone(string assetClass, string zone) =>
-        [.. ZoneMatches(assetClass, zone).Select(m => m.Asset).OrderByDescending(a => a.CurrentTotal)];
-
-    // Coefficient (0–1) that each matching asset allocates to this specific zone —
-    // an ETF can span several zones (e.g. "USA : 41% - Europe : 24%"), so the zone's
-    // true weight is CurrentTotal × coefficient, not the asset's full CurrentTotal.
-    public IReadOnlyDictionary<int, decimal> GetZoneCoefficients(string assetClass, string zone) =>
-        ZoneMatches(assetClass, zone).ToDictionary(m => m.Asset.Id, m => m.Coefficient);
-
-    // Same eligibility filter as GetDistributionAsync (Api/Services/GeographyService.cs) so the
-    // list's total can be made to match the geography donut exactly.
-    private IEnumerable<(AssetDto Asset, decimal Coefficient)> ZoneMatches(string assetClass, string zone) =>
-        ActiveAssets()
-            .Where(a => a.AssetClass == assetClass && GeoAndSectorEligibleTypes.Contains(a.AssetType))
-            .SelectMany(a => GeographyParser.Parse(a.Geography)
-                .Where(z => z.Zone == zone)
-                .Select(z => (Asset: a, Coefficient: z.Pct)));
-
-    private HashSet<string> GeoAndSectorEligibleTypes =>
-        [.. _assetTypeRef.Where(r => r.GeoSectorEligible).Select(r => r.Name)];
-
-    private string TranslateAssetType(string assetType) =>
-        _assetTypeRef.FirstOrDefault(r => r.Name == assetType)?.LabelFr ?? assetType;
-
-    // --- Sectors (pre-loaded from API like the geography, filtered client-side for sector drill-down) ---
+    public IReadOnlyList<DistributionItem> GetGeographyForClass(string assetClass) =>
+        DistributionCalculator.FromApi(assetClass == AssetClassNames.Stocks ? _geoStocks : _geoBonds);
 
     // Computed by the Api (SectorService) rather than here, so the dashboard and the MAUI analysis workflow
     // share a single rule. The sector name stays the key (used by the drill-down), only its label is translated.
-    public IReadOnlyList<DistributionItem> GetSectorForClass(string assetClass)
-    {
-        var distribution = assetClass == AssetClassNames.Stocks ? _sectorStocks : _sectorBonds;
-        return [.. distribution.Select(d => new DistributionItem(d.Name, localizationService.Translate(d.Name), d.CurrentTotal, d.WeightInPortfolio))];
-    }
+    public IReadOnlyList<DistributionItem> GetSectorForClass(string assetClass) =>
+        DistributionCalculator.FromApi(assetClass == AssetClassNames.Stocks ? _sectorStocks : _sectorBonds, localizationService.Translate);
 
-    // Same eligibility filter as SectorService (Api) so the list's total matches the sector donut.
+    public IReadOnlyList<AssetDto> GetAssetsForZone(string assetClass, string zone) =>
+        GeographySectorFilter.AssetsForZone(ActiveAssets(), _assetTypeRef, assetClass, zone);
+
+    public IReadOnlyDictionary<int, decimal> GetZoneCoefficients(string assetClass, string zone) =>
+        GeographySectorFilter.ZoneCoefficients(ActiveAssets(), _assetTypeRef, assetClass, zone);
+
     public IReadOnlyList<AssetDto> GetAssetsForSector(string assetClass, string sector) =>
-        [.. ActiveAssets()
-             .Where(a => a.AssetClass == assetClass
-                      && GeoAndSectorEligibleTypes.Contains(a.AssetType)
-                      && a.Sector == sector)
-             .OrderByDescending(a => a.CurrentTotal)];
-
-    // --- Private distribution methods ---
-
-    private IReadOnlyList<DistributionItem> GetAssetClassDistribution(PanelState panel)
-    {
-        var isEtfGrouped = EtfStocksGroupByInformation && panel.Selected(1) == "ETF_Stocks";
-
-        return panel.Level switch
-        {
-            0 => ComputeDistribution(ActiveAssets(), a => a.AssetClass, localizationService.Translate),
-            1 => ComputeDistribution(ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)), a => a.AssetType, TranslateAssetType),
-            2 when isEtfGrouped
-              => ComputeDistribution(
-                    ActiveAssets().Where(a => a.AssetClass == panel.Selected(0) && a.AssetType == "ETF_Stocks"),
-                    a => a.Information),
-            2 => ComputeDistribution(
-                    ActiveAssets().Where(a => a.AssetClass == panel.Selected(0) && a.AssetType == panel.Selected(1)),
-                    a => a.Name),
-            _ => ComputeDistribution(
-                    ActiveAssets().Where(a => a.AssetClass == panel.Selected(0)
-                                           && a.AssetType == "ETF_Stocks"
-                                           && a.Information == panel.Selected(2)),
-                    a => a.Name)
-        };
-    }
-
-    private IReadOnlyList<DistributionItem> GetSupportTypeDistribution(PanelState panel) =>
-        panel.Level switch
-        {
-            0 => ComputeDistribution(ActiveAssets(), a => a.SupportType, localizationService.Translate),
-            1 => ComputeDistribution(ActiveAssets().Where(a => a.SupportType == panel.Selected(0)), a => a.Support),
-            _ => ComputeDistribution(ActiveAssets().Where(a => a.SupportType == panel.Selected(0) && a.Support == panel.Selected(1)), a => a.Name)
-        };
-
-    private IReadOnlyList<DistributionItem> GetRiskDistribution(PanelState panel) =>
-        panel.Level switch
-        {
-            0 => ComputeDistribution(ActiveAssets(), a => a.Risk.ToString(), k => localizationService.Translate($"Risk_{k}")),
-            _ => ComputeDistribution(ActiveAssets().Where(a => a.Risk.ToString() == panel.Selected(0)), a => a.Name)
-        };
-
-    private IReadOnlyList<AssetDto> GetLeafAssetsForAssetClass(string assetClass, string assetType, string? information = null) =>
-        [.. ActiveAssets()
-             .Where(a => a.AssetClass == assetClass
-                      && a.AssetType == assetType
-                      && (information == null || a.Information == information))
-             .OrderByDescending(a => a.CurrentTotal)];
-
-    private IReadOnlyList<AssetDto> GetLeafAssetsForSupport(string support) =>
-        [.. ActiveAssets()
-             .Where(a => a.Support == support)
-             .OrderByDescending(a => a.CurrentTotal)];
-
-    private IReadOnlyList<AssetDto> GetLeafAssetsForRisk(string risk) =>
-        [.. ActiveAssets()
-             .Where(a => a.Risk.ToString() == risk)
-             .OrderByDescending(a => a.CurrentTotal)];
+        GeographySectorFilter.AssetsForSector(ActiveAssets(), _assetTypeRef, assetClass, sector);
 
     private IEnumerable<AssetDto> ActiveAssets() =>
         _assets.Where(a => a.CurrentTotal is > 0);
-
-    // --- Variation reference selectors (which past snapshot to compare "today" against) ---
-
-    private SnapshotDto? RefDaysBack(IReadOnlyList<SnapshotDto> history, int daysBack) =>
-        daysBack == 1
-            ? history[^2]
-            : history.LastOrDefault(s => s.Date <= history[^1].Date.AddDays(-daysBack));
-
-    // YTD reference: first snapshot of the current year (the latest snapshot's year).
-    private SnapshotDto? RefYearStart(IReadOnlyList<SnapshotDto> history) =>
-        history.FirstOrDefault(s => s.Date.Year == history[^1].Date.Year);
-
-    private decimal? ComputeVariation(IReadOnlyList<SnapshotDto> history, Func<IReadOnlyList<SnapshotDto>, SnapshotDto?> referenceOf)
-    {
-        if (history.Count < 2) return null;
-        var last      = history[^1];
-        var reference = referenceOf(history);
-        if (reference is null || reference.NetCapital == 0) return null;
-        return (last.NetCapital - reference.NetCapital) / reference.NetCapital * 100m;
-    }
-
-    // Reference selectors for PerformancePointDto (TWR series) — same logic as the SnapshotDto overloads above.
-    private PerformancePointDto? RefDaysBack(IReadOnlyList<PerformancePointDto> history, int daysBack) =>
-        daysBack == 1
-            ? history[^2]
-            : history.LastOrDefault(s => s.Date <= history[^1].Date.AddDays(-daysBack));
-
-    private PerformancePointDto? RefYearStart(IReadOnlyList<PerformancePointDto> history) =>
-        history.FirstOrDefault(s => s.Date.Year == history[^1].Date.Year);
-
-    // Sub-period return of the TWR-chained ROIC series: ratio-invariant to the series' T0 reference date.
-    private decimal? ComputePerformanceVariation(
-        IReadOnlyList<PerformancePointDto> history,
-        Func<IReadOnlyList<PerformancePointDto>, PerformancePointDto?> referenceOf)
-    {
-        if (history.Count < 2) return null;
-        var last      = history[^1];
-        var reference = referenceOf(history);
-        if (reference is null || reference.ROIC == 0) return null;
-        return (last.ROIC - reference.ROIC) / reference.ROIC * 100m;
-    }
-
-    private IReadOnlyList<DistributionItem> ComputeDistribution(
-        IEnumerable<AssetDto> assets,
-        Func<AssetDto, string> groupKey,
-        Func<string, string>? convertKey = null)
-    {
-        var list  = assets.ToList();
-        var total = list.Sum(a => a.CurrentTotal ?? 0);
-        return [.. list
-            .GroupBy(groupKey)
-            .Select(g =>
-            {
-                var groupTotal = g.Sum(a => a.CurrentTotal ?? 0);
-                return new DistributionItem(
-                    g.Key,
-                    convertKey?.Invoke(g.Key) ?? g.Key,
-                    groupTotal,
-                    total > 0 ? groupTotal / total * 100m : 0m);
-            })
-            .OrderByDescending(d => d.CurrentTotal)];
-    }
 }

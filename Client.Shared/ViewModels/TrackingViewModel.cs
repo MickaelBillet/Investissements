@@ -35,11 +35,12 @@ public class TrackingViewModel(IPortfolioService portfolioService, ILocalization
     public IReadOnlyList<BondScheduleItemDto> SelectedPeriodBonds =>
         SelectedPeriodEntry is null
             ? []
-            : [.. SelectedPeriodEntry.Bonds
+            : SelectedPeriodEntry.Bonds
                 .GroupBy(b => b.Name)
                 .Select(g => new BondScheduleItemDto(g.Key, g.Sum(b => b.Amount), g.Sum(b => b.Coupon)))
                 .Where(b => b.Total > 0)
-                .OrderByDescending(b => b.Total)];
+                .OrderByDescending(b => b.Total)
+                .ToList();
 
     public void SelectPeriod(BondSchedulePeriodDto entry) => SelectedPeriodEntry = entry;
 
@@ -47,12 +48,12 @@ public class TrackingViewModel(IPortfolioService portfolioService, ILocalization
         BondScheduleQuarterlyView
             ? BondSchedule
                 .GroupBy(s => (s.Year, Quarter: (s.Month - 1) / 3 + 1))
-                .Select(g => new BondSchedulePeriodDto(g.Key.Year, g.Key.Quarter, g.Sum(s => s.Amount), [.. g.SelectMany(s => s.Bonds)], g.Sum(s => s.Coupons)))
+                .Select(g => new BondSchedulePeriodDto(g.Key.Year, g.Key.Quarter, g.Sum(s => s.Amount), g.SelectMany(s => s.Bonds).ToList(), g.Sum(s => s.Coupons)))
                 .OrderBy(p => p.Year).ThenBy(p => p.Quarter)
                 .ToArray()
             : BondSchedule
                 .GroupBy(s => s.Year)
-                .Select(g => new BondSchedulePeriodDto(g.Key, null, g.Sum(s => s.Amount), [.. g.SelectMany(s => s.Bonds)], g.Sum(s => s.Coupons)))
+                .Select(g => new BondSchedulePeriodDto(g.Key, null, g.Sum(s => s.Amount), g.SelectMany(s => s.Bonds).ToList(), g.Sum(s => s.Coupons)))
                 .OrderBy(p => p.Year)
                 .ToArray();
 
@@ -74,9 +75,9 @@ public class TrackingViewModel(IPortfolioService portfolioService, ILocalization
         try
         {
             var data = await portfolioService.GetIndexedHistoryAsync(ct);
-            ROIC_Series = [.. data.Select(p => new IndexedPoint(p.Date, p.ROIC))];
-            LifeStrategySeries = [.. data.Where(p => p.LifeStrategy.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy!.Value))];
-            MsciWorldSeries    = [.. data.Where(p => p.MsciWorld.HasValue).Select(p => new IndexedPoint(p.Date, p.MsciWorld!.Value))];
+            ROIC_Series = data.Select(p => new IndexedPoint(p.Date, p.ROIC)).ToList();
+            LifeStrategySeries = data.Where(p => p.LifeStrategy.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy!.Value)).ToList();
+            MsciWorldSeries    = data.Where(p => p.MsciWorld.HasValue).Select(p => new IndexedPoint(p.Date, p.MsciWorld!.Value)).ToList();
         }
         catch (Exception ex)
         {
