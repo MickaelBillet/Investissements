@@ -1,33 +1,29 @@
 using AgentAI;
-using InvestissementsDashboard.Client.Services;
 
 namespace InvestissementsDashboard.Maui.Services;
 
 /// <summary>
-/// Builds the <see cref="AgentAIOptions"/> from the user's settings. Called lazily (see <c>AddAgentAI</c> with a factory),
-/// so a missing endpoint is reported when an agent is launched rather than preventing the app from starting.
+/// Builds the <see cref="AgentAIOptions"/> from the configuration kept in the Api. Read on every launch, so a change
+/// of App Setting applies without restarting or republishing the application.
 /// </summary>
-public sealed class AgentOptionsProvider(IAgentSettings settings, Uri apiBaseUri, string historyDirectory)
+public sealed class AgentOptionsProvider(IAgentConfigSource configSource, Uri apiBaseUri, string historyDirectory)
 {
-    public AgentAIOptions Create()
+    /// <exception cref="InvalidOperationException">The Foundry endpoint is not configured in the Api.</exception>
+    public async Task<AgentAIOptions> CreateAsync(CancellationToken cancellationToken)
     {
-        var endpoint = settings.FoundryEndpoint;
-        if (string.IsNullOrWhiteSpace(endpoint))
+        var config = await configSource.GetAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(config.FoundryEndpoint))
         {
-            throw new InvalidOperationException("The Foundry endpoint is not configured: set it in the settings page.");
+            throw new InvalidOperationException("The Foundry endpoint is not configured in the Api (App Setting AGENT_FOUNDRY_ENDPOINT).");
         }
 
-        var model = settings.Model;
         return new AgentAIOptions
         {
-            FoundryProjectEndpoint = endpoint,
-            Model = string.IsNullOrWhiteSpace(model) ? AgentAIOptions.DefaultModel : model,
-            // The stored base URL wins; the Api origin is the fallback if the preference was cleared or is malformed.
-            InvestZaptoMcpUrl = new Uri(ResolveBaseUri(), "api/mcp").ToString(),
+            FoundryProjectEndpoint = config.FoundryEndpoint,
+            Model = string.IsNullOrWhiteSpace(config.Model) ? AgentAIOptions.DefaultModel : config.Model,
+            // The MCP server is the Api itself: same origin, same dashboard password.
+            InvestZaptoMcpUrl = new Uri(apiBaseUri, "api/mcp").ToString(),
             HistoryDirectory = historyDirectory,
         };
     }
-
-    private Uri ResolveBaseUri() =>
-        Uri.TryCreate(settings.InvestZaptoBaseUrl, UriKind.Absolute, out var stored) ? stored : apiBaseUri;
 }

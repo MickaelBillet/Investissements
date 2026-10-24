@@ -1,6 +1,7 @@
 using AgentAI;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Maui.Services;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -12,7 +13,7 @@ namespace InvestissementsDashboard.Maui.Tests;
 
 public class AgentRunnerTests
 {
-    private readonly Mock<IAgentSettings> _settings = new();
+    private readonly Mock<IAgentConfigSource> _config = new();
     private readonly Mock<IAgentFactory> _factory = new();
     private readonly Mock<ICustomChatHistoryProvider> _history = new();
     private readonly Mock<AIAgent> _agent = new();
@@ -20,7 +21,7 @@ public class AgentRunnerTests
 
     public AgentRunnerTests()
     {
-        _settings.SetupGet(s => s.FoundryEndpoint).Returns("https://foundry.test/");
+        SetupConfig("https://foundry.test/");
         _factory
             .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync((_agent.Object, _history.Object));
@@ -30,8 +31,11 @@ public class AgentRunnerTests
             .ReturnsAsync(new Mock<AgentSession>().Object);
     }
 
+    private void SetupConfig(string? endpoint, string? model = null) =>
+        _config.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentConfigDto(endpoint, model));
+
     private AgentRunner CreateRunner(TimeSpan? timeout = null) => new(
-        new AgentOptionsProvider(_settings.Object, new Uri("https://invest.test/"), @"C:\history"),
+        new AgentOptionsProvider(_config.Object, new Uri("https://invest.test/"), @"C:\history"),
         options =>
         {
             _receivedOptions = options;
@@ -84,8 +88,31 @@ public class AgentRunnerTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Allocation, null, null));
 
-        Assert.Contains("MCP key", ex.Message);
+        Assert.Contains("dashboard password", ex.Message);
         _history.Verify(h => h.ResetWithBackup(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RunAsync_ConfigUnauthorized_ThrowsAccessRefusedBeforeCreatingFactory()
+    {
+        _config.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("401", null, System.Net.HttpStatusCode.Unauthorized));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null));
+
+        Assert.Contains("dashboard password", ex.Message);
+        Assert.Null(_receivedOptions);
+    }
+
+    [Fact]
+    public async Task RunAsync_ConfigNeverAnswers_TimesOutNamingTheConfigurationStage()
+    {
+        _config.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .Returns<CancellationToken>(async ct => { await Task.Delay(Timeout.Infinite, ct); return new AgentConfigDto(null, null); });
+
+        var ex = await Assert.ThrowsAsync<TimeoutException>(() => CreateRunner(TimeSpan.FromMilliseconds(100)).RunAsync(AgentChoice.Stock, "Air Liquide", null));
+
+        Assert.Contains("configuration", ex.Message);
     }
 
     [Fact]
@@ -157,9 +184,9 @@ public class AgentRunnerTests
     }
 
     [Fact]
-    public async Task RunAsync_Called_UsesOptionsFromSettings()
+    public async Task RunAsync_Called_UsesOptionsFromApiConfig()
     {
-        _settings.SetupGet(s => s.Model).Returns("gpt-x");
+        SetupConfig("https://foundry.test/", "gpt-x");
         SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "ok"))));
 
         await CreateRunner().RunAsync(AgentChoice.News, "Air Liquide", null);
@@ -171,7 +198,7 @@ public class AgentRunnerTests
     [Fact]
     public async Task RunAsync_MissingEndpoint_ThrowsBeforeCreatingFactory()
     {
-        _settings.SetupGet(s => s.FoundryEndpoint).Returns((string?)null);
+        SetupConfig(null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null));
 

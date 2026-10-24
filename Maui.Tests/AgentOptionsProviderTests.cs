@@ -1,6 +1,7 @@
+using System.Net;
 using AgentAI;
-using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Maui.Services;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
@@ -10,65 +11,64 @@ namespace InvestissementsDashboard.Maui.Tests;
 public class AgentOptionsProviderTests
 {
     private static readonly Uri ApiBase = new("https://invest.test/");
-    private readonly Mock<IAgentSettings> _settings = new();
+    private readonly Mock<IAgentConfigSource> _source = new();
 
-    private AgentOptionsProvider Create() => new(_settings.Object, ApiBase, @"C:\history");
+    private AgentOptionsProvider Create() => new(_source.Object, ApiBase, @"C:\history");
 
-    [Fact]
-    public void Create_WithoutEndpoint_Throws()
+    private void SetupConfig(string? endpoint, string? model = null) =>
+        _source.Setup(s => s.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentConfigDto(endpoint, model));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("  ")]
+    public async Task CreateAsync_WithoutEndpoint_ThrowsNamingTheAppSetting(string? endpoint)
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => Create().Create());
+        SetupConfig(endpoint);
 
-        Assert.Contains("settings page", ex.Message);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Create().CreateAsync(default));
+
+        Assert.Contains("AGENT_FOUNDRY_ENDPOINT", ex.Message);
     }
 
     [Fact]
-    public void Create_WithEndpointOnly_UsesDefaultModel()
+    public async Task CreateAsync_WithEndpointOnly_UsesDefaultModel()
     {
-        _settings.SetupGet(s => s.FoundryEndpoint).Returns("https://foundry.test/");
+        SetupConfig("https://foundry.test/");
 
-        var options = Create().Create();
+        var options = await Create().CreateAsync(default);
 
         Assert.Equal("https://foundry.test/", options.FoundryProjectEndpoint);
         Assert.Equal(AgentAIOptions.DefaultModel, options.Model);
     }
 
     [Fact]
-    public void Create_WithModel_UsesIt()
+    public async Task CreateAsync_WithModel_UsesIt()
     {
-        _settings.SetupGet(s => s.FoundryEndpoint).Returns("https://foundry.test/");
-        _settings.SetupGet(s => s.Model).Returns("gpt-x");
+        SetupConfig("https://foundry.test/", "gpt-x");
 
-        Assert.Equal("gpt-x", Create().Create().Model);
+        Assert.Equal("gpt-x", (await Create().CreateAsync(default)).Model);
     }
 
     [Fact]
-    public void Create_DerivesMcpUrlFromApiBaseAndPassesHistoryDirectory()
+    public async Task CreateAsync_Always_DerivesMcpUrlFromApiBaseAndPassesHistoryDirectory()
     {
-        _settings.SetupGet(s => s.FoundryEndpoint).Returns("https://foundry.test/");
+        SetupConfig("https://foundry.test/");
 
-        var options = Create().Create();
+        var options = await Create().CreateAsync(default);
 
         Assert.Equal("https://invest.test/api/mcp", options.InvestZaptoMcpUrl);
         Assert.Equal(@"C:\history", options.HistoryDirectory);
     }
 
     [Fact]
-    public void Create_WithStoredBaseUrl_DerivesMcpUrlFromIt()
+    public async Task CreateAsync_ApiRefuses_PropagatesHttpRequestException()
     {
-        _settings.SetupGet(s => s.FoundryEndpoint).Returns("https://foundry.test/");
-        _settings.SetupGet(s => s.InvestZaptoBaseUrl).Returns("https://stored.test/");
+        _source.Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("401", null, HttpStatusCode.Unauthorized));
 
-        Assert.Equal("https://stored.test/api/mcp", Create().Create().InvestZaptoMcpUrl);
-    }
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => Create().CreateAsync(default));
 
-    [Fact]
-    public void Create_WithMalformedStoredBaseUrl_FallsBackToApiBase()
-    {
-        _settings.SetupGet(s => s.FoundryEndpoint).Returns("https://foundry.test/");
-        _settings.SetupGet(s => s.InvestZaptoBaseUrl).Returns("not a url");
-
-        Assert.Equal("https://invest.test/api/mcp", Create().Create().InvestZaptoMcpUrl);
+        Assert.Equal(HttpStatusCode.Unauthorized, ex.StatusCode);
     }
 
     [Fact]

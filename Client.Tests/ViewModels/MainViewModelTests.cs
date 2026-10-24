@@ -108,20 +108,6 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public void IsSettingsAvailable_WithoutSettingsStore_IsFalse()
-    {
-        Assert.False(Create().IsSettingsAvailable);
-    }
-
-    [Fact]
-    public void IsSettingsAvailable_WithSettingsStore_IsTrue()
-    {
-        var vm = new MainViewModel(_sync.Object, _session.Object, _localizer.Object, NullLogger<MainViewModel>.Instance, new Mock<IAgentSettings>().Object);
-
-        Assert.True(vm.IsSettingsAvailable);
-    }
-
-    [Fact]
     public void IsAgentAvailable_WithoutRunner_IsFalse()
     {
         Assert.False(Create().IsAgentAvailable);

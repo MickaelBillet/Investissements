@@ -20,7 +20,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISecureStorage>(SecureStorage.Default);
         builder.Services.AddSingleton<IKeyValueStore, SecureStorageKeyValueStore>();
         builder.Services.AddInvestissementsClient(ApiBaseUri);
-        builder.Services.AddSingleton<IAgentSettings>(_ => new PreferencesAgentSettings(Preferences.Default, ApiBaseUri.ToString()));
         AddAgents(builder.Services);
         AddLogger(builder.Services);
 
@@ -50,19 +49,24 @@ public static class MauiProgram
 
     private static void AddAgents(IServiceCollection services)
     {
+        // The agents' configuration lives in the Api's App Settings: nothing is typed on the PC.
+        services.AddHttpClient<IAgentConfigSource, ApiAgentConfigSource>(client => client.BaseAddress = ApiBaseUri)
+            .AddHttpMessageHandler<DashboardPasswordHandler>()
+            .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
         services.AddSingleton(sp => new AgentOptionsProvider(
-            sp.GetRequiredService<IAgentSettings>(),
+            sp.GetRequiredService<IAgentConfigSource>(),
             ApiBaseUri,
             // The install folder is read-only for a packaged app, so the history goes to the user's data folder.
             Path.Combine(FileSystem.AppDataDirectory, "agents-history")));
 
-        // Typed clients: each has its own pipeline, so the dashboard password header added to the dashboard
-        // clients never reaches the RSS feeds or the MCP server.
+        // Typed clients: each has its own pipeline, so the dashboard password header is only sent to the Api
+        // (dashboard, configuration, MCP, web search) and never reaches the RSS feeds.
         services.AddNewsServices();
         services.AddHttpClient<IRssFeedReader, RssFeedReader>().ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
         services.AddHttpClient<YahooTickerResolver>().ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
+        // The MCP server accepts the dashboard password: the MAUI user is already signed in, no MCP key to type.
         services.AddInvestZaptoMcp()
-            .AddHttpMessageHandler(sp => new McpApiKeyHandler(sp.GetRequiredService<IKeyValueStore>()))
+            .AddHttpMessageHandler<DashboardPasswordHandler>()
             .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
         // Through the Api, which holds the search provider's key: like the dashboard clients, only the password is sent.
         services.AddHttpClient<IWebSearchService, ApiWebSearchService>(client => client.BaseAddress = ApiBaseUri)

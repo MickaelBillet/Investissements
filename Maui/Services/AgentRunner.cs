@@ -10,8 +10,8 @@ namespace InvestissementsDashboard.Maui.Services;
 /// Runs an <see cref="AgentChoice"/> against Azure AI Foundry through <see cref="IAgentFactory"/>.
 /// </summary>
 /// <remarks>
-/// A factory is built for every run (instead of a singleton) so that a change made in the settings page
-/// is picked up immediately, without restarting the application.
+/// The options are read from the Api and a factory is built for every run (instead of a singleton), so that a
+/// change of configuration is picked up immediately, without restarting the application.
 /// </remarks>
 public sealed class AgentRunner(
     AgentOptionsProvider optionsProvider,
@@ -25,7 +25,6 @@ public sealed class AgentRunner(
 
     public async Task<string> RunAsync(AgentChoice agent, string? assetName, string? isin, CancellationToken cancellationToken = default)
     {
-        var options = optionsProvider.Create();
         AgentKind kind = GetAgentKind(agent);
         string triggerMessage = GetMessage(agent);
 
@@ -34,6 +33,20 @@ public sealed class AgentRunner(
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(timeout ?? DefaultTimeout);
         var token = timeoutCts.Token;
+
+        AgentAIOptions options;
+        try
+        {
+            options = await optionsProvider.CreateAsync(token);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            throw AccessRefused(ex);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw TimedOut(agent, "reading the agents configuration from the Api");
+        }
 
         await using var agentFactory = factoryCreator(options);
         logger.LogInformation("Agent {Agent}: starting (asset: {Asset}, model: {Model})", agent, assetName ?? "-", options.Model);
@@ -53,7 +66,7 @@ public sealed class AgentRunner(
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
             // The MCP server is the only endpoint an agent connects to at creation time.
-            throw new InvalidOperationException("The MCP key is missing or rejected: set it in the settings page.", ex);
+            throw AccessRefused(ex);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -89,6 +102,13 @@ public sealed class AgentRunner(
 
             throw;
         }
+    }
+
+    // Both the configuration and the MCP server are behind the dashboard password: a 401 means it was rejected.
+    private InvalidOperationException AccessRefused(HttpRequestException ex)
+    {
+        logger.LogError(ex, "The Api refused the dashboard password");
+        return new InvalidOperationException("Access refused by the Api: log out and sign in again with the dashboard password.", ex);
     }
 
     private TimeoutException TimedOut(AgentChoice agent, string stage)
