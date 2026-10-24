@@ -21,9 +21,19 @@ public class PortfolioReviewWorkflowBuilderTests
         }
         """;
 
+    private const string ContextJson = """
+        {
+          "date": "2026-10-19",
+          "situation": "BCE en pause.",
+          "factors": [],
+          "indicators": []
+        }
+        """;
+
     private readonly Mock<IAgentFactory> _factory = new();
     private readonly Mock<ICustomChatHistoryProvider> _history = new();
     private readonly Mock<AIAgent> _agent = new();
+    private readonly Mock<AIAgent> _contextAgent = new();
     private readonly Mock<IAssetDistributionSource> _distributionSource = new();
     private readonly PortfolioReviewWorkflowBuilder _builder = new();
 
@@ -32,11 +42,19 @@ public class PortfolioReviewWorkflowBuilderTests
         _factory
             .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync((_agent.Object, _history.Object));
-        _agent
-            .Protected()
-            .Setup<ValueTask<AgentSession>>("CreateSessionCoreAsync", ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new Mock<AgentSession>().Object);
+        // Declared after the catch-all above, so it takes precedence for the Context agent.
+        _factory
+            .Setup(f => f.CreateAsync(AgentKind.Context, It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync((_contextAgent.Object, _history.Object));
+        foreach (var agent in new[] { _agent, _contextAgent })
+        {
+            agent
+                .Protected()
+                .Setup<ValueTask<AgentSession>>("CreateSessionCoreAsync", ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new Mock<AgentSession>().Object);
+        }
         SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, AllocationJson))));
+        SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, ContextJson))), _contextAgent);
         _distributionSource
             .Setup(s => s.GetGeographyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([new DistributionDto("USA", 1_500m, 100m)]);
@@ -45,8 +63,8 @@ public class PortfolioReviewWorkflowBuilderTests
             .ReturnsAsync([new DistributionDto("Technology", 1_500m, 100m)]);
     }
 
-    private void SetupAgent(Func<Task<AgentResponse>> run) =>
-        _agent
+    private void SetupAgent(Func<Task<AgentResponse>> run, Mock<AIAgent>? agent = null) =>
+        (agent ?? _agent)
             .Protected()
             .Setup<Task<AgentResponse>>(
                 "RunCoreAsync",
@@ -81,6 +99,36 @@ public class PortfolioReviewWorkflowBuilderTests
         await _builder.BuildAsync(_factory.Object, _distributionSource.Object);
 
         _factory.Verify(f => f.CreateAsync(AgentKind.Allocation, null, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task BuildAsync_Always_CreatesTheContextAgent()
+    {
+        await _builder.BuildAsync(_factory.Object, _distributionSource.Object);
+
+        _factory.Verify(f => f.CreateAsync(AgentKind.Context, null, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task BuildAsync_Run_EmitsContextBeforeSynthesis()
+    {
+        var events = await RunAsync();
+
+        int context = events.FindIndex(e => e is ContextRetrievedEvent);
+        int synthesis = events.FindIndex(e => e is SynthesisWrittenEvent);
+        Assert.True(context >= 0, "ContextRetrievedEvent missing");
+        Assert.True(synthesis > context, "the synthesis must be written after the context");
+    }
+
+    [Fact]
+    public async Task BuildAsync_ContextFails_ProducesNoSynthesis()
+    {
+        SetupAgent(() => throw new InvalidOperationException("web search unavailable"), _contextAgent);
+
+        var events = await RunAsync();
+
+        Assert.Contains(events, e => e is ExecutorFailedEvent failed && failed.ExecutorId == "context");
+        Assert.DoesNotContain(events, e => e is SynthesisWrittenEvent or WorkflowOutputEvent);
     }
 
     [Fact]

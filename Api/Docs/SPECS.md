@@ -1,14 +1,14 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 2.1 — lecture directe du Google Sheet via l'API Sheets ; ajout de `auth/verify` et de `POST /api/sync`
-**Date :** 2026-10-05
+**Version :** 2.2 — ajout de `POST /api/websearch` (recherche web des agents MAUI)
+**Date :** 2026-10-24
 
 ---
 
 ## 1. Vue d'ensemble
 
-L'Api expose 14 routes HTTP : 11 endpoints REST de lecture, `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle) et 1 endpoint MCP. Toutes, sauf `mcp` et `auth/verify`, exigent le header `x-dashboard-password` (voir `Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
+L'Api expose 15 routes HTTP : 11 endpoints REST de lecture, `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle), `POST /api/websearch` (recherche web pour les agents de l'application MAUI) et 1 endpoint MCP. Toutes, sauf `mcp` et `auth/verify`, exigent le header `x-dashboard-password` (voir `Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
 
 `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` sont mis en cache (single-flight, TTL 30s) — voir `Api/Docs/CLAUDE.md` §8.
 
@@ -442,6 +442,34 @@ Déclenche la synchronisation manuelle : l'Api appelle le Web App Apps Script (`
 
 Sert à l'écran de connexion du Client pour tester un mot de passe candidat (header `x-dashboard-password`). La route est exemptée de `DashboardAuthMiddleware` pour rester joignable avant connexion. **Comportement actuel :** répond toujours `200 OK`, quel que soit le mot de passe — anomalie connue décrite dans `Api/Docs/CLAUDE.md` §6 (le comportement attendu est `200` si le mot de passe est correct, `401` sinon).
 
+### 2.14 `POST /api/websearch`
+
+Recherche web pour l'outil `SearchWeb` de l'agent Contexte (application MAUI). L'Api interroge l'API Tavily avec sa propre clé (`WEB_SEARCH_API_KEY`), qui n'est jamais transmise au client. Protégée par `x-dashboard-password` comme les autres routes.
+
+**Requête :**
+```json
+{ "query": "taux de dépôt BCE", "topic": "Finance", "timeRange": "Month" }
+```
+| Champ | Valeurs | Défaut |
+|---|---|---|
+| `query` | texte non vide (obligatoire) | — |
+| `topic` | `General`, `News`, `Finance` | `General` |
+| `timeRange` | `Any`, `Day`, `Week`, `Month`, `Year` | `Any` (pas de filtre) |
+
+**Réponse `200`** — au plus 5 pages, les plus pertinentes d'abord (`[]` si rien ne correspond) :
+```json
+[ { "title": "…", "url": "https://…", "content": "extrait de la page", "publishedDate": "2026-10-16" } ]
+```
+`publishedDate` vaut `null` quand le fournisseur ne la connaît pas.
+
+| Cas | Code |
+|---|---|
+| Corps invalide, `query` vide, valeur de `topic`/`timeRange` inconnue | `400` |
+| Refus du fournisseur (clé refusée, quota mensuel épuisé) ou fournisseur injoignable | `502` |
+| `WEB_SEARCH_API_KEY` non configurée, erreur inattendue | `500` |
+
+Chaque appel consomme 1 crédit du quota gratuit Tavily (1 000 par mois).
+
 ---
 
 ## 3. Codes de réponse
@@ -472,6 +500,8 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `BondScheduleItemDto` | `Shared/Models/BondScheduleDto.cs` | name, amount (capital), coupon |
 | `AssetTypeReferenceDto` | `Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
 | `SyncResultDto` | `Shared/Models/SyncResultDto.cs` | success, addedCount, errorMessage? |
+| `WebSearchRequestDto` | `Shared/Models/WebSearchDto.cs` | query, topic (`WebSearchTopic`), timeRange (`WebSearchTimeRange`) — enums sérialisés en noms |
+| `WebSearchResultDto` | `Shared/Models/WebSearchDto.cs` | title, url, content, publishedDate? |
 | `AggregateDto` | `Shared/Models/AggregateDto.cs` | agrégat par groupe (name, totalPurchases?, totalSales?, dividends?, currentTotal, hasIncompleteData, unrealizedGain?, yield?, roi?, weightInGroup, weightInPortfolio) |
 
 > Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.

@@ -9,6 +9,7 @@ public class AgentInstructionsTests
     [InlineData("ActualitesSociete.md")]
     [InlineData("AnalyseAction.md")]
     [InlineData("AllocationPortefeuille.md")]
+    [InlineData("Context.md")]
     public void Instructions_SingleTurnRule_IsPresent(string fileName)
     {
         // InstructionLoader is internal, so the embedded resource is read directly.

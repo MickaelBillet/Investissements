@@ -47,7 +47,7 @@ public sealed class PortfolioReviewRunner(
             {
                 switch (evt)
                 {
-                    case AllocationRetrievedEvent or AssetDistributionRetrievedEvent or SynthesisWrittenEvent:
+                    case AllocationRetrievedEvent or ContextRetrievedEvent or AssetDistributionRetrievedEvent or SynthesisWrittenEvent:
                         logger.LogInformation("Portfolio review: {Event} after {Seconds:0.0}s", evt, stopwatch.Elapsed.TotalSeconds);
                         break;
 

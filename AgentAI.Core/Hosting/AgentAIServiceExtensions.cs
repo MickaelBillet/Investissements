@@ -15,7 +15,8 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection to add to.</param>
     /// <param name="options">Host-provided configuration.</param>
     /// <remarks>
-    /// The host must also register logging (<c>AddLogging</c>).
+    /// The host must also register logging (<c>AddLogging</c>) and an <see cref="IWebSearchService"/>: the search
+    /// provider's key stays server-side, so only the host knows how to reach it.
     /// The HTTP clients are typed clients of <see cref="IHttpClientFactory"/> (see
     /// <see cref="InvestZaptoMcpServiceExtensions.AddInvestZaptoMcp"/> and
     /// <see cref="NewsServiceExtensions.AddNewsServices"/>); the host chooses their primary handler through
@@ -57,6 +58,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<AgentAIOptions>(),
             sp.GetRequiredService<InvestZaptoMcpClient>(),
             sp.GetRequiredService<INewsService>(),
+            sp.GetRequiredService<IWebSearchService>(),
             sp.GetRequiredService<ILoggerFactory>()));
 
         return services;

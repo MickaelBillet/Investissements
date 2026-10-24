@@ -26,7 +26,7 @@ Couche backend serverless entre Google Sheets et le Blazor WASM. Lit le Sheet `I
 ```
 Api/
 ├── InvestissementsDashboard.Api.csproj
-├── Program.cs                  # Point d'entrée, DI (services scoped, IGoogleSheetsClient singleton, AddHttpClient<ISyncService, SyncService> timeout 100 s, AddMemoryCache, DashboardAuthMiddleware)
+├── Program.cs                  # Point d'entrée, DI (services scoped, IGoogleSheetsClient singleton, AddHttpClient<ISyncService, SyncService> timeout 100 s, AddHttpClient<IWebSearchService, WebSearchService> timeout 30 s, AddMemoryCache, DashboardAuthMiddleware)
 ├── host.json                   # Config Azure Functions
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
@@ -38,7 +38,8 @@ Api/
 │   ├── PortfolioMetricsFunction.cs
 │   ├── SectorFunction.cs          # GET /api/portfolio/sector/{assetClass}
 │   ├── SnapshotFunction.cs
-│   └── SyncFunction.cs            # POST /api/sync — déclenche la synchro manuelle (Apps Script)
+│   ├── SyncFunction.cs            # POST /api/sync — déclenche la synchro manuelle (Apps Script)
+│   └── WebSearchFunction.cs       # POST /api/websearch — recherche web des agents MAUI (Tavily)
 ├── Middleware/
 │   └── DashboardAuthMiddleware.cs # Vérifie x-dashboard-password sur toutes les routes (sauf mcp/auth/verify)
 ├── Interfaces/                 # Interfaces des services
@@ -50,6 +51,7 @@ Api/
 │   ├── ISnapshotService.cs
 │   ├── ISyncService.cs
 │   ├── IWatchlistService.cs
+│   ├── IWebSearchService.cs
 │   └── Mcp/
 │       └── IMcpService.cs         # Interface du handler JSON-RPC
 ├── Mappers/
@@ -65,6 +67,7 @@ Api/
 │   ├── SnapshotService.cs
 │   ├── SyncService.cs             # Appelle le Web App Apps Script (HttpClient typé, timeout 100 s)
 │   ├── WatchlistService.cs        # Lit l'onglet Watchlist (Name, ISIN), cache 5 min
+│   ├── WebSearchService.cs        # Appelle l'API Tavily avec WEB_SEARCH_API_KEY (HttpClient typé, timeout 30 s)
 │   └── Mcp/
 │       └── McpService.cs          # Handler JSON-RPC — route vers les services
 ├── Properties/
@@ -140,6 +143,7 @@ Les variables d'environnement sont injectées via `IConfiguration` (App Settings
 | `DASHBOARD_PASSWORD` | Mot de passe protégeant tout le dashboard (header `x-dashboard-password`, vérifié par `DashboardAuthMiddleware`) — non configuré = accès refusé par défaut |
 | `APPS_SCRIPT_SYNC_URL` | URL `.../exec` du Web App Apps Script (`Scripts/SyncWebApp.gs`) qui exécute `snapshotQuotidien()` |
 | `APPS_SCRIPT_SYNC_KEY` | Clé partagée envoyée en `?key=` à ce Web App — doit correspondre à la Script Property `SYNC_SECRET_KEY` côté Apps Script |
+| `WEB_SEARCH_API_KEY` | Clé de l'API de recherche Tavily, utilisée par `WebSearchService` (voir §10bis) — jamais transmise au client |
 
 Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 
@@ -164,6 +168,7 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
 | GET | `/api/auth/verify` | Teste le mot de passe du dashboard — `AuthFunction` |
 | POST | `/api/sync` | Déclenche `snapshotQuotidien()` via le Web App Apps Script protégé — `SyncFunction` / `SyncService` |
+| POST | `/api/websearch` | Recherche web pour les agents de l'application MAUI (API Tavily) — `WebSearchFunction` / `WebSearchService` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
 
@@ -238,12 +243,24 @@ Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.Wh
 
 ---
 
+## 10bis. Recherche web (`WebSearchService`)
+
+Sert l'outil `SearchWeb` de l'agent Contexte (application MAUI, voir `AgentAI.Core/Docs/CLAUDE.md`). La recherche est faite **ici** et non dans l'application pour que la clé du fournisseur (`WEB_SEARCH_API_KEY`) ne quitte jamais l'Api : MAUI n'envoie que le mot de passe du dashboard (la route n'est pas exemptée du middleware).
+
+- Fournisseur : **Tavily** (`POST https://api.tavily.com/search`, `Authorization: Bearer <clé>`). Offre gratuite : 1 000 crédits par mois, sans carte bancaire ; une fois le quota épuisé, Tavily refuse (`432`), rien n'est facturé.
+- Requête : `search_depth = basic` (1 crédit ; `advanced` en coûte 2), 5 résultats, `include_published_date`, `topic` (`general` / `news` / `finance`), `time_range` omis pour `Any`. La clé est posée sur la **requête** et non sur le client (partagé via `IHttpClientFactory`).
+- Erreurs : clé absente → `InvalidOperationException` (journalisée, aucun appel) → `500` ; refus Tavily (`401` clé fausse, `432`/`433` quota) → `HttpRequestException` portant le statut → `502` ; corps invalide ou `query` vide → `400`.
+- Contrat : `WebSearchRequestDto` / `WebSearchResultDto` (`Shared/Models/WebSearchDto.cs`) ; `topic` et `timeRange` circulent en noms (`"Finance"`, `"Month"`).
+- Durée : 1 à 3 s par recherche, timeout du client à 30 s (limite du proxy SWA : 45 s). Le plafond de recherches par analyse (15) est appliqué côté agent (`WebSearchTool`), pas ici.
+
+---
+
 ## 11. Tests (`Api.Tests/`)
 
-xUnit + Moq, 142 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
-- `Functions/` — `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`
+xUnit + Moq, 158 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+- `Functions/` — `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`, `WebSearchFunction`
 - `Mcp/` — `McpHandlerTests`
-- `Services/` — `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`
+- `Services/` — `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`, `WatchlistService`, `WebSearchService`
 
 Commande : `dotnet test "Api.Tests/InvestissementsDashboard.Api.Tests.csproj"` (seule suite exécutée par la CI).
 
