@@ -30,6 +30,7 @@ Api/
 ├── host.json                   # Config Azure Functions
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
+│   ├── AgentConfigFunction.cs     # GET /api/agents/config — configuration des agents MAUI (endpoint Foundry, modèle)
 │   ├── AssetsFunction.cs
 │   ├── AuthFunction.cs            # GET /api/auth/verify — teste le mot de passe du dashboard
 │   ├── BondScheduleFunction.cs
@@ -43,6 +44,7 @@ Api/
 ├── Middleware/
 │   └── DashboardAuthMiddleware.cs # Vérifie x-dashboard-password sur toutes les routes (sauf mcp/auth/verify)
 ├── Interfaces/                 # Interfaces des services
+│   ├── IAgentConfigService.cs
 │   ├── IAssetsService.cs
 │   ├── IBondScheduleService.cs
 │   ├── IGeographyService.cs
@@ -59,6 +61,7 @@ Api/
 ├── Mcp/
 │   └── McpToolRegistry.cs         # Registre statique des 9 outils MCP
 ├── Services/
+│   ├── AgentConfigService.cs      # Lit AGENT_FOUNDRY_ENDPOINT / AGENT_FOUNDRY_MODEL (valeurs vides → null)
 │   ├── AssetsService.cs
 │   ├── BondScheduleService.cs
 │   ├── GeographyService.cs
@@ -139,10 +142,12 @@ Les variables d'environnement sont injectées via `IConfiguration` (App Settings
 | `GOOGLE_SHEET_ID` | ID du Google Sheet `InvestData` (`DEST_ID`) |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email du compte de service Google (accès Lecteur sur le Sheet) |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Clé privée du compte de service (format PEM, `\n` littéraux) |
-| `MCP_API_KEY` | Clé d'authentification de l'endpoint MCP (`x-mcp-api-key` ou `?key=`) |
+| `MCP_API_KEY` | Clé d'authentification de l'endpoint MCP (`x-mcp-api-key` ou `?key=`) — clients externes ; l'application MAUI s'authentifie avec `x-dashboard-password` |
 | `DASHBOARD_PASSWORD` | Mot de passe protégeant tout le dashboard (header `x-dashboard-password`, vérifié par `DashboardAuthMiddleware`) — non configuré = accès refusé par défaut |
 | `APPS_SCRIPT_SYNC_URL` | URL `.../exec` du Web App Apps Script (`Scripts/SyncWebApp.gs`) qui exécute `snapshotQuotidien()` |
 | `APPS_SCRIPT_SYNC_KEY` | Clé partagée envoyée en `?key=` à ce Web App — doit correspondre à la Script Property `SYNC_SECRET_KEY` côté Apps Script |
+| `AGENT_FOUNDRY_ENDPOINT` | Endpoint du projet Azure AI Foundry des agents MAUI, servi par `GET /api/agents/config` (non secret : protégé par Entra ID) |
+| `AGENT_FOUNDRY_MODEL` | Déploiement du modèle des agents (facultatif ; vide = `gpt-5-mini`, défaut d'`AgentAI.Core`) |
 | `WEB_SEARCH_API_KEY` | Clé de l'API de recherche Tavily, utilisée par `WebSearchService` (voir §10bis) — jamais transmise au client |
 
 Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
@@ -168,6 +173,7 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
 | GET | `/api/auth/verify` | Teste le mot de passe du dashboard — `AuthFunction` |
 | POST | `/api/sync` | Déclenche `snapshotQuotidien()` via le Web App Apps Script protégé — `SyncFunction` / `SyncService` |
+| GET | `/api/agents/config` | Configuration des agents de l'application MAUI (`AgentConfigDto` : endpoint Foundry, modèle) — `AgentConfigFunction` / `AgentConfigService` |
 | POST | `/api/websearch` | Recherche web pour les agents de l'application MAUI (API Tavily) — `WebSearchFunction` / `WebSearchService` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
@@ -176,7 +182,7 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` et `/api/portfolio/
 
 ### Authentification du dashboard
 
-`DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP, comparé à l'App Setting `DASHBOARD_PASSWORD` (fail-safe : non configuré = accès refusé). Deux exceptions, identifiées par le nom de la Function (`context.FunctionDefinition.Name`) : `McpFunction.McpEndpoint` (protégée par sa propre clé `MCP_API_KEY`, Claude Code ne peut pas saisir de mot de passe interactif) et `AuthFunction.Verify` (doit rester accessible pour tester un mot de passe candidat depuis l'écran de connexion du Client). Toute nouvelle Function HTTP est protégée par défaut — l'ajouter à la liste `ExemptFunctions` du middleware est le seul moyen de l'exclure.
+`DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP, comparé à l'App Setting `DASHBOARD_PASSWORD` (fail-safe : non configuré = accès refusé). Deux exceptions, identifiées par le nom de la Function (`context.FunctionDefinition.Name`) : `McpFunction.McpEndpoint` (fait sa propre vérification : clé `MCP_API_KEY` pour Claude Code, qui ne peut pas saisir de mot de passe interactif, **ou** `x-dashboard-password` égal à `DASHBOARD_PASSWORD` pour les agents de l'application MAUI ; un mot de passe non configuré n'ouvre jamais l'accès) et `AuthFunction.Verify` (doit rester accessible pour tester un mot de passe candidat depuis l'écran de connexion du Client). Toute nouvelle Function HTTP est protégée par défaut — l'ajouter à la liste `ExemptFunctions` du middleware est le seul moyen de l'exclure.
 
 > ⚠️ **Anomalie connue (à corriger) :** `AuthFunction.Verify` étant exemptée, le middleware ne contrôle pas le mot de passe pour cette route et la Function répond toujours `200 OK`. Or `SessionService.VerifyAsync` (Client) se fie à ce statut : l'écran de connexion accepte donc n'importe quel mot de passe, alors que tous les autres endpoints répondent `401` sans le bon mot de passe (les données restent protégées). Le commentaire de `AuthFunction.cs` suppose à tort que le middleware vérifie aussi cette route. Correctif possible : comparer `x-dashboard-password` à `DASHBOARD_PASSWORD` dans `Verify` elle-même (ou retirer `Verify` de `ExemptFunctions`).
 
@@ -257,10 +263,10 @@ Sert l'outil `SearchWeb` de l'agent Contexte (application MAUI, voir `AgentAI.Co
 
 ## 11. Tests (`Api.Tests/`)
 
-xUnit + Moq, 158 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
-- `Functions/` — `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`, `WebSearchFunction`
+xUnit + Moq, 168 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+- `Functions/` — `AgentConfigFunction`, `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`, `WebSearchFunction`
 - `Mcp/` — `McpHandlerTests`
-- `Services/` — `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`, `WatchlistService`, `WebSearchService`
+- `Services/` — `AgentConfigService`, `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`, `WatchlistService`, `WebSearchService`
 
 Commande : `dotnet test "Api.Tests/InvestissementsDashboard.Api.Tests.csproj"` (seule suite exécutée par la CI).
 

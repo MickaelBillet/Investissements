@@ -10,8 +10,8 @@ namespace InvestissementsDashboard.Maui.Services;
 /// Runs the portfolio review workflow (built by <see cref="IPortfolioReviewWorkflowBuilder"/>) in process, until its synthesis step yields the report.
 /// </summary>
 /// <remarks>
-/// Like <see cref="AgentRunner"/>, a factory is built for every run so that a change made in the settings page
-/// is picked up without restarting the application; the distribution source is created per run as well, so this
+/// Like <see cref="AgentRunner"/>, the options are read from the Api and a factory is built for every run, so that a
+/// change of configuration is picked up without restarting the application; the distribution source is created per run as well, so this
 /// singleton never holds the Api client it wraps.
 /// </remarks>
 public sealed class PortfolioReviewRunner(
@@ -27,18 +27,17 @@ public sealed class PortfolioReviewRunner(
 
     public async Task RunAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
-        var options = optionsProvider.Create();
-
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(timeout ?? DefaultTimeout);
         var token = timeoutCts.Token;
-
-        await using var agentFactory = factoryCreator(options);
-        logger.LogInformation("Portfolio review: starting for {Date} (model: {Model})", date, options.Model);
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         try
         {
+            var options = await optionsProvider.CreateAsync(token);
+            await using var agentFactory = factoryCreator(options);
+            logger.LogInformation("Portfolio review: starting for {Date} (model: {Model})", date, options.Model);
+
             var workflow = await workflowBuilder.BuildAsync(agentFactory, distributionSourceCreator(), token);
 
             await using var run = await InProcessExecution.RunStreamingAsync(workflow, new AnalysisRequest(date), cancellationToken: token);
@@ -71,8 +70,9 @@ public sealed class PortfolioReviewRunner(
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
-            // The MCP server is the only endpoint the workflow connects to while building its agents.
-            throw new InvalidOperationException("The MCP key is missing or rejected: set it in the settings page.", ex);
+            // The configuration and the MCP server are both behind the dashboard password.
+            logger.LogError(ex, "The Api refused the dashboard password");
+            throw new InvalidOperationException("Access refused by the Api: log out and sign in again with the dashboard password.", ex);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

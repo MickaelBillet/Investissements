@@ -1,14 +1,14 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 2.2 — ajout de `POST /api/websearch` (recherche web des agents MAUI)
+**Version :** 2.3 — ajout de `GET /api/agents/config` ; `/api/mcp` accepte aussi le mot de passe du dashboard
 **Date :** 2026-10-24
 
 ---
 
 ## 1. Vue d'ensemble
 
-L'Api expose 15 routes HTTP : 11 endpoints REST de lecture, `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle), `POST /api/websearch` (recherche web pour les agents de l'application MAUI) et 1 endpoint MCP. Toutes, sauf `mcp` et `auth/verify`, exigent le header `x-dashboard-password` (voir `Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
+L'Api expose 16 routes HTTP : 11 endpoints REST de lecture, `GET /api/agents/config` (configuration des agents MAUI), `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle), `POST /api/websearch` (recherche web pour les agents de l'application MAUI) et 1 endpoint MCP. Toutes, sauf `mcp` et `auth/verify`, exigent le header `x-dashboard-password` (voir `Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
 
 `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` sont mis en cache (single-flight, TTL 30s) — voir `Api/Docs/CLAUDE.md` §8.
 
@@ -371,12 +371,13 @@ Endpoint MCP (Model Context Protocol) — JSON-RPC 2.0. Permet à Claude Code d'
 
 **Authentification :**
 
-La clé est transmise via le header `x-mcp-api-key` **ou** le paramètre de requête `key` (fallback pour les clients qui ne supportent pas les headers personnalisés, comme Claude Web).
+La clé est transmise via le header `x-mcp-api-key` **ou** le paramètre de requête `key` (fallback pour les clients qui ne supportent pas les headers personnalisés, comme Claude Web). À défaut de clé, le header `x-dashboard-password` égal à `DASHBOARD_PASSWORD` est accepté : c'est ainsi que s'authentifient les agents de l'application MAUI.
 
 | Cas | Comportement |
 |---|---|
 | `MCP_API_KEY` non configurée (dev local) | Toutes les requêtes sont acceptées |
-| Header `x-mcp-api-key` ou query param `key` absent / incorrect | HTTP 401 Unauthorized |
+| Ni clé correcte, ni mot de passe du dashboard correct (un `DASHBOARD_PASSWORD` non configuré n'est jamais accepté) | HTTP 401 Unauthorized |
+| Mot de passe du dashboard correct (`x-dashboard-password`) | Traitement normal |
 | Clé correcte (header ou query param) | Traitement normal |
 
 **Configuration client :**
@@ -470,6 +471,18 @@ Recherche web pour l'outil `SearchWeb` de l'agent Contexte (application MAUI). L
 
 Chaque appel consomme 1 crédit du quota gratuit Tavily (1 000 par mois).
 
+### 2.15 `GET /api/agents/config`
+
+Configuration des agents de l'application MAUI, lue à chaque lancement d'agent : plus aucune saisie dans l'application. Valeurs **non secrètes** (l'endpoint Foundry est protégé par Entra ID). Protégée par `x-dashboard-password`.
+
+**Réponse `200`** :
+
+```json
+{ "foundryEndpoint": "https://<ressource>.services.ai.azure.com/api/projects/<projet>", "model": "gpt-5-mini" }
+```
+
+Chaque champ vaut `null` quand l'App Setting correspondante (`AGENT_FOUNDRY_ENDPOINT`, `AGENT_FOUNDRY_MODEL`) est absente ou vide : l'application signale alors un endpoint manquant, ou utilise son modèle par défaut. `500` sur exception inattendue.
+
 ---
 
 ## 3. Codes de réponse
@@ -500,6 +513,7 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `BondScheduleItemDto` | `Shared/Models/BondScheduleDto.cs` | name, amount (capital), coupon |
 | `AssetTypeReferenceDto` | `Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
 | `SyncResultDto` | `Shared/Models/SyncResultDto.cs` | success, addedCount, errorMessage? |
+| `AgentConfigDto` | `Shared/Models/AgentConfigDto.cs` | foundryEndpoint?, model? |
 | `WebSearchRequestDto` | `Shared/Models/WebSearchDto.cs` | query, topic (`WebSearchTopic`), timeRange (`WebSearchTimeRange`) — enums sérialisés en noms |
 | `WebSearchResultDto` | `Shared/Models/WebSearchDto.cs` | title, url, content, publishedDate? |
 | `AggregateDto` | `Shared/Models/AggregateDto.cs` | agrégat par groupe (name, totalPurchases?, totalSales?, dividends?, currentTotal, hasIncompleteData, unrealizedGain?, yield?, roi?, weightInGroup, weightInPortfolio) |

@@ -154,7 +154,7 @@ Le bouton "Synchroniser" du Client déclenche `snapshotQuotidien()` (le même ET
 
 Le dashboard entier est protégé par un **mot de passe unique géré par notre propre code** — pas par l'authentification d'Azure Static Web Apps (voir historique ci-dessous).
 
-- `DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP de l'Api, comparé à l'App Setting `DASHBOARD_PASSWORD` — sauf `/api/mcp` (protégée par sa propre clé `MCP_API_KEY`) et `/api/auth/verify` (doit rester accessible pour que l'écran de connexion puisse tester un mot de passe)
+- `DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP de l'Api, comparé à l'App Setting `DASHBOARD_PASSWORD` — sauf `/api/mcp` (vérification propre : clé `MCP_API_KEY` pour les clients externes, ou mot de passe du dashboard pour les agents de l'application MAUI) et `/api/auth/verify` (doit rester accessible pour que l'écran de connexion puisse tester un mot de passe)
 - Fail-safe : si `DASHBOARD_PASSWORD` n'est pas configuré, l'accès est refusé par défaut (jamais d'accès ouvert par omission)
 - Côté Client, `App.razor` affiche un écran de connexion (`Client.Shared/Shared/LoginGate.razor`) tant que `ISessionService.IsAuthenticated` est faux — le mot de passe saisi est mémorisé via `IKeyValueStore` (`localStorage` du navigateur côté site WASM, `SecureStorage` chiffré côté application MAUI) et renvoyé automatiquement sur chaque appel Api (`DashboardPasswordHandler`)
 - Le bouton de masquage des montants (barre de menu) reste un confort indépendant (ex. partage d'écran par le propriétaire une fois connecté), pas une frontière de sécurité
@@ -374,9 +374,11 @@ jobs:
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Azure Function App Settings | Azure Function uniquement |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Azure Function App Settings | Azure Function uniquement |
 | `DASHBOARD_PASSWORD` | Azure Function App Settings | Azure Function uniquement (mot de passe du dashboard, §5.2.4) |
-| `MCP_API_KEY` | Azure Function App Settings | Azure Function uniquement (clé de l'endpoint MCP) |
+| `MCP_API_KEY` | Azure Function App Settings | Azure Function uniquement (clé de l'endpoint MCP pour les clients externes ; l'application MAUI utilise le mot de passe du dashboard) |
 | `APPS_SCRIPT_SYNC_URL` | Azure Function App Settings | Azure Function uniquement (URL `/exec` du Web App de synchro) |
 | `APPS_SCRIPT_SYNC_KEY` | Azure Function App Settings | Azure Function uniquement (clé partagée de la synchro) |
+| `AGENT_FOUNDRY_ENDPOINT` | Azure Function App Settings | Servi à l'application MAUI par `GET /api/agents/config` (non secret : endpoint Foundry protégé par Entra ID) |
+| `AGENT_FOUNDRY_MODEL` | Azure Function App Settings | Idem, facultatif (vide = `gpt-5-mini`) |
 | `WEB_SEARCH_API_KEY` | Azure Function App Settings | Azure Function uniquement (clé Tavily de `POST /api/websearch`, recherche web des agents MAUI — jamais transmise à l'application) |
 | `SYNC_SECRET_KEY` | Script Property Apps Script | Apps Script uniquement (jamais commitée) |
 
@@ -505,7 +507,7 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.2bis Maui
 
 - Framework : **xUnit** + **Moq**
-- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs`, `McpApiKeyHandler.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` et `PortfolioReviewRunner` (fabrique et agent mockés ; le second exécute le workflow `PortfolioReview` en processus ; son builder `PortfolioReviewWorkflowBuilder` et les executors du workflow — barrière fan-in de `SynthesisExecutor` comprise — ont leurs propres tests), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
+- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` et `PortfolioReviewRunner` (fabrique et agent mockés ; le second exécute le workflow `PortfolioReview` en processus ; son builder `PortfolioReviewWorkflowBuilder` et les executors du workflow — barrière fan-in de `SynthesisExecutor` comprise — ont leurs propres tests), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
 - Commande : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (Windows)
 
 ### 12.3 Scripts / Apps Script
@@ -526,7 +528,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ## 14. Agents IA et application MAUI Windows (décisions — première version livrée)
 
-> **État d'avancement (2026-10-09)** : les étapes 1, 3, 4 et 5 du §14.4 sont faites. La bibliothèque `AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` reprend le dashboard (voir `Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par la page **Paramètres** (endpoint Foundry, modèle) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IAgentSettings` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. L'agent **Allocation** (rapport descriptif des positions via le MCP, lancé depuis le menu « ⋮ ») est livré ; la clé `MCP_API_KEY` est saisie dans les Paramètres et conservée dans `SecureStorage`. **Reste à faire** : validation de l'identité Azure (`az login`) avec un MSIX packagé, rendu de MudBlazor/ApexCharts dans le `BlazorWebView` à valider visuellement.
+> **État d'avancement (2026-10-09)** : les étapes 1, 3, 4 et 5 du §14.4 sont faites. La bibliothèque `AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` reprend le dashboard (voir `Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par l'Api (`GET /api/agents/config`, App Settings `AGENT_FOUNDRY_ENDPOINT`/`AGENT_FOUNDRY_MODEL` — la page Paramètres a été supprimée) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IPortfolioReviewRunner` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. L'agent **Allocation** (rapport descriptif des positions via le MCP, lancé depuis le menu « ⋮ ») est livré  ; il s'authentifie auprès du MCP avec le mot de passe du dashboard (aucune clé saisie dans l'application). **Reste à faire** : validation de l'identité Azure (`az login`) avec un MSIX packagé, rendu de MudBlazor/ApexCharts dans le `BlazorWebView` à valider visuellement.
 
 > La console de développement `C:\Users\mbillet.NOVACATH\source\AgentAI` (net10.0, Microsoft Agent Framework + Azure AI Foundry) est conservée hors de ce dépôt ; son `CLAUDE.md` détaille les agents (Chat, Weather, Stock, Portfolio, News). **Elle garde sa propre copie de `AgentAI.Core`** : les modifications faites ici (instructions, `AgentFactory`) ne s'y répercutent pas automatiquement. Constats sur la doc Microsoft consultés le 2026-10-01.
 
@@ -555,7 +557,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 - Historique des conversations : chemin **injecté**, dans `LocalApplicationData` (le dossier de l'exécutable est en lecture seule pour une application packagée).
 - Configuration (`FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL`, `INVESTZAPTO_MCP_URL`) : page de paramètres, avec repli sur les variables d'environnement.
 - Identité Azure : `DefaultAzureCredential` (`az login`) sur le PC pour commencer ; option ultérieure `InteractiveBrowserCredential` avec cache de jeton (non vérifié en MAUI packagé). **Jamais de secret de principal de service dans l'application** (un binaire se décompile). `ExcludeManagedIdentityCredential` reste actif.
-- Secrets de l'application (`MCP_API_KEY`, mot de passe du dashboard) : `SecureStorage`, jamais dans le code.
+- Secrets de l'application : seul le mot de passe du dashboard, dans `SecureStorage`, jamais dans le code. La clé MCP, la clé de recherche web et la configuration Foundry restent dans l'Api.
 - `InvestZaptoMcpClient`, `RssFeedReader` et `YahooTickerResolver` sont des **clients typés d'`IHttpClientFactory`** enregistrés par `AgentAI.Core` ; l'hôte choisit le handler primaire (`SocketsHttpHandler` sous Windows).
 
 ### 14.4 Plan par étapes (une validation avant chaque suivante)
@@ -565,7 +567,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 3. ✅ Fait — bibliothèque Razor partagée `Client.Shared/` extraite de `Client/` (étape la plus risquée : elle a touché le site en production).
 4. ✅ Fait — projet `Maui/` : `BlazorWebView`, injection de dépendances, page Paramètres des agents, packaging MSIX.
 5. ✅ Fait — lancement des agents depuis l'interface : choix de l'agent (`AgentPickerDialog`), réponse en un tour (`AgentResultDialog`), `AgentRunner`. Seuls Stock et Actualités sont exposés.
-6. ✅ Fait — agent `Allocation` branché sur le MCP (`MCP_API_KEY` dans `SecureStorage`, envoyée par `McpApiKeyHandler`). L'ancien agent `Portfolio` a été supprimé de la bibliothèque.
+6. ✅ Fait — agent `Allocation` branché sur le MCP (authentifié par le mot de passe du dashboard ; à l'origine par une clé `MCP_API_KEY` saisie dans une page Paramètres, supprimée depuis). L'ancien agent `Portfolio` a été supprimé de la bibliothèque.
 
 ### 14.5 Pièges à ne pas oublier
 

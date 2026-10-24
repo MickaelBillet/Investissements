@@ -114,7 +114,7 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 
 **Analyse du portefeuille (MAUI uniquement)** : le lien « Analyse » de la barre d'application ouvre une page qui lance aussitôt le workflow d'analyse du portefeuille (allocation et contexte en parallèle, puis synthèse) et affiche la progression puis « Analyse terminée. ». Aucun résultat n'est encore affiché : le contexte et la synthèse ne sont que des squelettes. Absente du site web. Voir `CLAUDE.md` §7.13.
 
-**Paramètres des agents (MAUI uniquement)** : le menu ⋮ propose « Paramètres », une page où l'on saisit l'endpoint du projet Azure AI Foundry (URL https) le modèle (facultatif) et la clé du serveur MCP (champ masqué, jamais réaffichée). Absente du site web. Voir `CLAUDE.md` §7.12.
+**Paramètres des agents** : aucune page de saisie. La configuration des agents de l'application MAUI (endpoint Foundry, modèle) est lue dans l'Api, et le serveur MCP accepte le mot de passe du dashboard. Voir `CLAUDE.md` §7.12.
 
 **Navigation zone** : cliquer sur une zone remplace les deux donuts par un `AssetTable` filtré via `ViewModel.GetAssetsForZone(assetClass, zone)` — actifs dont le champ `geography` contient la zone. Bouton **Retour** ramène aux deux donuts. Géré par `DashboardViewModel.SelectedZone`.
 
