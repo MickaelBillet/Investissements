@@ -35,7 +35,7 @@ AgentAI.Core/
 │   ├── IPortfolioReviewWorkflowBuilder.cs  # BuildAsync(IAgentFactory, IAssetDistributionSource, ct) → Workflow
 │   ├── PortfolioReviewWorkflowBuilder.cs   # implémentation sans état (singleton côté hôte)
 │   ├── Executors/              # StartExecutor (transit), AllocationExecutor (→ AllocationResult), ContextExecutor (→ PortfolioContext, squelette), AssetDistributionExecutor (→ DistributionResult), SynthesisExecutor (→ SynthesisReport, squelette)
-│   ├── Messages/               # AnalysisRequest, PortfolioContext, DistributionResult (+ AssetClassDistribution), SynthesisReport
+│   ├── Messages/               # AnalysisRequest, AllocationResult (+ AllocationLine), PortfolioContext, DistributionResult (+ AssetClassDistribution), SynthesisReport
 │   └── Events/                 # AllocationRetrievedEvent, AssetDistributionRetrievedEvent, SynthesisWrittenEvent
 ├── Providers/                  # AIContextProvider : Composite, Date, News, Stock, Weather
 ├── History/                    # ICustomChatHistoryProvider, CustomChatHistoryProvider (historique JSON sur disque)

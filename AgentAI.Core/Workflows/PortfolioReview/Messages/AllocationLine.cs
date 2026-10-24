@@ -1,4 +1,4 @@
-namespace InvestissementsDashboard.Shared.Models;
+namespace AgentAI;
 
 public record AllocationLine(
     string Name,

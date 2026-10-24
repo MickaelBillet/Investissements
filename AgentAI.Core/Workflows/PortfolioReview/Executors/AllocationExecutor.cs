@@ -1,4 +1,3 @@
-using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
