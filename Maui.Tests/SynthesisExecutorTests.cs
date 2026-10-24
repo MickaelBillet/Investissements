@@ -1,5 +1,4 @@
 using AgentAI;
-using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI.Workflows;
 using Xunit;
 

@@ -2,7 +2,7 @@
 
 ## 1. Rôle
 
-Bibliothèque `net8.0` sans aucun paquet, référencée par `Api`, `Client.Shared` (donc `Client` et `Maui`) et les projets de tests. Elle porte le contrat de données entre l'Api et les clients : DTOs sérialisés en JSON, constantes de taxonomie, et un parseur. Elle reste en net8.0 pour être référençable par tous les projets (net8/net9/net10).
+Bibliothèque `net8.0` sans aucun paquet, référencée par `Api`, `Client.Shared` (donc `Client` et `Maui`), `AgentAI.Core` et les projets de tests. Elle porte le contrat de données entre l'Api et les clients : DTOs sérialisés en JSON, constantes de taxonomie, et un parseur. Elle reste en net8.0 pour être référençable par tous les projets (net8/net9/net10).
 
 ## 2. Contenu
 
