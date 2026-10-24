@@ -16,7 +16,7 @@ public class SynthesisExecutorTests
     {
         var start = new StartExecutor();
         var allocation = new DelayedSource<AllocationResult>("test-allocation", allocationDelay, new AllocationResult(Date, 0m, []));
-        var context = new DelayedSource<PortfolioContext>("test-context", TimeSpan.Zero, new PortfolioContext(Date));
+        var context = new DelayedSource<PortfolioContext>("test-context", TimeSpan.Zero, new PortfolioContext(Date, string.Empty, [], []));
         var distribution = new DelayedSource<DistributionResult>("test-distribution", distributionDelay ?? TimeSpan.Zero, new DistributionResult([]));
         var synthesis = new SynthesisExecutor();
 

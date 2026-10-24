@@ -64,15 +64,20 @@ public static class MauiProgram
         services.AddInvestZaptoMcp()
             .AddHttpMessageHandler(sp => new McpApiKeyHandler(sp.GetRequiredService<IKeyValueStore>()))
             .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
+        // Through the Api, which holds the search provider's key: like the dashboard clients, only the password is sent.
+        services.AddHttpClient<IWebSearchService, ApiWebSearchService>(client => client.BaseAddress = ApiBaseUri)
+            .AddHttpMessageHandler<DashboardPasswordHandler>()
+            .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
 
         services.AddSingleton<IAgentRunner>(sp =>
         {
             var mcpClient = sp.GetRequiredService<InvestZaptoMcpClient>();
             var newsService = sp.GetRequiredService<INewsService>();
+            var webSearchService = sp.GetRequiredService<IWebSearchService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             return new AgentRunner(
                 sp.GetRequiredService<AgentOptionsProvider>(),
-                options => new AgentFactory(options, mcpClient, newsService, loggerFactory),
+                options => new AgentFactory(options, mcpClient, newsService, webSearchService, loggerFactory),
                 sp.GetRequiredService<ILogger<AgentRunner>>());
         });
 
@@ -83,10 +88,11 @@ public static class MauiProgram
         {
             var mcpClient = sp.GetRequiredService<InvestZaptoMcpClient>();
             var newsService = sp.GetRequiredService<INewsService>();
+            var webSearchService = sp.GetRequiredService<IWebSearchService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             return new PortfolioReviewRunner(
                 sp.GetRequiredService<AgentOptionsProvider>(),
-                options => new AgentFactory(options, mcpClient, newsService, loggerFactory),
+                options => new AgentFactory(options, mcpClient, newsService, webSearchService, loggerFactory),
                 sp.GetRequiredService<IAssetDistributionSource>,
                 sp.GetRequiredService<IPortfolioReviewWorkflowBuilder>(),
                 sp.GetRequiredService<ILogger<PortfolioReviewRunner>>());

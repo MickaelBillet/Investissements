@@ -377,6 +377,7 @@ jobs:
 | `MCP_API_KEY` | Azure Function App Settings | Azure Function uniquement (clé de l'endpoint MCP) |
 | `APPS_SCRIPT_SYNC_URL` | Azure Function App Settings | Azure Function uniquement (URL `/exec` du Web App de synchro) |
 | `APPS_SCRIPT_SYNC_KEY` | Azure Function App Settings | Azure Function uniquement (clé partagée de la synchro) |
+| `WEB_SEARCH_API_KEY` | Azure Function App Settings | Azure Function uniquement (clé Tavily de `POST /api/websearch`, recherche web des agents MAUI — jamais transmise à l'application) |
 | `SYNC_SECRET_KEY` | Script Property Apps Script | Apps Script uniquement (jamais commitée) |
 
 ### 8.6 Domaine custom
@@ -403,6 +404,7 @@ jobs:
 | **Google Sheets API** | Gratuit | 60 requêtes/minute, 500 requêtes/100 secondes | 0 € |
 | **Google Apps Script** | Gratuit | 90 min d'exécution/jour | 0 € |
 | **GitHub Actions** | Gratuit | 2 000 min/mois (repo privé) | 0 € |
+| **Tavily (recherche web des agents)** | Researcher (gratuit, sans carte) | 1 000 recherches/mois ; au-delà, refus (pas de facturation) | 0 € |
 | **Nom de domaine** | — | Déjà possédé | 0 € |
 | **Total** | | | **0 €/mois** |
 
@@ -503,7 +505,7 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.2bis Maui
 
 - Framework : **xUnit** + **Moq**
-- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `McpApiKeyHandler.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` et `PortfolioReviewRunner` (fabrique et agent mockés ; le second exécute le workflow `PortfolioReview` en processus ; son builder `PortfolioReviewWorkflowBuilder` et les executors du workflow — barrière fan-in de `SynthesisExecutor` comprise — ont leurs propres tests), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
+- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `PreferencesAgentSettings.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs`, `McpApiKeyHandler.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` et `PortfolioReviewRunner` (fabrique et agent mockés ; le second exécute le workflow `PortfolioReview` en processus ; son builder `PortfolioReviewWorkflowBuilder` et les executors du workflow — barrière fan-in de `SynthesisExecutor` comprise — ont leurs propres tests), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
 - Commande : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (Windows)
 
 ### 12.3 Scripts / Apps Script
@@ -574,7 +576,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
   - chemins de fichiers (instructions, historique) — déjà prévu en §14.3 ;
   - identité Azure : `DefaultAzureCredential` s'appuie sur `az login` en lançant un processus externe ; **non vérifié** qu'une application **packagée** (MSIX) le permette — essayer aussi un MAUI Windows **non packagé** ;
   - variables d'environnement : une application lancée depuis le menu Démarrer ne voit pas forcément celles d'un terminal — d'où la page de paramètres.
-- **Coût :** les agents consomment des **tokens Azure AI Foundry** (facturés à l'usage), ce qui sort du principe « budget zéro » du §2 — à assumer explicitement, à confirmer.
+- **Coût :** les agents consomment des **tokens Azure AI Foundry** (facturés à l'usage), ce qui sort du principe « budget zéro » du §2 — à assumer explicitement, à confirmer. La recherche web de l'agent Contexte passe par l'Api (Tavily, offre gratuite de 1 000 recherches/mois, au plus 15 par analyse) : pas de coût supplémentaire tant que le quota suffit, le web search payant de Foundry a été écarté.
 
 ### 14.6 Questions ouvertes
 

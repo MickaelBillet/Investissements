@@ -13,6 +13,7 @@ Shared/
 │   ├── SnapshotDto.cs, PerformancePointDto.cs, PortfolioMetricsDto.cs
 │   ├── BondScheduleDto.cs (BondScheduleDto + BondScheduleItemDto)
 │   ├── SyncResultDto.cs
+│   ├── WebSearchDto.cs         # WebSearchRequestDto, WebSearchResultDto, enums WebSearchTopic / WebSearchTimeRange (sérialisés en noms) — POST /api/websearch et outil SearchWeb d'AgentAI.Core
 │   └── Mcp/McpModels.cs        # JSON-RPC : JsonRpcRequest/Response/Error, McpInitializeResult, McpToolsListResult, McpToolsCallResult, McpContent, McpJsonOptions
 ├── Constants/
 │   └── AssetClassNames.cs, AssetTypeNames.cs, SupportTypeNames.cs, SupportNames.cs

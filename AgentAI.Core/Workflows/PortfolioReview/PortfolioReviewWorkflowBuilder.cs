@@ -19,7 +19,7 @@ public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBui
 
         var start = new StartExecutor();
         var allocation = await CreateAllocationExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
-        var context = new ContextExecutor();
+        var context = await CreateContextExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
         var distribution = new AssetDistributionExecutor(distributionSource);
         var synthesis = new SynthesisExecutor();
 
@@ -36,5 +36,11 @@ public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBui
         // The history provider is not needed here: the Allocation agent does not replay its history.
         var (agent, _) = await agentFactory.CreateAsync(AgentKind.Allocation).WaitAsync(cancellationToken).ConfigureAwait(false);
         return new AllocationExecutor(agent);
+    }
+
+    private static async Task<ContextExecutor> CreateContextExecutorAsync(IAgentFactory agentFactory, CancellationToken cancellationToken)
+    {
+        var (agent, _) = await agentFactory.CreateAsync(AgentKind.Context).WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new ContextExecutor(agent);
     }
 }

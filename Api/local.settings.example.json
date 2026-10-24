@@ -5,7 +5,8 @@
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "APPS_SCRIPT_URL": "<URL_DU_WEB_APP_APPS_SCRIPT>",
     "APPS_SCRIPT_API_KEY": "<TOKEN_API>",
-    "MCP_API_KEY": "<VOTRE_CLE_MCP>"
+    "MCP_API_KEY": "<VOTRE_CLE_MCP>",
+    "WEB_SEARCH_API_KEY": "<VOTRE_CLE_TAVILY>"
   },
   "Host": {
     "CORS": "http://localhost:5105,https://localhost:7124"

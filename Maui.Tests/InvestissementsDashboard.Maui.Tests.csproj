@@ -35,6 +35,7 @@
     <Compile Include="..\Maui\Services\PortfolioReviewRunner.cs" Link="Linked\PortfolioReviewRunner.cs" />
     <Compile Include="..\Maui\Services\AssetDistributionSource.cs" Link="Linked\AssetDistributionSource.cs" />
     <Compile Include="..\Maui\Services\McpApiKeyHandler.cs" Link="Linked\McpApiKeyHandler.cs" />
+    <Compile Include="..\Maui\Services\ApiWebSearchService.cs" Link="Linked\ApiWebSearchService.cs" />
     <Compile Include="..\Maui\Services\FileLoggerProvider.cs" Link="Linked\FileLoggerProvider.cs" />
     <ProjectReference Include="..\AgentAI.Core\AgentAI.Core.csproj" />
     <ProjectReference Include="..\Client.Shared\InvestissementsDashboard.Client.Shared.csproj" />

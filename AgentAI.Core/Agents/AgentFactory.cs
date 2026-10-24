@@ -19,7 +19,12 @@ public sealed class AgentFactory : IAgentFactory
     #region Fields
     private const int NewsLookbackDays = 7;
 
+    // About a dozen subjects to cover (Context.md) with some room for a follow-up search, within the provider's
+    // free quota of 1,000 searches a month.
+    private const int MaxWebSearches = 15;
+
     private readonly INewsService _newsService;
+    private readonly IWebSearchService _webSearchService;
     private readonly IWeatherService _weatherService;
     private readonly AIProjectClient _projectClient;
     private readonly string _model;
@@ -31,16 +36,17 @@ public sealed class AgentFactory : IAgentFactory
 
     #region Constructor
 
-    public AgentFactory(AgentAIOptions options, InvestZaptoMcpClient investZaptoConnector, INewsService newsService, ILoggerFactory loggerFactory)
-        : this(options, investZaptoConnector, newsService, new WeatherService(), loggerFactory)
+    public AgentFactory(AgentAIOptions options, InvestZaptoMcpClient investZaptoConnector, INewsService newsService, IWebSearchService webSearchService, ILoggerFactory loggerFactory)
+        : this(options, investZaptoConnector, newsService, webSearchService, new WeatherService(), loggerFactory)
     {
     }
 
-    public AgentFactory(AgentAIOptions options, InvestZaptoMcpClient investZaptoConnector, INewsService newsService, IWeatherService weatherService, ILoggerFactory loggerFactory)
+    public AgentFactory(AgentAIOptions options, InvestZaptoMcpClient investZaptoConnector, INewsService newsService, IWebSearchService webSearchService, IWeatherService weatherService, ILoggerFactory loggerFactory)
     {
         this._options = options ?? throw new ArgumentNullException(nameof(options));
         this._investZaptoConnector = investZaptoConnector ?? throw new ArgumentNullException(nameof(investZaptoConnector));
         this._newsService = newsService ?? throw new ArgumentNullException(nameof(newsService));
+        this._webSearchService = webSearchService ?? throw new ArgumentNullException(nameof(webSearchService));
         this._weatherService = weatherService ?? throw new ArgumentNullException(nameof(weatherService));
         this._loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
 
@@ -179,6 +185,15 @@ public sealed class AgentFactory : IAgentFactory
                     new NewsContextProvider(RequireContextInput(contextInput, "un nom de société"), optionalInput, NewsLookbackDays, TimeProvider.System),
                 })),
 
+            // No DateContextProvider: its "older than 6 months" rule contradicts the 30-day window of Context.md,
+            // and the analysis date comes with the message.
+            AgentKind.Context => new AgentDefinition(
+                Instructions: InstructionLoader.Load("Context.md"),
+                Tools: new[] { this.CreateWebSearchTool() },
+                HistoryFileName: "chat-history-context.json",
+                ReasoningEffort: ResponseReasoningEffortLevel.Low,
+                KeepHistory: false),
+
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown agent kind."),
         };
     }
@@ -203,6 +218,9 @@ public sealed class AgentFactory : IAgentFactory
             name: "GetLatestNews",
             description: "Récupère les actualités publiées sur une société durant la dernière semaine (titre, source, date, lien), de la plus récente à la plus ancienne.");
     }
+
+    // A new tool per agent, so that the cap on searches applies to one run and not to the factory's lifetime.
+    private AITool CreateWebSearchTool() => new WebSearchTool(this._webSearchService, MaxWebSearches).AsAIFunction();
 
     /// <summary>
     /// Builds a definition whose tools are those of the InvestZapto MCP server; shared by the agents that read the portfolio.

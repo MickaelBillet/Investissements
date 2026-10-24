@@ -25,6 +25,8 @@ var host = new HostBuilder()
         services.AddScoped<IWatchlistService, WatchlistService>();
         services.AddScoped<IMcpService, McpService>();
         services.AddHttpClient<ISyncService, SyncService>(c => c.Timeout = TimeSpan.FromSeconds(100));
+        // A search takes 1–3 s: 30 s stays well within the 45 s of the Static Web Apps proxy.
+        services.AddHttpClient<IWebSearchService, WebSearchService>(c => c.Timeout = TimeSpan.FromSeconds(30));
     })
     .Build();
 
