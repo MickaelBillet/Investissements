@@ -2,6 +2,7 @@ using System.Net;
 using AgentAI;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Maui.Services;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -17,18 +18,18 @@ public class PortfolioReviewRunnerTests
 {
     private static readonly DateOnly Date = new(2026, 10, 19);
 
-    private readonly Mock<IAgentSettings> _settings = new();
+    private readonly Mock<IAgentConfigSource> _config = new();
     private readonly Mock<IAgentFactory> _factory = new();
     private readonly Mock<IPortfolioReviewWorkflowBuilder> _builder = new();
     private readonly Mock<IAssetDistributionSource> _distributionSource = new();
 
     public PortfolioReviewRunnerTests()
     {
-        _settings.SetupGet(s => s.FoundryEndpoint).Returns("https://foundry.test/");
+        _config.Setup(c => c.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new AgentConfigDto("https://foundry.test/", null));
     }
 
     private PortfolioReviewRunner CreateRunner(TimeSpan? timeout = null) => new(
-        new AgentOptionsProvider(_settings.Object, new Uri("https://invest.test/"), @"C:\history"),
+        new AgentOptionsProvider(_config.Object, new Uri("https://invest.test/"), @"C:\history"),
         _ => _factory.Object,
         () => _distributionSource.Object,
         _builder.Object,
@@ -99,7 +100,7 @@ public class PortfolioReviewRunnerTests
     }
 
     [Fact]
-    public async Task RunAsync_McpUnauthorized_ThrowsSettingsHint()
+    public async Task RunAsync_McpUnauthorized_ThrowsPasswordHint()
     {
         _builder
             .Setup(b => b.BuildAsync(It.IsAny<IAgentFactory>(), It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()))
@@ -107,7 +108,7 @@ public class PortfolioReviewRunnerTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(Date));
 
-        Assert.Contains("settings page", ex.Message);
+        Assert.Contains("dashboard password", ex.Message);
     }
 
     [Fact]

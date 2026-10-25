@@ -13,19 +13,22 @@ namespace InvestissementsDashboard.Api.Tests.Functions;
 
 public class McpFunctionTests
 {
-    private static McpFunction CreateFunction(Mock<IMcpService> mockService, string? configuredKey = null)
+    private static McpFunction CreateFunction(Mock<IMcpService> mockService, string? configuredKey = null, string? dashboardPassword = null)
     {
         var mockConfig = new Mock<IConfiguration>();
         mockConfig.Setup(c => c["MCP_API_KEY"]).Returns(configuredKey);
+        mockConfig.Setup(c => c["DASHBOARD_PASSWORD"]).Returns(dashboardPassword);
         return new(mockService.Object, mockConfig.Object, NullLogger<McpFunction>.Instance);
     }
 
-    private static HttpRequest MockRequest(string? apiKey = null, string body = "{}", string? queryKey = null)
+    private static HttpRequest MockRequest(string? apiKey = null, string body = "{}", string? queryKey = null, string? password = null)
     {
         var mockRequest = new Mock<HttpRequest>();
         var headers = new HeaderDictionary();
         if (apiKey is not null)
             headers["x-mcp-api-key"] = apiKey;
+        if (password is not null)
+            headers["x-dashboard-password"] = password;
         mockRequest.Setup(r => r.Headers).Returns(headers);
         mockRequest.Setup(r => r.Body).Returns(new MemoryStream(Encoding.UTF8.GetBytes(body)));
         var query = new QueryCollection(
@@ -34,6 +37,44 @@ public class McpFunctionTests
                 : new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>());
         mockRequest.Setup(r => r.Query).Returns(query);
         return mockRequest.Object;
+    }
+
+    [Fact]
+    public async Task McpEndpoint_CorrectDashboardPassword_WithoutApiKey_DelegatesToService()
+    {
+        var mock = new Mock<IMcpService>();
+        mock.Setup(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new JsonRpcResponse());
+
+        var body = """{"jsonrpc":"2.0","method":"tools/list"}""";
+        var result = await CreateFunction(mock, "secret", "dashboard-pwd").McpEndpoint(MockRequest(body: body, password: "dashboard-pwd"), CancellationToken.None);
+
+        Assert.IsType<ContentResult>(result);
+        mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task McpEndpoint_WrongDashboardPassword_ReturnsUnauthorized()
+    {
+        var mock = new Mock<IMcpService>();
+
+        var result = await CreateFunction(mock, "secret", "dashboard-pwd").McpEndpoint(MockRequest(password: "wrong"), CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result);
+        mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    public async Task McpEndpoint_DashboardPasswordNotConfigured_DoesNotAcceptMissingOrEmptyPassword(string? configured, string? provided)
+    {
+        var mock = new Mock<IMcpService>();
+
+        var result = await CreateFunction(mock, "secret", configured).McpEndpoint(MockRequest(password: provided), CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result);
+        mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

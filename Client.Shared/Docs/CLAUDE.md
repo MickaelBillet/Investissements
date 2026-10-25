@@ -59,26 +59,26 @@ Client.Shared/
 │                    IPrivacyModeService.cs, PrivacyModeService.cs,
 │                    ISessionService.cs, SessionService.cs, DashboardPasswordHandler.cs,
 │                    IPanelDistributionService.cs, PanelDistributionService.cs (répartitions des panneaux du dashboard),
-│                    IAgentRunner.cs, IAgentSettings.cs, IPortfolioReviewRunner.cs (seams optionnels, voir §7.10, §7.12 et §7.13)
+│                    IAgentRunner.cs, IPortfolioReviewRunner.cs (seams optionnels, voir §7.10 et §7.13)
 ├── Shared/        → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
 │                    KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
 │                    BondScheduleDetailTable.razor, LoginGate.razor,
 │                    Dialogs/AgentPickerDialog.razor, Dialogs/AgentResultDialog.razor
 ├── Utils/         → DistributionCalculator.cs, VariationCalculator.cs, GeographySectorFilter.cs (namespace `…Client.Utils`)
-├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs, AnalysisViewModel.cs, SettingsViewModel.cs
-├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi), Settings.razor (/settings, MAUI uniquement)
+├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs, AnalysisViewModel.cs
+├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi)
 ├── wwwroot/       → css/app.css, icon.svg (servis sous _content/InvestissementsDashboard.Client.Shared/)
 └── Docs/          → CLAUDE.md, SPECS.md, client-shared-class-diagram.drawio/.png (ce dossier)
 
 Client.Tests/      (xUnit + bUnit, référence Client.Shared)
 ├── Components/    → KpiHeader, AssetTable, DistributionTable, DrillDownDonut, HistoryChart,
-│                    BondScheduleChart, BondScheduleDetailTable, LoginGate, AgentPickerDialog, AgentResultDialog, Settings
+│                    BondScheduleChart, BondScheduleDetailTable, LoginGate, AgentPickerDialog, AgentResultDialog
 ├── Extensions/    → DecimalExtensionsTests, ServiceCollectionExtensionsTests
 ├── Helpers/       → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + mocks)
 ├── Models/        → PanelStateTests
 ├── Services/      → SessionServiceTests, PrivacyModeServiceTests, LocalStorageKeyValueStoreTests, PanelDistributionServiceTests
 ├── Utils/         → DistributionCalculatorTests, VariationCalculatorTests, GeographySectorFilterTests
-└── ViewModels/    → DashboardViewModelTests, TrackingViewModelTests, LoginGateViewModelTests, AppViewModelTests, MainViewModelTests, AssetViewModelTests, AgentViewModelTests, AnalysisViewModelTests, SettingsViewModelTests
+└── ViewModels/    → DashboardViewModelTests, TrackingViewModelTests, LoginGateViewModelTests, AppViewModelTests, MainViewModelTests, AssetViewModelTests, AgentViewModelTests, AnalysisViewModelTests
 ```
 
 ## 5. UI — Règles MudBlazor
@@ -264,12 +264,9 @@ Seam **optionnel** (même principe qu'`IKeyValueStore`, mais volontairement **no
 
 `HistoryChart.OnParametersSet` calcule les bornes de l'axe Y (min et max des trois séries, ±20) directement dans le composant. C'est une règle de rendu du graphique, au même titre que ses couleurs ou son style de ligne (comme les formatters d'`ApexChartOptions`), pas une règle de présentation de données : elle reste dans le composant.
 
-### 7.12 IAgentSettings — page Paramètres des agents (MAUI uniquement)
+### 7.12 (supprimé) Page Paramètres des agents
 
-Second seam optionnel, **non enregistré** par `AddInvestissementsClient` (même raison que §7.10) : `IAgentSettings` expose `FoundryEndpoint`, `Model` et `Save(...)`. Seul `Maui/` fournit une implémentation (`Preferences`). Valeurs **non secrètes** uniquement : l'endpoint Foundry est protégé par l'identité Entra, pas par son secret ; les vrais secrets (clé MCP, mot de passe) restent dans `IKeyValueStore` — la clé MCP sous `AgentSecretKeys.McpApiKey` (`Services/AgentSecretKeys.cs`).
-
-- `SettingsViewModel` (scoped, store optionnel) : `IsAvailable`, `Endpoint`, `Model`, `McpApiKey`, `Load()`, `SaveAsync()`, `StatusMessage`/`IsStatusError`. `McpApiKey` n'est **jamais relue** (le champ est vide à l'ouverture) ; `SaveAsync` l'écrit via `IKeyValueStore.SetAsync` (trimée) uniquement si elle est non vide et si l'endpoint est valide — laisser le champ vide conserve la clé existante. Le constructeur reçoit donc aussi un `IKeyValueStore?` optionnel. L'endpoint doit être une URL **https** absolue (le jeton Entra ne doit jamais transiter en http) ; un modèle vide est enregistré `null` (valeur par défaut de la bibliothèque).
-- `Views/Settings.razor` (`/settings`) : formulaire sans logique ; rien n'est affiché sans store (site WASM).
+La page Paramètres (`IAgentSettings`, `SettingsViewModel`, `Views/Settings.razor`, `AgentSecretKeys`) a été supprimée : l'endpoint Foundry et le modèle sont servis par l'Api (`GET /api/agents/config`, App Settings `AGENT_FOUNDRY_ENDPOINT`/`AGENT_FOUNDRY_MODEL`) et le serveur MCP accepte le mot de passe du dashboard. L'application MAUI n'a donc plus rien à faire saisir (voir `Maui/Docs/CLAUDE.md` §4).
 
 ### 7.13 IPortfolioReviewRunner — page Analyse (MAUI uniquement)
 
@@ -278,7 +275,6 @@ Troisième seam optionnel, **non enregistré** par `AddInvestissementsClient` (m
 - `MainViewModel.IsAnalysisAvailable` (runner présent) affiche le lien **Analyse** (`/analyse`) juste après **Suivi** dans la barre d'application.
 - `AnalysisViewModel` (scoped, runner optionnel, `TimeProvider` — enregistré par `AddInvestissementsClient` en `TryAddSingleton(TimeProvider.System)`) : `IsAvailable`, `IsRunning`, `IsCompleted`, `Error`, `LaunchAsync()` (date du jour, réinitialise l'état, journalise et capture l'erreur, ignore l'annulation) et `Cancel()`. Seule la fin de l'analyse est signalée.
 - `Views/Analysis.razor` (`/analyse`) : l'analyse démarre **à l'ouverture de la page** (`OnInitializedAsync`), donc dès le clic sur **Analyse** — pas de bouton de lancement ; progression `MudProgressLinear`, puis « Analyse terminée. » (`Analysis_Done`) ou erreur `MudAlert` — aucune donnée affichée ; quitter la page (`Dispose`) annule l'exécution. Rien n'est affiché ni lancé sans runner (site WASM). Limite : Blazor ne recrée pas un composant pour une navigation vers la route courante, donc recliquer sur **Analyse** depuis `/analyse` ne relance rien.
-- `MainViewModel.IsSettingsAvailable` conditionne l'entrée « Paramètres » du menu de `MainLayout`.
 
 ## 8. Localisation
 

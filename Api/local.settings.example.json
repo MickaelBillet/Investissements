@@ -6,7 +6,9 @@
     "APPS_SCRIPT_URL": "<URL_DU_WEB_APP_APPS_SCRIPT>",
     "APPS_SCRIPT_API_KEY": "<TOKEN_API>",
     "MCP_API_KEY": "<VOTRE_CLE_MCP>",
-    "WEB_SEARCH_API_KEY": "<VOTRE_CLE_TAVILY>"
+    "WEB_SEARCH_API_KEY": "<VOTRE_CLE_TAVILY>",
+    "AGENT_FOUNDRY_ENDPOINT": "<ENDPOINT_DU_PROJET_FOUNDRY>",
+    "AGENT_FOUNDRY_MODEL": "gpt-5-mini"
   },
   "Host": {
     "CORS": "http://localhost:5105,https://localhost:7124"
