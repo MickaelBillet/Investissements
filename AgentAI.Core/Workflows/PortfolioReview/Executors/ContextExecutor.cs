@@ -12,7 +12,7 @@ public sealed class ContextExecutor(AIAgent agent) : Executor<AnalysisRequest, P
     public override async ValueTask<PortfolioContext> HandleAsync(AnalysisRequest message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         // French because it is the agent's working language; what to establish lives in its instructions (Context.md).
-        var prompt = $"Établis l'état des lieux au {message.Date:yyyy-MM-dd}.";
+        var prompt = $"Décris moi de façon détaillée le contexte économique et géopolitique au {message.Date:yyyy-MM-dd}.";
 
         var response = await agent.RunAsync<PortfolioContext>(prompt, cancellationToken: cancellationToken);
 
