@@ -29,6 +29,12 @@ $project = Join-Path $PSScriptRoot '..\InvestissementsDashboard.Maui.csproj'
 $buildNumber = [int](git -C $PSScriptRoot rev-list --count HEAD)
 if ($LASTEXITCODE -ne 0) { throw 'Could not compute the package version from git (git rev-list failed).' }
 
+# Resizetizer copies the version into this generated manifest but its incremental check ignores ApplicationVersion:
+# a stale copy would silently package the previous version, so it is regenerated on every build.
+Get-ChildItem (Join-Path $PSScriptRoot "..\obj\$Configuration") -Recurse -Filter Package.appxmanifest -ErrorAction SilentlyContinue |
+    Where-Object { $_.Directory.Name -eq 'm' -and $_.Directory.Parent.Name -eq 'resizetizer' } |
+    Remove-Item -Force
+
 dotnet publish $project -f net10.0-windows10.0.19041.0 -c $Configuration `
     -p:WindowsPackageType=MSIX `
     -p:ApplicationVersion=$buildNumber `
@@ -36,9 +42,11 @@ dotnet publish $project -f net10.0-windows10.0.19041.0 -c $Configuration `
     -p:PackageCertificateThumbprint=$($certificate.Thumbprint) | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed (exit code $LASTEXITCODE)." }
 
-$package = Get-ChildItem (Join-Path $PSScriptRoot '..\artifacts') -Recurse -Filter *.msix |
+# Looked up by version rather than by date, so a package built with the wrong version fails here instead of
+# being installed under an already-used version.
+$package = Get-ChildItem (Join-Path $PSScriptRoot '..\artifacts') -Recurse -Filter "*.$($buildNumber)_*.msix" |
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $package) { throw 'Publish succeeded but no .msix was found under Maui\artifacts.' }
+if (-not $package) { throw "Publish succeeded but no .msix of build $buildNumber was found under Maui\artifacts." }
 
 Write-Host "Package ready: $($package.FullName)"
 
