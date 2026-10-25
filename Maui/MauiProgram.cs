@@ -73,33 +73,21 @@ public static class MauiProgram
             .AddHttpMessageHandler<DashboardPasswordHandler>()
             .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHandler);
 
-        services.AddSingleton<IAgentRunner>(sp =>
-        {
-            var mcpClient = sp.GetRequiredService<InvestZaptoMcpClient>();
-            var newsService = sp.GetRequiredService<INewsService>();
-            var webSearchService = sp.GetRequiredService<IWebSearchService>();
-            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            return new AgentRunner(
-                sp.GetRequiredService<AgentOptionsProvider>(),
-                options => new AgentFactory(options, mcpClient, newsService, webSearchService, loggerFactory),
-                sp.GetRequiredService<ILogger<AgentRunner>>());
-        });
+        // One factory per run: the agents' configuration is read from the Api each time.
+        services.AddAgentFactoryBuilder();
+        services.AddSingleton<IAgentRunner>(sp => new AgentRunner(
+            sp.GetRequiredService<AgentOptionsProvider>(),
+            sp.GetRequiredService<AgentFactoryBuilder>().Build,
+            sp.GetRequiredService<ILogger<AgentRunner>>()));
 
         // Transient like the IPortfolioService typed client it wraps: the runner asks for a new one per run.
         services.AddTransient<IAssetDistributionSource, AssetDistributionSource>();
         services.AddSingleton<IPortfolioReviewWorkflowBuilder, PortfolioReviewWorkflowBuilder>();
-        services.AddSingleton<IPortfolioReviewRunner>(sp =>
-        {
-            var mcpClient = sp.GetRequiredService<InvestZaptoMcpClient>();
-            var newsService = sp.GetRequiredService<INewsService>();
-            var webSearchService = sp.GetRequiredService<IWebSearchService>();
-            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            return new PortfolioReviewRunner(
-                sp.GetRequiredService<AgentOptionsProvider>(),
-                options => new AgentFactory(options, mcpClient, newsService, webSearchService, loggerFactory),
-                sp.GetRequiredService<IAssetDistributionSource>,
-                sp.GetRequiredService<IPortfolioReviewWorkflowBuilder>(),
-                sp.GetRequiredService<ILogger<PortfolioReviewRunner>>());
-        });
+        services.AddSingleton<IPortfolioReviewRunner>(sp => new PortfolioReviewRunner(
+            sp.GetRequiredService<AgentOptionsProvider>(),
+            sp.GetRequiredService<AgentFactoryBuilder>().Build,
+            sp.GetRequiredService<IAssetDistributionSource>,
+            sp.GetRequiredService<IPortfolioReviewWorkflowBuilder>(),
+            sp.GetRequiredService<ILogger<PortfolioReviewRunner>>()));
     }
 }

@@ -1,10 +1,7 @@
-using System.ComponentModel;
 using Azure.AI.Projects;
-using Azure.Identity;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Client;
 using OpenAI.Responses;
 
 namespace AgentAI;
@@ -17,41 +14,30 @@ namespace AgentAI;
 public sealed class AgentFactory : IAgentFactory
 {
     #region Fields
-    private const int NewsLookbackDays = 7;
-
-    // About a dozen subjects to cover (Context.md) with some room for a follow-up search, within the provider's
-    // free quota of 1,000 searches a month.
-    private const int MaxWebSearches = 15;
-
-    private readonly INewsService _newsService;
-    private readonly IWebSearchService _webSearchService;
-    private readonly IWeatherService _weatherService;
+    private readonly IReadOnlyDictionary<AgentKind, IAgentDefinitionBuilder> _builders;
     private readonly AIProjectClient _projectClient;
     private readonly string _model;
-    private readonly InvestZaptoMcpClient _investZaptoConnector;
+    private readonly InvestZaptoMcpToolSource _investZaptoTools;
     private readonly AgentAIOptions _options;
     private readonly ILoggerFactory _loggerFactory;
-    private McpClient? _investZaptoMcpClient;
     #endregion
 
     #region Constructor
 
-    public AgentFactory(AgentAIOptions options, InvestZaptoMcpClient investZaptoConnector, INewsService newsService, IWebSearchService webSearchService, ILoggerFactory loggerFactory)
-        : this(options, investZaptoConnector, newsService, webSearchService, new WeatherService(), loggerFactory)
-    {
-    }
-
-    public AgentFactory(AgentAIOptions options, InvestZaptoMcpClient investZaptoConnector, INewsService newsService, IWebSearchService webSearchService, IWeatherService weatherService, ILoggerFactory loggerFactory)
+    /// <param name="mcpTools">Owned by the factory: released by <see cref="DisposeAsync"/>.</param>
+    /// <param name="builders">One per <see cref="AgentKind"/>; built by <see cref="AgentFactoryBuilder"/>.</param>
+    internal AgentFactory(AgentAIOptions options, AIProjectClient projectClient, InvestZaptoMcpToolSource mcpTools, IEnumerable<IAgentDefinitionBuilder> builders, ILoggerFactory loggerFactory)
     {
         this._options = options ?? throw new ArgumentNullException(nameof(options));
-        this._investZaptoConnector = investZaptoConnector ?? throw new ArgumentNullException(nameof(investZaptoConnector));
-        this._newsService = newsService ?? throw new ArgumentNullException(nameof(newsService));
-        this._webSearchService = webSearchService ?? throw new ArgumentNullException(nameof(webSearchService));
-        this._weatherService = weatherService ?? throw new ArgumentNullException(nameof(weatherService));
+        this._projectClient = projectClient ?? throw new ArgumentNullException(nameof(projectClient));
+        this._investZaptoTools = mcpTools ?? throw new ArgumentNullException(nameof(mcpTools));
         this._loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+        
+        ArgumentNullException.ThrowIfNull(builders);
 
+        // ToDictionary throws on a duplicate kind: two builders for one agent is a wiring mistake, not a choice.
+        this._builders = builders.ToDictionary(b => b.Kind);
         this._model = options.Model;
-        this._projectClient = new AIProjectClient(new Uri(options.FoundryProjectEndpoint), new DefaultAzureCredential(new DefaultAzureCredentialOptions { ExcludeManagedIdentityCredential = true }));
     }
 
     #endregion
@@ -60,11 +46,12 @@ public sealed class AgentFactory : IAgentFactory
 
     public async Task<(AIAgent Agent, ICustomChatHistoryProvider HistoryProvider)> CreateAsync(AgentKind kind, string? contextInput = null, string? optionalInput = null)
     {
-        var definition = await this.BuildAgentDefinitionAsync(kind, contextInput, optionalInput).ConfigureAwait(false);
+        // Only the requested builder runs: the others never connect to the MCP server or validate inputs they do not need.
+        var builder = this._builders.GetValueOrDefault(kind)
+            ?? throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown agent kind.");
+        var definition = await builder.BuildAsync(contextInput, optionalInput).ConfigureAwait(false);
 
-        Directory.CreateDirectory(this._options.HistoryDirectory);
-        var chatHistoryFilePath = Path.Combine(this._options.HistoryDirectory, definition.HistoryFileName);
-        var historyProvider = new CustomChatHistoryProvider(chatHistoryFilePath, this._loggerFactory.CreateLogger<CustomChatHistoryProvider>(), definition.KeepHistory);
+        var historyProvider = this.CreateHistoryProvider(definition);
 
         var agent = this._projectClient.AsAIAgent(
             new ChatClientAgentOptions
@@ -80,171 +67,43 @@ public sealed class AgentFactory : IAgentFactory
                     ? null
                     : [definition.AIContextProviders],
             },
-            // Disable server-side response storage: the Foundry Responses API stores output and returns a
-            // conversation id by default, which conflicts with using a client-side ChatHistoryProvider.
-            clientFactory: chatClient => chatClient
-                .AsBuilder()
-                .ConfigureOptions(options =>
-                {
-                    var previousFactory = options.RawRepresentationFactory;
-                    options.RawRepresentationFactory = client =>
-                    {
-                        var responseOptions = previousFactory?.Invoke(client) as CreateResponseOptions ?? new CreateResponseOptions();
-                        responseOptions.StoredOutputEnabled = false;
-                        if (definition.ReasoningEffort is { } effort)
-                        {
-                            responseOptions.ReasoningOptions = new ResponseReasoningOptions { ReasoningEffortLevel = effort };
-                        }
-
-                        return responseOptions;
-                    };
-                })
-                .Use(async (messages, chatOptions, inner, cancellationToken) =>
-                {
-                    // One line per model call: a stalled agent is otherwise indistinguishable from a slow one.
-                    var logger = this._loggerFactory.CreateLogger<AgentFactory>();
-                    var messageList = messages.ToList();
-                    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                    logger.LogInformation("Agent {Kind}: model call with {Count} messages", kind, messageList.Count);
-                    try
-                    {
-                        var response = await inner.GetResponseAsync(messageList, chatOptions, cancellationToken).ConfigureAwait(false);
-                        logger.LogInformation(
-                            "Agent {Kind}: model answered in {Seconds:0.0}s (in={In}, out={Out}, reasoning={Reasoning})",
-                            kind, stopwatch.Elapsed.TotalSeconds, response.Usage?.InputTokenCount, response.Usage?.OutputTokenCount, response.Usage?.ReasoningTokenCount);
-                        return response;
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "Agent {Kind}: model call failed after {Seconds:0.0}s", kind, stopwatch.Elapsed.TotalSeconds);
-                        throw;
-                    }
-                }, null)
-                .Build());
+            clientFactory: chatClient => this.ConfigureChatClient(chatClient, kind, definition));
 
         return (agent, historyProvider);
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync() => this._investZaptoTools.DisposeAsync();
+
+    private CustomChatHistoryProvider CreateHistoryProvider(AgentDefinition definition)
     {
-        if (this._investZaptoMcpClient is not null)
-        {
-            await this._investZaptoMcpClient.DisposeAsync().ConfigureAwait(false);
-        }
+        Directory.CreateDirectory(this._options.HistoryDirectory);
+        var chatHistoryFilePath = Path.Combine(this._options.HistoryDirectory, definition.HistoryFileName);
+        return new CustomChatHistoryProvider(chatHistoryFilePath, this._loggerFactory.CreateLogger<CustomChatHistoryProvider>(), definition.KeepHistory);
     }
 
-    /// <summary>
-    /// Builds the <see cref="AgentDefinition"/> for exactly the requested <paramref name="kind"/>, and
-    /// nothing else. Every kind goes through this same async path for consistency, even though only
-    /// <see cref="AgentKind.Allocation"/> actually needs to await anything (connecting to the InvestZapto
-    /// MCP server) — this keeps <see cref="CreateAsync"/> from ever building agents nobody asked for.
-    /// </summary>
-    /// <param name="kind">Which agent configuration to build.</param>
-    /// <param name="contextInput">
-    /// The single piece of user-provided data the agent's context provider needs (a city for
-    /// <see cref="AgentKind.Weather"/>, a stock name for <see cref="AgentKind.Stock"/>); required for
-    /// those two kinds (and the company for <see cref="AgentKind.News"/>), ignored otherwise.
-    /// </param>
-    /// <param name="optionalInput">The ISIN for <see cref="AgentKind.Stock"/> and <see cref="AgentKind.News"/>; ignored otherwise.</param>
-    private async Task<AgentDefinition> BuildAgentDefinitionAsync(AgentKind kind, string? contextInput, string? optionalInput)
+    private IChatClient ConfigureChatClient(IChatClient chatClient, AgentKind kind, AgentDefinition definition)
     {
-        return kind switch
-        {
-            AgentKind.Chat => new AgentDefinition(
-                Instructions: "You are a helpful assistant.",
-                Tools: null,
-                HistoryFileName: "chat-history-chat.json"),
-
-            AgentKind.Weather => new AgentDefinition(
-                Instructions: "You are a weather assistant. Use the GetWeather tool to answer questions about weather.",
-                Tools: new[] { AIFunctionFactory.Create(this._weatherService.GetWeather) },
-                HistoryFileName: "chat-history-weather.json",
-                AIContextProviders: new CompositeContextProvider(new AIContextProvider[]
+        return chatClient
+            .AsBuilder()
+            .ConfigureOptions(options =>
+            {
+                var previousFactory = options.RawRepresentationFactory;
+                options.RawRepresentationFactory = client =>
                 {
-                    new WeatherContextProvider(RequireContextInput(contextInput, "une ville")),
-                })),
+                    var responseOptions = previousFactory?.Invoke(client) as CreateResponseOptions ?? new CreateResponseOptions();
+                    // Disable server-side response storage: the Foundry Responses API stores output and returns a
+                    // conversation id by default, which conflicts with using a client-side ChatHistoryProvider.
+                    responseOptions.StoredOutputEnabled = false;
+                    if (definition.ReasoningEffort is { } effort)
+                    {
+                        responseOptions.ReasoningOptions = new ResponseReasoningOptions { ReasoningEffortLevel = effort };
+                    }
 
-            AgentKind.Stock => new AgentDefinition(
-                Instructions: InstructionLoader.Load("AnalyseAction.md"),
-                Tools: null,
-                HistoryFileName: "chat-history-stock.json",
-                AIContextProviders: new CompositeContextProvider(new AIContextProvider[]
-                {
-                    new DateContextProvider(TimeProvider.System),
-                    new StockContextProvider(RequireContextInput(contextInput, "un nom d'action"), optionalInput),
-                })),
-
-            AgentKind.Allocation => await this.BuildMcpDefinitionAsync("AllocationPortefeuille.md", "chat-history-allocation.json", withDate: true, reasoningEffort: ResponseReasoningEffortLevel.Low, keepHistory: false).ConfigureAwait(false),
-
-            AgentKind.News => new AgentDefinition(
-                Instructions: InstructionLoader.Load("ActualitesSociete.md"),
-                Tools: new[] { this.CreateNewsTool() },
-                HistoryFileName: "chat-history-news.json",
-                AIContextProviders: new CompositeContextProvider(new AIContextProvider[]
-                {
-                    new NewsContextProvider(RequireContextInput(contextInput, "un nom de société"), optionalInput, NewsLookbackDays, TimeProvider.System),
-                })),
-
-            // No DateContextProvider: its "older than 6 months" rule contradicts the 30-day window of Context.md,
-            // and the analysis date comes with the message.
-            AgentKind.Context => new AgentDefinition(
-                Instructions: InstructionLoader.Load("Context.md"),
-                Tools: new[] { this.CreateWebSearchTool() },
-                HistoryFileName: "chat-history-context.json",
-                ReasoningEffort: ResponseReasoningEffortLevel.Low,
-                KeepHistory: false),
-
-            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown agent kind."),
-        };
-    }
-
-    private string RequireContextInput(string? contextInput, string expected)
-    {
-        return string.IsNullOrWhiteSpace(contextInput)
-            ? throw new ArgumentException($"Cet agent nécessite {expected}.", nameof(contextInput))
-            : contextInput;
-    }
-
-    private AITool CreateNewsTool()
-    {
-        // The look-back window is fixed here rather than exposed to the model, so the agent cannot
-        // silently widen it beyond what the context provider announces.
-        return AIFunctionFactory.Create(
-            async (
-                [Description("Nom de la société à rechercher.")] string company,
-                [Description("ISIN de la société, ou vide s'il n'est pas connu.")] string? isin,
-                CancellationToken cancellationToken) =>
-                    await this._newsService.GetLatestNewsAsync(company, isin, NewsLookbackDays, cancellationToken).ConfigureAwait(false),
-            name: "GetLatestNews",
-            description: "Récupère les actualités publiées sur une société durant la dernière semaine (titre, source, date, lien), de la plus récente à la plus ancienne.");
-    }
-
-    // A new tool per agent, so that the cap on searches applies to one run and not to the factory's lifetime.
-    private AITool CreateWebSearchTool() => new WebSearchTool(this._webSearchService, MaxWebSearches).AsAIFunction();
-
-    /// <summary>
-    /// Builds a definition whose tools are those of the InvestZapto MCP server; shared by the agents that read the portfolio.
-    /// </summary>
-    /// <param name="withDate">Adds today's date to the context, for reports that must be dated.</param>
-    /// <param name="reasoningEffort">Reasoning effort requested from the model; <see langword="null"/> keeps the deployment's default.</param>
-    /// <param name="keepHistory">See <see cref="AgentDefinition.KeepHistory"/>.</param>
-    private async Task<AgentDefinition> BuildMcpDefinitionAsync(string instructionsFile, string historyFileName, bool withDate = false, ResponseReasoningEffortLevel? reasoningEffort = null, bool keepHistory = true)
-    {
-        var endpoint = this._options.InvestZaptoMcpUrl
-            ?? throw new InvalidOperationException($"{nameof(AgentAIOptions.InvestZaptoMcpUrl)} is not set.");
-
-        this._investZaptoMcpClient ??= await this._investZaptoConnector.ConnectAsync(endpoint).ConfigureAwait(false);
-        var mcpTools = await this._investZaptoMcpClient.ListToolsAsync().ConfigureAwait(false);
-
-        return new AgentDefinition(
-            Instructions: InstructionLoader.Load(instructionsFile),
-            Tools: mcpTools.Cast<AITool>().ToList(),
-            HistoryFileName: historyFileName,
-            AIContextProviders: withDate
-                ? new CompositeContextProvider(new AIContextProvider[] { new DateContextProvider(TimeProvider.System) })
-                : null,
-            ReasoningEffort: reasoningEffort,
-            KeepHistory: keepHistory);
+                    return responseOptions;
+                };
+            })
+            .Use(inner => new ModelCallLoggingChatClient(inner, kind, this._loggerFactory.CreateLogger<ModelCallLoggingChatClient>()))
+            .Build();
     }
 
     #endregion
