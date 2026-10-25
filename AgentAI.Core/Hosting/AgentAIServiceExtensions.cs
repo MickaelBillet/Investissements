@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 
 namespace AgentAI;
 
@@ -48,18 +47,32 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(optionsFactory);
 
         services.TryAddSingleton(optionsFactory);
-        services.TryAddSingleton(TimeProvider.System);
         services.AddInvestZaptoMcp();
         services.AddNewsServices();
+        services.AddAgentFactoryBuilder();
 
         // Singleton: the factory owns the shared MCP connection, and the container disposes it on shutdown.
-        // Built explicitly because AgentFactory has two constructors and IWeatherService is not registered.
-        services.TryAddSingleton<IAgentFactory>(sp => new AgentFactory(
-            sp.GetRequiredService<AgentAIOptions>(),
-            sp.GetRequiredService<InvestZaptoMcpClient>(),
-            sp.GetRequiredService<INewsService>(),
-            sp.GetRequiredService<IWebSearchService>(),
-            sp.GetRequiredService<ILoggerFactory>()));
+        services.TryAddSingleton(sp => sp.GetRequiredService<AgentFactoryBuilder>().Build(sp.GetRequiredService<AgentAIOptions>()));
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <see cref="AgentFactoryBuilder"/>, for a host that builds one <see cref="IAgentFactory"/> per run
+    /// because its configuration can change between runs (e.g. MAUI).
+    /// </summary>
+    /// <remarks>
+    /// Its dependencies stay the host's to register: logging, <see cref="INewsService"/>
+    /// (<see cref="NewsServiceExtensions.AddNewsServices"/>), <see cref="InvestZaptoMcpClient"/>
+    /// (<see cref="InvestZaptoMcpServiceExtensions.AddInvestZaptoMcp"/>) and <see cref="IWebSearchService"/>.
+    /// </remarks>
+    public static IServiceCollection AddAgentFactoryBuilder(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IWeatherService, WeatherService>();
+        services.TryAddSingleton<AgentFactoryBuilder>();
 
         return services;
     }
