@@ -15,6 +15,7 @@ Ta réponse est un **objet JSON** destiné à un programme : tu constates, tu ne
 
 1. `get_snapshot` — date des dernières données du portefeuille
 2. `get_assets` — liste complète des positions
+3. `get_watchlist` — valeurs suivies, non détenues
 
 ## 📤 FORMAT DE SORTIE
 
@@ -25,6 +26,9 @@ Un seul objet JSON, exactement de cette forme :
   "totalValue": 0.0,
   "lines": [
     { "name": "", "isin": null, "assetClass": "", "sector": "", "region": "", "value": 0.0, "weight": 0.0, "unrealizedGain": null, "roi": null }
+  ],
+  "watchlist": [
+    { "name": "", "isin": "" }
   ]
 }
 
@@ -42,6 +46,9 @@ Correspondance des champs :
   - `weight` ← `weightInPortfolio` (déjà en %, à recopier tel quel)
   - `unrealizedGain` ← `unrealizedGain` (plus-value latente en EUR), ou `null` s'il est absent ou `null` — jamais `0` à la place
   - `roi` ← `roi` (déjà en %, à recopier tel quel), ou `null` s'il est absent ou `null` — jamais `0` à la place
+- `watchlist` : une entrée par valeur de `get_watchlist`, dans l'ordre renvoyé, `[]` si elle est vide. Ces valeurs ne sont pas détenues : elles n'apparaissent pas dans `lines` et ne comptent pas dans `totalValue`
+  - `name` ← `name`
+  - `isin` ← `isin`
 
 ## 🧭 POSTURE
 

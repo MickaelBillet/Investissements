@@ -12,7 +12,7 @@ public interface IPortfolioReviewRunner
 {
     /// <summary>Completes once the workflow has produced its synthesis.</summary>
     /// <remarks>
-    /// Returns no result while the synthesis is a skeleton; its output type will then be defined in
+    /// Returns no result while the page does not display it; its output type will then be defined in
     /// <c>Shared/Models</c>, since this library does not reference the agents' one.
     /// </remarks>
     /// <param name="date">The date the review is asked for; forwarded to the workflow's first step.</param>

@@ -13,5 +13,6 @@ public enum AgentKind
     Stock,
     News,
     Allocation,
-    Context
+    Context,
+    Synthesis
 }

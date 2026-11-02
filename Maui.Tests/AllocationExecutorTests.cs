@@ -17,6 +17,9 @@ public class AllocationExecutorTests
           "lines": [
             { "name": "MSCI World", "isin": "IE00B4L5Y983", "assetClass": "Stocks", "sector": "Diversified", "region": "World", "value": 1000.0, "weight": 66.67, "unrealizedGain": 200.0, "roi": 25.0 },
             { "name": "Livret A", "isin": null, "assetClass": "Cash", "sector": "Not Defined", "region": "France", "value": 500.0, "weight": 33.33, "unrealizedGain": null, "roi": null }
+          ],
+          "watchlist": [
+            { "name": "ASML", "isin": "NL0010273215" }
           ]
         }
         """;
@@ -53,6 +56,17 @@ public class AllocationExecutorTests
         Assert.Equal("MSCI World", result.Lines[0].Name);
         Assert.Equal("World", result.Lines[0].Region);
         Assert.Null(result.Lines[1].Isin);
+    }
+
+    [Fact]
+    public async Task HandleAsync_AgentReturnsWatchlist_KeepsItApartFromTheLines()
+    {
+        var result = await HandleAsync();
+
+        var item = Assert.Single(result.Watchlist);
+        Assert.Equal("ASML", item.Name);
+        Assert.Equal("NL0010273215", item.Isin);
+        Assert.DoesNotContain(result.Lines, line => line.Name == "ASML");
     }
 
     [Fact]
