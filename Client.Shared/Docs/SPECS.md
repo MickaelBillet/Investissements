@@ -110,9 +110,9 @@ Quand le drill-down Classes d'actifs atteint le niveau 1 et que la classe sélec
 - **Secteurs** : alimenté par `ViewModel.GetSectorForClass(assetClass)`, pré-chargé au démarrage depuis `GET /api/portfolio/sector/{assetClass}` (l'Api ne retient que les `AssetType` marqués éligibles, `GeoSectorEligible = TRUE` dans l'onglet `AssetType` du Sheet ; chaque actif compte pour 100 % dans son secteur)
 - Si l'un de ces appels échoue, son donut reste vide (l'erreur est journalisée) sans empêcher le reste du dashboard de s'afficher
 
-**Agents IA (MAUI uniquement)** : dans l'application Windows, chaque ligne `Stock` d'un `AssetTable` propose un bouton « Lancer un agent » ; un dialogue demande l'agent (Stock ou News), puis une fenêtre affiche la réponse (progression, résultat ou erreur). Le menu « ⋮ » propose en plus **Allocation du portefeuille** (rapport descriptif de toutes les positions, lancé sans choix préalable). Absent du site web. Voir `CLAUDE.md` §7.10.
+**Agents IA (MAUI uniquement)** : dans l'application Windows, chaque ligne `Stock` d'un `AssetTable` propose un bouton « Lancer un agent » ; un dialogue demande l'agent (Stock ou News), puis une fenêtre affiche la réponse (progression, résultat ou erreur). Absent du site web. Voir `CLAUDE.md` §7.10.
 
-**Analyse du portefeuille (MAUI uniquement)** : le lien « Analyse » de la barre d'application ouvre une page qui lance aussitôt le workflow d'analyse du portefeuille (allocation et contexte en parallèle, puis synthèse) et affiche la progression puis « Analyse terminée. ». Aucun résultat n'est encore affiché : le rapport de synthèse est produit mais seulement journalisé. Absente du site web. Voir `CLAUDE.md` §7.13.
+**Analyse du portefeuille (MAUI uniquement)** : le lien « Analyse » de la barre d'application ouvre une page qui lance aussitôt le workflow d'analyse du portefeuille (allocation, contexte et répartitions en parallèle, puis synthèse) et affiche la progression puis « Analyse terminée. ». Aucun résultat n'est encore affiché : le rapport de synthèse est produit mais seulement journalisé. Absente du site web. Voir `CLAUDE.md` §7.13.
 
 **Paramètres des agents** : aucune page de saisie. La configuration des agents de l'application MAUI (endpoint Foundry, modèle) est lue dans l'Api, et le serveur MCP accepte le mot de passe du dashboard. Voir `CLAUDE.md` §7.12.
 
@@ -203,7 +203,6 @@ Barre en haut de page : logo + titre, liens **Portefeuille** (`/`), **Suivi** (`
 | Entrée | Action |
 |---|---|
 | Masquer / Afficher les montants | Bascule le mode confidentialité (§7) |
-| Allocation du portefeuille | *Application Windows uniquement.* Lance l'agent d'allocation et affiche son rapport dans une boîte de dialogue |
 | Synchroniser | Relance l'ETL via `POST /api/sync` ; spinner pendant l'appel, puis notification de succès (avec le nombre d'actifs ajoutés s'il est > 0) ou d'erreur |
 | Documentation | Ouvre `docs/presentation.pdf` du site (lien absolu construit depuis l'URL de l'Api — nouvel onglet / navigateur externe) |
 | Déconnexion | Efface la session et revient à l'écran de connexion |

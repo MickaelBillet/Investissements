@@ -70,24 +70,13 @@ public class AgentRunnerTests
     }
 
     [Fact]
-    public async Task RunAsync_AllocationWithoutAsset_CreatesAllocationAgentWithNoInput()
-    {
-        SetupRun(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, "rapport"))));
-
-        var result = await CreateRunner().RunAsync(AgentChoice.Allocation, null, null);
-
-        Assert.Equal("rapport", result);
-        _factory.Verify(f => f.CreateAsync(AgentKind.Allocation, null, null), Times.Once);
-    }
-
-    [Fact]
-    public async Task RunAsync_McpUnauthorized_ThrowsExplicitErrorWithoutResettingHistory()
+    public async Task RunAsync_AgentCreationUnauthorized_ThrowsExplicitErrorWithoutResettingHistory()
     {
         _factory
             .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .ThrowsAsync(new HttpRequestException("401", null, System.Net.HttpStatusCode.Unauthorized));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Allocation, null, null));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(AgentChoice.Stock, "Air Liquide", null));
 
         Assert.Contains("dashboard password", ex.Message);
         _history.Verify(h => h.ResetWithBackup(It.IsAny<string>()), Times.Never);
@@ -117,16 +106,16 @@ public class AgentRunnerTests
     }
 
     [Fact]
-    public async Task RunAsync_CreationNeverCompletes_TimesOutNamingTheMcpStage()
+    public async Task RunAsync_CreationNeverCompletes_TimesOutNamingTheCreationStage()
     {
         _factory
             .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .Returns(new TaskCompletionSource<(AIAgent, ICustomChatHistoryProvider)>().Task);
 
         var ex = await Assert.ThrowsAsync<TimeoutException>(
-            () => CreateRunner(TimeSpan.FromMilliseconds(50)).RunAsync(AgentChoice.Allocation, null, null));
+            () => CreateRunner(TimeSpan.FromMilliseconds(50)).RunAsync(AgentChoice.Stock, "Air Liquide", null));
 
-        Assert.Contains("MCP connection", ex.Message);
+        Assert.Contains("creating the agent", ex.Message);
         _history.Verify(h => h.ResetWithBackup(It.IsAny<string>()), Times.Never);
     }
 

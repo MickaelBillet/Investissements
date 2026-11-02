@@ -7,11 +7,8 @@ namespace InvestissementsDashboard.Client.ViewModels;
 /// Presentation logic of <c>MainLayout</c>: the manual synchronization (and the message that reports its outcome), the logout
 /// and whether the agent entries are shown (only when the host provides <see cref="IAgentRunner"/> and <see cref="IPortfolioReviewRunner"/>, i.e. MAUI).
 /// </summary>
-public class MainViewModel(ISyncService syncService, ISessionService sessionService, ILocalizationService localizer, ILogger<MainViewModel> logger, IAgentRunner? agentRunner = null, IPortfolioReviewRunner? reviewRunner = null)
+public class MainViewModel(ISyncService syncService, ISessionService sessionService, ILocalizationService localizer, ILogger<MainViewModel> logger, IPortfolioReviewRunner? reviewRunner = null)
 {
-    /// <summary>Whether the portfolio-wide agent entry is shown: only the MAUI host registers an <see cref="IAgentRunner"/>.</summary>
-    public bool IsAgentAvailable => agentRunner is not null;
-
     /// <summary>Whether the analysis entry is shown: only the MAUI host registers an <see cref="IPortfolioReviewRunner"/>.</summary>
     public bool IsAnalysisAvailable => reviewRunner is not null;
 

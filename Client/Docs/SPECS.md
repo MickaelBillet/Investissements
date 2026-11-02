@@ -31,4 +31,4 @@ Le dashboard (écran de connexion, KPI, répartition, suivi, échéancier, mode 
 | Stockage de session | `localStorage` (en clair) | `SecureStorage` (chiffré par l'OS) |
 | URL de l'Api | Origine du site | `https://invest.zapto.fr/` (fixe, constante `MauiProgram.ApiBaseUri`) |
 | Mise à jour | Déploiement SWA à chaque push sur `main` | Recompilation locale puis republication du MSIX (`Maui/Scripts/`) |
-| Agents IA et page Paramètres | Absents | Présents (agents Stock et Actualités) |
+| Agents IA et page Analyse | Absents | Présents (agents Stock et Actualités, workflow d'analyse du portefeuille) |

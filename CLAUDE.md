@@ -227,7 +227,7 @@ Une ligne par action suivie (hors portefeuille), maintenue à la main — aucun 
 | 0 | A | `Name` — nom de l'action (une ligne sans nom est ignorée) |
 | 1 | B | `ISIN` |
 
-Lue par `WatchlistService` (Api) et exposée uniquement par l'outil MCP `get_watchlist`.
+Lue par `WatchlistService` (Api) et exposée uniquement par l'outil MCP `get_watchlist`, qu'appelle l'agent Allocation pour le workflow d'analyse du portefeuille (MAUI).
 
 ### 6.4 Valeur sentinelle `"ND"`
 
@@ -262,6 +262,7 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 - Un seul repository contenant le projet Blazor WASM et les Azure Functions
 - Branche principale : `main`
 - Tout push sur `main` déclenche automatiquement le pipeline de déploiement
+- Le dépôt est **public** : aucun secret ni donnée personnelle n'y entre, ce qui vaut aussi pour les instructions des agents (`AgentAI.Core/Agents/Synthesis/InvestorProfile.md`)
 
 ### 8.2 Structure du repository
 
@@ -405,10 +406,11 @@ jobs:
 | **Azure Functions** | Incluses dans Static Web Apps Free | 100 000 exécutions/mois | 0 € |
 | **Google Sheets API** | Gratuit | 60 requêtes/minute, 500 requêtes/100 secondes | 0 € |
 | **Google Apps Script** | Gratuit | 90 min d'exécution/jour | 0 € |
-| **GitHub Actions** | Gratuit | 2 000 min/mois (repo privé) | 0 € |
+| **GitHub Actions** | Gratuit | Sans limite de minutes sur les runners standard (dépôt public) | 0 € |
 | **Tavily (recherche web des agents)** | Researcher (gratuit, sans carte) | 1 000 recherches/mois ; au-delà, refus (pas de facturation) | 0 € |
 | **Nom de domaine** | — | Déjà possédé | 0 € |
-| **Total** | | | **0 €/mois** |
+| **Azure AI Foundry (agents MAUI)** | Facturé à l'usage | Aucune | Selon les tokens consommés (§14.5) |
+| **Total** | | | **0 €/mois hors tokens Foundry** |
 
 ---
 
@@ -507,7 +509,7 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.2bis Maui
 
 - Framework : **xUnit** + **Moq**
-- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` et `PortfolioReviewRunner` (fabrique et agent mockés ; le second exécute le workflow `PortfolioReview` en processus ; son builder `PortfolioReviewWorkflowBuilder` et les executors du workflow — barrière fan-in de `SynthesisExecutor` comprise — ont leurs propres tests), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News) et la présence de la règle « tour unique » dans les instructions embarquées
+- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` et `PortfolioReviewRunner` (fabrique et agent mockés ; le second exécute le workflow `PortfolioReview` en processus ; son builder `PortfolioReviewWorkflowBuilder` et les executors du workflow — barrière fan-in de `SynthesisExecutor` comprise — ont leurs propres tests), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News), `AgentFactory` et `AgentFactoryBuilder` (aiguillage, branchement des agents), une classe de test pour les définitions d'agents, `ModelCallLoggingChatClient`, `InvestZaptoMcpToolSource` et le contenu des instructions embarquées (règle « tour unique », `get_watchlist`, absence de plafonds)
 - Commande : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (Windows)
 
 ### 12.3 Scripts / Apps Script
@@ -528,7 +530,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ## 14. Agents IA et application MAUI Windows (décisions — première version livrée)
 
-> **État d'avancement (2026-10-09)** : les étapes 1, 3, 4 et 5 du §14.4 sont faites. La bibliothèque `AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` reprend le dashboard (voir `Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par l'Api (`GET /api/agents/config`, App Settings `AGENT_FOUNDRY_ENDPOINT`/`AGENT_FOUNDRY_MODEL` — la page Paramètres a été supprimée) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IPortfolioReviewRunner` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. L'agent **Allocation** (rapport descriptif des positions via le MCP, lancé depuis le menu « ⋮ ») est livré  ; il s'authentifie auprès du MCP avec le mot de passe du dashboard (aucune clé saisie dans l'application). **Reste à faire** : validation de l'identité Azure (`az login`) avec un MSIX packagé, rendu de MudBlazor/ApexCharts dans le `BlazorWebView` à valider visuellement.
+> **État d'avancement (2026-11-02)** : les étapes 1, 3, 4, 5 et 6 du §14.4 sont faites. La bibliothèque `AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` reprend le dashboard (voir `Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par l'Api (`GET /api/agents/config`, App Settings `AGENT_FOUNDRY_ENDPOINT`/`AGENT_FOUNDRY_MODEL` — la page Paramètres a été supprimée) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IPortfolioReviewRunner` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. L'agent **Allocation** lit les positions et la watchlist via le MCP et répond en JSON pour le workflow d'analyse (son entrée du menu « ⋮ » a été retirée) ; il s'authentifie avec le mot de passe du dashboard (aucune clé saisie dans l'application). Le lien **Analyse** lance le workflow `PortfolioReview` : Allocation, Contexte (recherche web) et répartitions en parallèle, puis agent **Synthèse**, qui produit un rapport structuré à partir de ces entrées et du profil de l'investisseur (`InvestorProfile.md`). **Reste à faire** : remplir `InvestorProfile.md` ; exécuter une analyse contre le vrai modèle (schéma JSON, `get_watchlist`, durée face au délai de 3 min), rien n'a encore été validé ainsi ; afficher le rapport, aujourd'hui seulement journalisé ; valider l'identité Azure (`az login`) avec un MSIX packagé ; vérifier visuellement le rendu de MudBlazor/ApexCharts dans le `BlazorWebView`.
 
 > La console de développement `C:\Users\mbillet.NOVACATH\source\AgentAI` (net10.0, Microsoft Agent Framework + Azure AI Foundry) est conservée hors de ce dépôt ; son `CLAUDE.md` détaille les agents (Chat, Weather, Stock, Portfolio, News). **Elle garde sa propre copie de `AgentAI.Core`** : les modifications faites ici (instructions, `AgentFactory`) ne s'y répercutent pas automatiquement. Constats sur la doc Microsoft consultés le 2026-10-01.
 
@@ -544,18 +546,18 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 **Décision retenue :** une application **MAUI Windows**, strictement personnelle (PC du propriétaire), exécute les agents **dans son processus**. Plus de limite de 45 s, plus de CORS, aucun hébergement. Le **Blazor WASM reste inchangé, sans agents.**
 
-### 14.2 Architecture cible
+### 14.2 Architecture retenue
 
-- **Bibliothèque `Agents`** (extraite de `AgentAI`, net10.0) : `AgentFactory`, fournisseurs de contexte, `NewsService` (sources d'actualités), `InvestZaptoMcpClient`, `ForceContentLengthHandler`, historique. La console `AgentAI` est conservée comme outil de développement.
-- **Bibliothèque Razor partagée** extraite de `Client/` (composants, ViewModels) pour réutiliser le dashboard dans MAUI via `BlazorWebView` (Blazor Hybrid) ; le projet WASM devient un hôte mince. Compatibilité de MudBlazor et d'ApexCharts dans un `BlazorWebView` : **non vérifiée**, à tester tôt.
-- **Projet MAUI Windows** : `BlazorWebView` + page Agents (choix de l'agent, saisies, réponse en Markdown, durée affichée).
-- **Allocation** : l'agent appelle le MCP existant (`POST /api/mcp`, protégé par `MCP_API_KEY`) via le `HttpClient` injecté. `ForceContentLengthHandler` est à conserver : le « 500 Backend call failure » sur les POST en chunked vient probablement du proxy SWA (hypothèse, non vérifiée).
+- **Bibliothèque `AgentAI.Core`** (extraite de `AgentAI`, net10.0), organisée par agent (`Agents/<Agent>/`), avec `Runtime/` et `Integrations/` pour le partagé et un namespace par dossier : voir `AgentAI.Core/Docs/CLAUDE.md`. La console `AgentAI` est conservée comme outil de développement.
+- **Bibliothèque Razor partagée** extraite de `Client/` (composants, ViewModels) pour réutiliser le dashboard dans MAUI via `BlazorWebView` (Blazor Hybrid) ; le projet WASM devient un hôte mince. Compatibilité de MudBlazor et d'ApexCharts dans un `BlazorWebView` : **non vérifiée visuellement**.
+- **Projet MAUI Windows** : `BlazorWebView`, agents lancés depuis les lignes `Stock`, page Analyse pour le workflow.
+- **Allocation** : l'agent appelle le MCP existant (`POST /api/mcp`, avec le mot de passe du dashboard ; `MCP_API_KEY` reste pour les clients externes) via le `HttpClient` injecté. `ForceContentLengthHandler` est à conserver : le « 500 Backend call failure » sur les POST en chunked vient probablement du proxy SWA (hypothèse, non vérifiée).
 
-### 14.3 Adaptations du code agents à prévoir (non faites)
+### 14.3 Adaptations du code agents (faites)
 
 - Instructions `.md` : ressources **embarquées** (et non `AppContext.BaseDirectory`).
 - Historique des conversations : chemin **injecté**, dans `LocalApplicationData` (le dossier de l'exécutable est en lecture seule pour une application packagée).
-- Configuration (`FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL`, `INVESTZAPTO_MCP_URL`) : page de paramètres, avec repli sur les variables d'environnement.
+- Configuration : servie par l'Api à chaque lancement (`GET /api/agents/config`), sans page de paramètres ni variable d'environnement ; l'URL du MCP est déduite de celle de l'Api.
 - Identité Azure : `DefaultAzureCredential` (`az login`) sur le PC pour commencer ; option ultérieure `InteractiveBrowserCredential` avec cache de jeton (non vérifié en MAUI packagé). **Jamais de secret de principal de service dans l'application** (un binaire se décompile). `ExcludeManagedIdentityCredential` reste actif.
 - Secrets de l'application : seul le mot de passe du dashboard, dans `SecureStorage`, jamais dans le code. La clé MCP, la clé de recherche web et la configuration Foundry restent dans l'Api.
 - `InvestZaptoMcpClient`, `RssFeedReader` et `YahooTickerResolver` sont des **clients typés d'`IHttpClientFactory`** enregistrés par `AgentAI.Core` ; l'hôte choisit le handler primaire (`SocketsHttpHandler` sous Windows).
@@ -571,19 +573,21 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ### 14.5 Pièges à ne pas oublier
 
-- **CI :** `Investissements.slnx` est restauré sur le runner **Ubuntu** : ne jamais y ajouter un projet MAUI Windows (la restauration casserait). Les projets MAUI et leurs tests vivent dans `Investissements.Maui.slnx`, et le workflow cible explicitement `Investissements.slnx` (deux `.slnx` à la racine rendraient un `restore` sans argument ambigu). Un futur projet `Agents` multiplateforme peut rejoindre `Investissements.slnx` ; un projet dépendant de Windows reste dans la solution MAUI.
+- **CI :** `Investissements.slnx` est restauré sur le runner **Ubuntu** : ne jamais y ajouter un projet MAUI Windows (la restauration casserait). Les projets MAUI et leurs tests vivent dans `Investissements.Maui.slnx`, et le workflow cible explicitement `Investissements.slnx` (deux `.slnx` à la racine rendraient un `restore` sans argument ambigu). `AgentAI.Core` reste dans la solution MAUI : le CI ne le construit donc pas et ne le teste pas. Lancer `Maui.Tests` en local avant toute PR.
 - **Incohérence de version .NET :** l'ancienne note du pipeline (§8.4) disait « Api net8.0 » (build Oryx des managed functions), mais `Api/InvestissementsDashboard.Api.csproj` cible actuellement **net9.0**. La liste officielle des runtimes des fonctions managées s'arrête à .NET 8 (peut être obsolète). Vérifier que le déploiement actuel est cohérent avant d'y toucher.
-- **Tests (§12) :** la bibliothèque `Agents` et le projet MAUI sont soumis à la règle (xUnit + Moq ; bunit pour les composants). La décision « pas de projet de test » prise pour la console `AgentAI` ne s'applique pas ici.
-- **Hypothèse de travail à valider par le spike :** ce qui tourne dans la console `AgentAI` devrait tourner dans MAUI Windows (même .NET 10, mêmes packages, `HttpClient` et `SocketsHttpHandler` identiques). Les différences attendues portent sur l'environnement, pas sur la logique :
+- **PR empilées :** ne pousser sur une PR qu'après avoir vérifié qu'elle est encore ouverte, et ne fusionner une PR empilée qu'une fois reciblée sur `main`. Un commit a déjà manqué `main` ainsi, d'où un 404 en production sur `/api/agents/config`.
+- **Ordre de déploiement :** ce que MAUI attend de l'Api doit être fusionné et déployé avant d'utiliser la nouvelle version de MAUI.
+- **Tests (§12) :** la bibliothèque `AgentAI.Core` et le projet MAUI sont soumis à la règle (xUnit + Moq ; bunit pour les composants). La décision « pas de projet de test » prise pour la console `AgentAI` ne s'applique pas ici.
+- **Hypothèse validée en application non packagée, pas encore en MSIX :** ce qui tourne dans la console `AgentAI` devrait tourner dans MAUI Windows (même .NET 10, mêmes packages, `HttpClient` et `SocketsHttpHandler` identiques). Les différences attendues portent sur l'environnement, pas sur la logique :
   - chemins de fichiers (instructions, historique) — déjà prévu en §14.3 ;
   - identité Azure : `DefaultAzureCredential` s'appuie sur `az login` en lançant un processus externe ; **non vérifié** qu'une application **packagée** (MSIX) le permette — essayer aussi un MAUI Windows **non packagé** ;
-  - variables d'environnement : une application lancée depuis le menu Démarrer ne voit pas forcément celles d'un terminal — d'où la page de paramètres.
+  - variables d'environnement : une application lancée depuis le menu Démarrer ne voit pas forcément celles d'un terminal — d'où la configuration servie par l'Api.
 - **Coût :** les agents consomment des **tokens Azure AI Foundry** (facturés à l'usage), ce qui sort du principe « budget zéro » du §2 — à assumer explicitement, à confirmer. La recherche web de l'agent Contexte passe par l'Api (Tavily, offre gratuite de 1 000 recherches/mois, au plus 15 par analyse) : pas de coût supplémentaire tant que le quota suffit, le web search payant de Foundry a été écarté.
 
 ### 14.6 Questions ouvertes
 
 | # | Question | Impact |
 |---|---|---|
-| 1 | Emplacement du MAUI et de `Agents` : solution séparée (recommandé, ne touche pas au CI) ou dans `Investissements.slnx` avec ajustement du workflow | CI de production — ne bloque pas l'étape 1 |
+| 1 | ~~Emplacement du MAUI et de `AgentAI.Core`~~ — résolu : solution séparée `Investissements.Maui.slnx` | — |
 | 2 | Identité Azure : `DefaultAzureCredential` (`az login`) ou connexion par navigateur avec cache de jeton | Ergonomie de démarrage |
 | 3 | Durées de `news` et `weather` non mesurées (chronomètre `[Timing]` disponible dans la console `AgentAI`) | Information seulement : plus de limite de 45 s côté MAUI |

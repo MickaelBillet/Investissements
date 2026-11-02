@@ -62,6 +62,10 @@ L'Apps Script n'expose plus de Web App HTTP : il ne fait qu'écrire (ETL + rappo
 
 L'Api expose un endpoint `POST /api/mcp` (protocole JSON-RPC 2.0, Model Context Protocol) permettant à un assistant IA (Claude Code, Claude Desktop, Claude Web) d'interroger le portefeuille en langage naturel — 9 outils exposés (répartition par classe d'actif, historique de performance, échéancier obligataire, répartition géographique...), avec la même logique métier et les mêmes données que le dashboard.
 
+### 2.4 Application Windows et agents IA
+
+Une application MAUI Windows (`Maui/`) reprend le dashboard et exécute des agents IA sur le poste du propriétaire (`AgentAI.Core/`, Microsoft Agent Framework et Azure AI Foundry), car ils dépassent la limite de 45 s du proxy Static Web Apps. Le workflow d'analyse lance en parallèle l'allocation, le contexte macro-économique et les répartitions, puis un agent de synthèse produit un rapport structuré ; ce rapport n'est pas encore affiché.
+
 ---
 
 ## 3. Stack technique
@@ -101,9 +105,11 @@ L'Api expose un endpoint `POST /api/mcp` (protocole JSON-RPC 2.0, Model Context 
 | Azure Functions | Incluses (Static Web Apps Free) | 0 € |
 | Google Sheets API | Gratuit | 0 € |
 | Google Apps Script | Gratuit | 0 € |
-| GitHub Actions | Gratuit (repo privé) | 0 € |
+| GitHub Actions | Gratuit (dépôt public) | 0 € |
 | Nom de domaine | Déjà possédé | 0 € |
-| **Total** | | **0 €/mois** |
+| Tavily (recherche web des agents) | Gratuit (1 000 recherches/mois) | 0 € |
+| Azure AI Foundry (agents) | Facturé à l'usage | Selon les tokens |
+| **Total** | | **0 €/mois hors tokens Foundry** |
 
 ---
 
