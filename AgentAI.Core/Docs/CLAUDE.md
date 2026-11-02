@@ -27,33 +27,32 @@ AgentAI.Core/
 │   ├── IAgentFactory.cs        # CreateAsync(AgentKind, contextInput, optionalInput) → (AIAgent, ICustomChatHistoryProvider) ; optionalInput = ISIN (Stock et News)
 │   ├── AgentFactory.cs         # implémentation (constructeur interne) : aiguille vers le builder du AgentKind, historique client (StoredOutputEnabled = false), effort de raisonnement
 │   ├── AgentFactoryBuilder.cs  # Build(AgentAIOptions) → IAgentFactory : client Foundry (DefaultAzureCredential), source d'outils MCP et builders d'agents propres à chaque fabrique
-│   ├── ModelCallLoggingChatClient.cs # DelegatingChatClient : une ligne de journal par appel au modèle (durée, jetons)
 │   ├── AgentKind.cs            # Chat, Weather, Stock, Allocation, News, Context, Synthesis
 │   ├── AgentAIOptions.cs       # configuration fournie par l'hôte (voir §4)
-│   ├── AgentDefinition.cs      # record interne : instructions, outils, fichier d'historique, fournisseurs de contexte, effort de raisonnement facultatif
-│   ├── InstructionLoader.cs    # charge les instructions embarquées
-│   ├── WebSearchTool.cs        # outil SearchWeb (IWebSearchService) plafonné à 15 recherches par agent
-│   └── Definitions/            # une classe par agent derrière IAgentDefinitionBuilder (Kind, BuildAsync → AgentDefinition) : Chat, Weather, Stock, Allocation, News, Context, Synthesis ; AgentInput (validation des saisies requises)
-├── Instructions/               # AnalyseAction.md, ActualitesSociete.md, AllocationPortefeuille.md, Context.md, Synthesis.md, InvestorProfile.md (ressources embarquées ; InvestorProfile.md n'est pas un agent : scénarios et secteurs de conviction de l'investisseur, ajoutés aux instructions de Synthesis, versionnés donc publics)
+│   ├── Definitions/            # commun aux agents : IAgentDefinitionBuilder (Kind, BuildAsync → AgentDefinition), AgentDefinition, AgentInput (saisies requises), InstructionLoader (instructions embarquées)
+│   ├── Chat/                   # ChatAgentDefinitionBuilder
+│   ├── Weather/                # WeatherAgentDefinitionBuilder, WeatherContextProvider, IWeatherService, WeatherService
+│   ├── Stock/                  # StockAgentDefinitionBuilder, StockContextProvider, AnalyseAction.md
+│   ├── News/                   # NewsAgentDefinitionBuilder, NewsContextProvider, ActualitesSociete.md
+│   ├── Allocation/             # AllocationAgentDefinitionBuilder, AllocationPortefeuille.md
+│   ├── Context/                # ContextAgentDefinitionBuilder, WebSearchTool (outil SearchWeb plafonné à 15 recherches par agent), Context.md
+│   └── Synthesis/              # SynthesisAgentDefinitionBuilder, Synthesis.md, InvestorProfile.md (pas un agent : scénarios et secteurs de conviction de l'investisseur, ajoutés aux instructions de Synthesis, versionnés donc publics)
 ├── Workflows/PortfolioReview/  # workflow d'analyse du portefeuille (Microsoft.Agents.AI.Workflows)
 │   ├── IPortfolioReviewWorkflowBuilder.cs  # BuildAsync(IAgentFactory, IAssetDistributionSource, ct) → Workflow
 │   ├── PortfolioReviewWorkflowBuilder.cs   # implémentation sans état (singleton côté hôte)
+│   ├── IAssetDistributionSource.cs         # contrat seul : répartitions géographique et sectorielle, implémenté par l'hôte
 │   ├── Executors/              # StartExecutor (transit), AllocationExecutor (→ AllocationResult), ContextExecutor (agent Context → PortfolioContext), AssetDistributionExecutor (→ DistributionResult), SynthesisExecutor (agent Synthesis → SynthesisReport)
 │   ├── Messages/               # AnalysisRequest, AllocationResult (+ AllocationLine, watchlist en WatchlistItemDto), PortfolioContext (+ ContextFactor, ContextSource, ContextIndicator, enums FactorType/FactorHorizon/ChangeUnit), DistributionResult (+ AssetClassDistribution), SynthesisReport (+ Recommendation, enums RecommendationLevel/RecommendationDirection/RecommendationConfidence)
 │   └── Events/                 # AllocationRetrievedEvent, ContextRetrievedEvent, AssetDistributionRetrievedEvent, SynthesisWrittenEvent
-├── Providers/                  # AIContextProvider : Composite, Date, News, Stock, Weather
-├── History/                    # ICustomChatHistoryProvider, CustomChatHistoryProvider (historique JSON sur disque)
-├── Mcp/                        # InvestZaptoMcpClient (connexion avec réessais), InvestZaptoMcpToolSource (connexion paresseuse conservée, liste des outils, libération)
-├── Http/                       # ForceContentLengthHandler (contournement HTTP générique : Content-Length explicite)
-├── Services/
+├── Runtime/                    # commun à tous les agents : ModelCallLoggingChatClient (une ligne de journal par appel au modèle), ICustomChatHistoryProvider, CustomChatHistoryProvider (historique JSON sur disque), CompositeContextProvider, DateContextProvider
+├── Integrations/               # ce qui parle à l'extérieur
+│   ├── Mcp/                    # InvestZaptoMcpClient (connexion avec réessais), InvestZaptoMcpToolSource (connexion paresseuse conservée, liste des outils, libération), ForceContentLengthHandler (Content-Length explicite)
 │   ├── News/                   # INewsService, NewsService
 │   │   ├── Models/             # NewsArticle, NewsRequest
 │   │   ├── Sources/            # INewsFeedSource
 │   │   │   ├── Google/         # GoogleNewsFeedSource
 │   │   │   └── Yahoo/          # YahooFinanceFeedSource, YahooTickerResolver (ISIN → ticker)
 │   │   └── Helpers/            # IRssFeedReader/RssFeedReader, RssFeedParser, CompanyTitleFilter
-│   ├── Weather/                # IWeatherService, WeatherService
-│   ├── AssetDistribution/      # IAssetDistributionSource (contrat seul : répartitions géographique et sectorielle, implémenté par l'hôte)
 │   └── WebSearch/              # IWebSearchService (contrat seul : recherche web, implémenté par l'hôte via l'Api ; DTOs dans Shared/Models/WebSearchDto.cs)
 ├── Hosting/AgentAIServiceExtensions.cs      # AddAgentAI(options) / AddAgentAI(optionsFactory) : fabrique singleton ; AddAgentFactoryBuilder() : AgentFactoryBuilder, IWeatherService, TimeProvider (hôte qui crée une fabrique par lancement)
 ├── Hosting/NewsServiceExtensions.cs            # AddNewsServices() : INewsService + sources + clients typés (flux RSS, résolveur Yahoo)
@@ -76,7 +75,7 @@ La bibliothèque **ne lit jamais les variables d'environnement** : un hôte MAUI
 
 ## 5. Règles et pièges
 
-- **Instructions embarquées** (`EmbeddedResource`, `LogicalName = Instructions.<fichier>`) et non copiées à côté de l'exécutable : un hôte MAUI n'a pas de dossier de base prévisible. Toute modification d'un `.md` impose une recompilation.
+- **Instructions embarquées** (`Agents/**/*.md`, chaque fichier dans le dossier de son agent ; `EmbeddedResource`, `LogicalName = Instructions.<fichier>`, donc **noms de fichiers uniques**) et non copiées à côté de l'exécutable : un hôte MAUI n'a pas de dossier de base prévisible. Toute modification d'un `.md` impose une recompilation.
 - **Échange à tour unique** : `ActualitesSociete.md`, `AnalyseAction.md`, `AllocationPortefeuille.md`, `Context.md` et `Synthesis.md` contiennent la règle « pas de question finale, pas de suite proposée » (l'hôte ne propose pas de boucle conversationnelle). La conserver dans tout nouvel agent destiné à Maui. Un test (`Maui.Tests/AgentInstructionsTests.cs`) vérifie sa présence.
 - **Clients HTTP = clients typés d'`IHttpClientFactory`** (`InvestZaptoMcpClient`, `RssFeedReader`, `YahooTickerResolver`), enregistrés par la bibliothèque (`AddInvestZaptoMcp`, `AddNewsServices`) : plus de `new HttpClient()`. Chaque client a son propre pipeline, donc le mot de passe du dashboard (ajouté aux clients du dashboard) ne part jamais vers les flux RSS ni le MCP. L'hôte choisit le handler **primaire** via `AddHttpClient<T>().ConfigurePrimaryHttpMessageHandler(...)` (un hôte navigateur n'a pas `SocketsHttpHandler`). Le backend InvestZapto échoue en `500 Backend call failure` sur les POST en `Transfer-Encoding: chunked` : `ForceContentLengthHandler` (neutre vis-à-vis de la plateforme) est ajouté par `AddInvestZaptoMcp` et bufferise le corps pour envoyer un `Content-Length`. Ces clients étant capturés par des singletons (`NewsService`, `AgentFactory`), l'hôte borne `PooledConnectionLifetime` pour garder le rafraîchissement DNS. `AddHttpClient<T>` n'est pas un `TryAdd` : substituer `InvestZaptoMcpClient` s'enregistre **après** `AddAgentAI`.
 - **Actualités — architecture :** `NewsService` (façade `INewsService`) interroge en parallèle toutes les `INewsFeedSource` et fusionne : fenêtre de dates, dédoublonnage par URL puis par titre normalisé, tri décroissant, plafond de 30. Contrat d'une source : liste = résultat (vide = « pas d'actualité »), `null` = source non applicable (ignorée, ex. pas d'ISIN), exception = « pas de réponse » (loguée, les autres sources continuent ; si **toutes** les sources applicables échouent, `HttpRequestException`). **Ajouter une source** = implémenter `INewsFeedSource` et l'enregistrer dans le conteneur (`services.AddSingleton<INewsFeedSource, MaSource>()`, depuis l'hôte si besoin) ; `NewsService` reçoit toutes les sources enregistrées et aucune autre classe ne change. `AddNewsServices()` (`Hosting/NewsServiceExtensions.cs`) enregistre `NewsService` et les sources intégrées en `TryAdd`, plus `RssFeedReader` et `YahooTickerResolver` comme clients typés.
@@ -91,7 +90,7 @@ La bibliothèque **ne lit jamais les variables d'environnement** : un hôte MAUI
 - **`AgentFactory`** possède, via `InvestZaptoMcpToolSource`, la connexion MCP (`McpClient`), ouverte au premier agent qui en a besoin et réutilisée ensuite (un échec n'est pas conservé : l'appel suivant réessaie) : à libérer (`IAsyncDisposable`). Elle ne se construit que par `AgentFactoryBuilder.Build(options)`, qui crée le client Foundry et donne à chaque fabrique sa propre source d'outils MCP et ses builders. `AddAgentAI` l'enregistre en **singleton** ; `Maui` enregistre seulement le builder (`AddAgentFactoryBuilder`) et en crée une par lancement pour relire la configuration (donc n'appelle pas `AddAgentAI`).
 - **Historique** : `CustomChatHistoryProvider` persiste les messages en JSON. En cas d'échec de l'appel (format incompatible après une mise à jour NuGet par exemple), appeler `ResetWithBackup(reason)` : le fichier est sauvegardé puis vidé.
 - `ClientResultException`/erreurs réseau : ne pas les avaler ; l'hôte les journalise et les affiche.
-- Un agent = une entrée dans `AgentKind` + une classe `IAgentDefinitionBuilder` dans `Agents/Definitions/`, ajoutée à la liste des builders d'`AgentFactory` (+ instructions `.md` + fournisseur de contexte si besoin). La fabrique n'exécute que le builder demandé : un agent n'exige jamais les saisies ni la connexion MCP d'un autre.
+- Un agent = une entrée dans `AgentKind` + un dossier `Agents/<Agent>/` avec sa classe `IAgentDefinitionBuilder`, ajoutée à la liste des builders d'`AgentFactoryBuilder` (+ instructions `.md` + fournisseur de contexte si besoin). La fabrique n'exécute que le builder demandé : un agent n'exige jamais les saisies ni la connexion MCP d'un autre.
 - Le streaming (`RunStreamingAsync`) n'est pas utilisé : avec `StoredOutputEnabled = false` il a produit un `400 invalid_payload` en sonde ; les hôtes appellent `RunAsync`.
 
 ## 6. Git — Règle absolue
