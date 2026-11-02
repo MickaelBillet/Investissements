@@ -1,7 +1,10 @@
+using AgentAI.Core.Agents.Definitions;
+using AgentAI.Core.Integrations.Mcp;
+using AgentAI.Core.Runtime;
 using Microsoft.Agents.AI;
 using OpenAI.Responses;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Allocation;
 
 #pragma warning disable OPENAI001 // OpenAI.Responses types are for evaluation purposes only and subject to change.
 

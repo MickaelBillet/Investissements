@@ -1,5 +1,8 @@
 using System.Net;
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Workflows.PortfolioReview;
+using AgentAI.Core.Workflows.PortfolioReview.Events;
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using InvestissementsDashboard.Client.Services;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;

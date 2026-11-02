@@ -1,4 +1,9 @@
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Hosting;
+using AgentAI.Core.Integrations.News.Helpers;
+using AgentAI.Core.Integrations.News.Sources.Yahoo;
+using AgentAI.Core.Integrations.WebSearch;
+using AgentAI.Core.Workflows.PortfolioReview;
 using InvestissementsDashboard.Client.Extensions;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Maui.Services;

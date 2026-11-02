@@ -1,4 +1,4 @@
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Definitions;
 
 /// <summary>
 /// Builds the <see cref="AgentDefinition"/> of one <see cref="AgentKind"/>.

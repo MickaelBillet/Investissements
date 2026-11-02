@@ -1,5 +1,6 @@
 using System.Xml;
-using AgentAI;
+using AgentAI.Core.Integrations.News.Helpers;
+using AgentAI.Core.Integrations.News.Models;
 using Xunit;
 
 namespace InvestissementsDashboard.Maui.Tests.News;

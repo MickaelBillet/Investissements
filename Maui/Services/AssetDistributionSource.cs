@@ -1,4 +1,4 @@
-using AgentAI;
+using AgentAI.Core.Workflows.PortfolioReview;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Shared.Models;
 

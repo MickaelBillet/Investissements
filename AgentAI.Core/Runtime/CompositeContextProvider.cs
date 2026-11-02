@@ -1,6 +1,6 @@
 using Microsoft.Agents.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Runtime;
 
 public sealed class CompositeContextProvider(IEnumerable<AIContextProvider> providers) : AIContextProvider
 {

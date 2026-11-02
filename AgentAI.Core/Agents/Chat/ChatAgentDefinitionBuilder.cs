@@ -1,4 +1,6 @@
-namespace AgentAI;
+using AgentAI.Core.Agents.Definitions;
+
+namespace AgentAI.Core.Agents.Chat;
 
 internal sealed class ChatAgentDefinitionBuilder : IAgentDefinitionBuilder
 {

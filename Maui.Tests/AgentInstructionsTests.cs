@@ -1,4 +1,4 @@
-using AgentAI;
+using AgentAI.Core.Agents;
 using Xunit;
 
 namespace InvestissementsDashboard.Maui.Tests;

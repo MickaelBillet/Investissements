@@ -1,7 +1,9 @@
+using AgentAI.Core.Agents.Definitions;
+using AgentAI.Core.Runtime;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Weather;
 
 internal sealed class WeatherAgentDefinitionBuilder(IWeatherService weatherService) : IAgentDefinitionBuilder
 {

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Messages;
 
 /// <summary>
 /// Economic, financial and geopolitical context at the analysis date, as established by the Context agent

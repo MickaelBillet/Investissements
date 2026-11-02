@@ -1,6 +1,7 @@
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using Microsoft.Agents.AI.Workflows;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Events;
 
 public sealed class ContextRetrievedEvent(PortfolioContext result) : WorkflowEvent(result)
 {

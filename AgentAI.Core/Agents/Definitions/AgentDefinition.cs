@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+using AgentAI.Core.Runtime;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using OpenAI.Responses;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Definitions;
 
 /// <summary>
 /// Static configuration for one agent kind: its instructions, tools, and where its

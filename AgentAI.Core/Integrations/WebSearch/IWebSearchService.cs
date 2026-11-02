@@ -1,6 +1,6 @@
 using InvestissementsDashboard.Shared.Models;
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.WebSearch;
 
 /// <summary>
 /// Searches the public web, so that an agent can ground its answer on facts more recent than its training data.

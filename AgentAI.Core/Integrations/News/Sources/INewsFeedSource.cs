@@ -1,4 +1,6 @@
-namespace AgentAI;
+using AgentAI.Core.Integrations.News.Models;
+
+namespace AgentAI.Core.Integrations.News.Sources;
 
 /// <summary>
 /// One origin of company news. Adding a source means implementing this interface and registering it

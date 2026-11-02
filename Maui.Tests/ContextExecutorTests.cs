@@ -1,4 +1,6 @@
-using AgentAI;
+using AgentAI.Core.Workflows.PortfolioReview.Events;
+using AgentAI.Core.Workflows.PortfolioReview.Executors;
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;

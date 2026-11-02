@@ -1,6 +1,10 @@
 using System.Net;
 using System.Text;
-using AgentAI;
+using AgentAI.Core.Hosting;
+using AgentAI.Core.Integrations.Mcp;
+using AgentAI.Core.Integrations.News;
+using AgentAI.Core.Integrations.News.Models;
+using AgentAI.Core.Integrations.News.Sources;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;

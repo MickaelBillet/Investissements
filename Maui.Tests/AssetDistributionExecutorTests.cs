@@ -1,4 +1,7 @@
-using AgentAI;
+using AgentAI.Core.Workflows.PortfolioReview;
+using AgentAI.Core.Workflows.PortfolioReview.Events;
+using AgentAI.Core.Workflows.PortfolioReview.Executors;
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI.Workflows;
 using Moq;

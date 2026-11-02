@@ -1,4 +1,5 @@
-using AgentAI;
+using AgentAI.Core.Agents.Context;
+using AgentAI.Core.Integrations.WebSearch;
 using InvestissementsDashboard.Shared.Models;
 using Moq;
 using Xunit;

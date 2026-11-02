@@ -1,6 +1,6 @@
 using Microsoft.Agents.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Stock;
 
 /// <summary>
 /// Injects the name of the stock to analyze into the agent's context, so the user only has to type

@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.News.Sources.Yahoo;
 
 /// <summary>
 /// Resolves an ISIN through Yahoo Finance's (undocumented) search endpoint.

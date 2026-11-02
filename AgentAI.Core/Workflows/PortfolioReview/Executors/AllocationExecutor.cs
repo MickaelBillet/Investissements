@@ -1,7 +1,9 @@
+using AgentAI.Core.Workflows.PortfolioReview.Events;
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 
 public sealed class AllocationExecutor(AIAgent agent) : Executor<AnalysisRequest, AllocationResult>("allocation")
 {

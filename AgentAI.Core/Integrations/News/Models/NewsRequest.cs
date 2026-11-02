@@ -1,4 +1,4 @@
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.News.Models;
 
 /// <summary>
 /// What a <see cref="INewsFeedSource"/> is asked to look up.

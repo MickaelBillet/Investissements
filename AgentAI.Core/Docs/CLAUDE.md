@@ -60,6 +60,8 @@ AgentAI.Core/
 └── Docs/                       # ce dossier : CLAUDE.md, diagramme de classes
 ```
 
+Un namespace par dossier, à partir de `AgentAI.Core` (`AgentAI.Core.Agents.News`, `AgentAI.Core.Integrations.Mcp`…) : tout déplacement de fichier s'accompagne de son namespace.
+
 ## 4. Configuration (`AgentAIOptions`)
 
 La bibliothèque **ne lit jamais les variables d'environnement** : un hôte MAUI n'a pas d'environnement de processus significatif, chaque hôte décide d'où viennent les valeurs.

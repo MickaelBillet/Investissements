@@ -1,5 +1,7 @@
 using System.Net;
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Workflows.PortfolioReview;
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Maui.Services;
 using InvestissementsDashboard.Shared.Models;

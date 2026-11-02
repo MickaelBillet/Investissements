@@ -1,7 +1,8 @@
+using AgentAI.Core.Agents;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.Mcp;
 
 /// <summary>
 /// Provides the tools of the InvestZapto MCP server, connecting on first use and owning that connection.

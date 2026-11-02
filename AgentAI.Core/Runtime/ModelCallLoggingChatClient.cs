@@ -1,7 +1,8 @@
+using AgentAI.Core.Agents;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace AgentAI;
+namespace AgentAI.Core.Runtime;
 
 /// <summary>
 /// Logs one line per model call (message count, duration, input/output/reasoning tokens): a stalled agent is

@@ -1,7 +1,7 @@
 using System.Globalization;
 using Microsoft.Agents.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Runtime;
 
 public sealed class DateContextProvider(TimeProvider time) : AIContextProvider
 {

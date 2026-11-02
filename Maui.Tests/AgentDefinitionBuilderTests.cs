@@ -1,4 +1,14 @@
-using AgentAI;
+using AgentAI.Core.Agents.Allocation;
+using AgentAI.Core.Agents.Chat;
+using AgentAI.Core.Agents.Context;
+using AgentAI.Core.Agents.Definitions;
+using AgentAI.Core.Agents.News;
+using AgentAI.Core.Agents.Stock;
+using AgentAI.Core.Agents.Synthesis;
+using AgentAI.Core.Agents.Weather;
+using AgentAI.Core.Integrations.Mcp;
+using AgentAI.Core.Integrations.News;
+using AgentAI.Core.Integrations.WebSearch;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -78,7 +88,7 @@ public class AgentDefinitionBuilderTests
         var definition = await new ContextAgentDefinitionBuilder(_webSearchService.Object).BuildAsync(null, null);
 
         Assert.Equal(InstructionLoader.Load("Context.md"), definition.Instructions);
-        Assert.Equal(AgentAI.WebSearchTool.Name, Assert.Single(definition.Tools!).Name);
+        Assert.Equal(AgentAI.Core.Agents.Context.WebSearchTool.Name, Assert.Single(definition.Tools!).Name);
         Assert.Null(definition.AIContextProviders);
         Assert.Equal(ResponseReasoningEffortLevel.Low, definition.ReasoningEffort);
         Assert.False(definition.KeepHistory);

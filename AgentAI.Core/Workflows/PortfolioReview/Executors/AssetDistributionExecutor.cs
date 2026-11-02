@@ -1,6 +1,8 @@
+using AgentAI.Core.Workflows.PortfolioReview.Events;
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using Microsoft.Agents.AI.Workflows;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 
 /// <summary>
 /// Gathers the geographic and sector distributions of the stocks and bonds, straight from the dashboard Api:

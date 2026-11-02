@@ -2,7 +2,7 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.Mcp;
 
 /// <summary>
 /// Connects to the InvestZapto MCP server over HTTP.

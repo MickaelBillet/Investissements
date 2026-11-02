@@ -1,7 +1,9 @@
+using AgentAI.Core.Workflows.PortfolioReview.Events;
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 
 /// <summary>
 /// Establishes the economic and geopolitical context at the requested date, through the Context agent and its web

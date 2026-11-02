@@ -1,5 +1,5 @@
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.News.Models;
 
 /// <summary>
 /// A single news item as exposed by an RSS feed: headline-level data only, since feeds do not carry

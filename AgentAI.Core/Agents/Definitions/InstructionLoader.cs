@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Definitions;
 
 /// <summary>
 /// Loads agent prompts embedded in this assembly (see <c>Instructions/*.md</c>).

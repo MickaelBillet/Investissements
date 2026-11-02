@@ -1,4 +1,5 @@
-using AgentAI;
+
+using AgentAI.Core.Agents;
 
 namespace InvestissementsDashboard.Maui.Services;
 

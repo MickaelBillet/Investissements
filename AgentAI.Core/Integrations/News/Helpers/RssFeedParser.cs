@@ -1,8 +1,9 @@
 using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
+using AgentAI.Core.Integrations.News.Models;
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.News.Helpers;
 
 /// <summary>
 /// Turns the XML of an RSS 2.0 feed into <see cref="NewsArticle"/>s. Pure: no I/O.

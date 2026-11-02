@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using AgentAI;
+using AgentAI.Core.Integrations.WebSearch;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Logging;
 

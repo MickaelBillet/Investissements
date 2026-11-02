@@ -1,6 +1,6 @@
 using InvestissementsDashboard.Shared.Models;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview;
 
 /// <summary>
 /// Supplies the geographic and sector distributions of an asset class to the portfolio review workflow.

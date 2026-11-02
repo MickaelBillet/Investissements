@@ -1,7 +1,9 @@
+using AgentAI.Core.Agents;
+using AgentAI.Core.Agents.Weather;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace AgentAI;
+namespace AgentAI.Core.Hosting;
 
 /// <summary>
 /// Registers the AgentAI services in a host's dependency injection container (e.g. a MAUI app).

@@ -1,4 +1,5 @@
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Runtime;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Maui.Services;
 using InvestissementsDashboard.Shared.Models;

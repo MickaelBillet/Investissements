@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text;
-using AgentAI;
+using AgentAI.Core.Integrations.News.Sources.Yahoo;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
