@@ -1,5 +1,6 @@
 using System.Net;
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Hosting;
 using InvestissementsDashboard.Maui.Services;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;

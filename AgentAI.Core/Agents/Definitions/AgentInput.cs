@@ -1,4 +1,4 @@
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Definitions;
 
 internal static class AgentInput
 {

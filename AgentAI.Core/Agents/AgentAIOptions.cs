@@ -1,4 +1,4 @@
-namespace AgentAI;
+namespace AgentAI.Core.Agents;
 
 /// <summary>
 /// Host-provided configuration for <see cref="AgentFactory"/>.

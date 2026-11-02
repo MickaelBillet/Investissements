@@ -1,8 +1,9 @@
 using System.ComponentModel;
+using AgentAI.Core.Integrations.WebSearch;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Context;
 
 /// <summary>
 /// Exposes <see cref="IWebSearchService"/> to an agent as the <c>SearchWeb</c> tool, with a cap on the number of searches.

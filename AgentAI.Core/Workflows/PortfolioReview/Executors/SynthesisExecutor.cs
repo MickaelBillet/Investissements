@@ -1,9 +1,11 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using AgentAI.Core.Workflows.PortfolioReview.Events;
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 
 /// <summary>
 /// Has the Synthesis agent combine the allocation, the context and the asset distributions into the review's output.

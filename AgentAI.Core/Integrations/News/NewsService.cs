@@ -1,6 +1,8 @@
+using AgentAI.Core.Integrations.News.Models;
+using AgentAI.Core.Integrations.News.Sources;
 using Microsoft.Extensions.Logging;
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.News;
 
 /// <summary>
 /// Merges the news of every <see cref="INewsFeedSource"/> into one list: most recent first, without

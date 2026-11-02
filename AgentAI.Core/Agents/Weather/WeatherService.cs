@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Weather;
 
 /// <summary>
 /// Simulated weather source (no external dependency).

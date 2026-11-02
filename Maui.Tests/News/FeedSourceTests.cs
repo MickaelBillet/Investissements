@@ -1,4 +1,7 @@
-using AgentAI;
+using AgentAI.Core.Integrations.News.Helpers;
+using AgentAI.Core.Integrations.News.Models;
+using AgentAI.Core.Integrations.News.Sources.Google;
+using AgentAI.Core.Integrations.News.Sources.Yahoo;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;

@@ -1,7 +1,7 @@
 using System.Globalization;
 using Microsoft.Agents.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.News;
 
 /// <summary>
 /// Injects the company (and optional ISIN) to look up, plus today's date and the look-back window,

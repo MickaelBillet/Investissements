@@ -1,5 +1,6 @@
 using System.Net;
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Runtime;
 using InvestissementsDashboard.Client.Services;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.Logging;

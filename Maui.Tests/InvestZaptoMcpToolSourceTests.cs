@@ -1,5 +1,6 @@
 using System.Net;
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Integrations.Mcp;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 

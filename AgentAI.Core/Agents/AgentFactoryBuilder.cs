@@ -1,8 +1,19 @@
+using AgentAI.Core.Agents.Allocation;
+using AgentAI.Core.Agents.Chat;
+using AgentAI.Core.Agents.Context;
+using AgentAI.Core.Agents.Definitions;
+using AgentAI.Core.Agents.News;
+using AgentAI.Core.Agents.Stock;
+using AgentAI.Core.Agents.Synthesis;
+using AgentAI.Core.Agents.Weather;
+using AgentAI.Core.Integrations.Mcp;
+using AgentAI.Core.Integrations.News;
+using AgentAI.Core.Integrations.WebSearch;
 using Azure.AI.Projects;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents;
 
 /// <summary>
 /// Builds <see cref="IAgentFactory"/> instances from the configuration, wiring each agent definition to its services.

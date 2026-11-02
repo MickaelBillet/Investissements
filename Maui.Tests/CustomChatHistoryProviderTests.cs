@@ -1,5 +1,5 @@
 using System.Text.Json;
-using AgentAI;
+using AgentAI.Core.Runtime;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

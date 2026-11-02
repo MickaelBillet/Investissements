@@ -1,5 +1,7 @@
 
-namespace AgentAI;
+using AgentAI.Core.Integrations.News.Models;
+
+namespace AgentAI.Core.Integrations.News;
 
 /// <summary>
 /// Retrieves recent news about a listed company.

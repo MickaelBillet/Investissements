@@ -1,6 +1,7 @@
+using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using Microsoft.Agents.AI.Workflows;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 
 /// <summary>
 /// Entry point of the workflow: a workflow has a single start executor, and the fan-out towards the parallel

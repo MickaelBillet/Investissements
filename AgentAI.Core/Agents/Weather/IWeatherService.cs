@@ -2,7 +2,7 @@
 
 using System.ComponentModel;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Weather;
 
 /// <summary>
 /// Provides weather information, exposed to agents as a tool.

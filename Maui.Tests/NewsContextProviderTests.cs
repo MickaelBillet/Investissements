@@ -1,6 +1,6 @@
 #pragma warning disable MAAI001 // InvokingContext is flagged evaluation-only by the Agent Framework.
 
-using AgentAI;
+using AgentAI.Core.Agents.News;
 using Microsoft.Agents.AI;
 using Moq;
 using Xunit;

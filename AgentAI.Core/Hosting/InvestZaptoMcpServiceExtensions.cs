@@ -1,6 +1,7 @@
+using AgentAI.Core.Integrations.Mcp;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace AgentAI;
+namespace AgentAI.Core.Hosting;
 
 /// <summary>
 /// Registers the client of the InvestZapto MCP server.

@@ -1,7 +1,8 @@
 using System.Globalization;
 using System.Text;
+using AgentAI.Core.Integrations.News.Models;
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.News.Helpers;
 
 /// <summary>
 /// Keeps only the articles whose title names the company. Pure: no I/O.

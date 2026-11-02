@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents;
 
 /// <summary>
 /// Identifies which agent configuration <see cref="AgentFactory"/> should build.

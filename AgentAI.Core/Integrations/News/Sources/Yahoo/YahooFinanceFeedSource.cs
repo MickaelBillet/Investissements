@@ -1,4 +1,7 @@
-namespace AgentAI;
+using AgentAI.Core.Integrations.News.Helpers;
+using AgentAI.Core.Integrations.News.Models;
+
+namespace AgentAI.Core.Integrations.News.Sources.Yahoo;
 
 /// <summary>
 /// Yahoo Finance headline feed, keyed on the ticker resolved from the ISIN. Already scoped to the

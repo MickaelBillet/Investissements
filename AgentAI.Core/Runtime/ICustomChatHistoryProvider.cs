@@ -2,7 +2,7 @@
 
 using Microsoft.Extensions.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Runtime;
 
 /// <summary>
 /// Exposes read access to the chat messages persisted by a custom chat history provider.

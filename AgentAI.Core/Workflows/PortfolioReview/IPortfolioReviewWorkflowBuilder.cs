@@ -1,6 +1,7 @@
+using AgentAI.Core.Agents;
 using Microsoft.Agents.AI.Workflows;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview;
 
 /// <summary>
 /// Assembles the portfolio review workflow from the agents built by an <see cref="IAgentFactory"/>.

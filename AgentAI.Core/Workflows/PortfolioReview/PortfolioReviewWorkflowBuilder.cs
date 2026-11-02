@@ -1,6 +1,8 @@
+using AgentAI.Core.Agents;
+using AgentAI.Core.Workflows.PortfolioReview.Executors;
 using Microsoft.Agents.AI.Workflows;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview;
 
 public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBuilder
 {

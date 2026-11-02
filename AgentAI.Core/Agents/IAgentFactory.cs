@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+using AgentAI.Core.Runtime;
 using Microsoft.Agents.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents;
 
 /// <summary>
 /// Builds an <see cref="AIAgent"/> for a given <see cref="AgentKind"/>.

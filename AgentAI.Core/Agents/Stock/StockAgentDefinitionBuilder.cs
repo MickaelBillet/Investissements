@@ -1,6 +1,8 @@
+using AgentAI.Core.Agents.Definitions;
+using AgentAI.Core.Runtime;
 using Microsoft.Agents.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Stock;
 
 internal sealed class StockAgentDefinitionBuilder(TimeProvider timeProvider) : IAgentDefinitionBuilder
 {

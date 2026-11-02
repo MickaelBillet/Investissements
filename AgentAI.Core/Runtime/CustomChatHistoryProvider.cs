@@ -5,7 +5,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace AgentAI;
+namespace AgentAI.Core.Runtime;
 
 /// <summary>
 /// A <see cref="ChatHistoryProvider"/> that persists the conversation history to a local JSON file,

@@ -1,4 +1,10 @@
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Agents.Definitions;
+using AgentAI.Core.Agents.Weather;
+using AgentAI.Core.Hosting;
+using AgentAI.Core.Integrations.Mcp;
+using AgentAI.Core.Integrations.News;
+using AgentAI.Core.Integrations.WebSearch;
 using Azure.AI.Projects;
 using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;

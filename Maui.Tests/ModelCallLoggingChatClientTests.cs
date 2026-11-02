@@ -1,4 +1,5 @@
-using AgentAI;
+using AgentAI.Core.Agents;
+using AgentAI.Core.Runtime;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Moq;

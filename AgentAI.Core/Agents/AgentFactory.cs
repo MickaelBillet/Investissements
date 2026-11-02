@@ -1,10 +1,13 @@
+using AgentAI.Core.Agents.Definitions;
+using AgentAI.Core.Integrations.Mcp;
+using AgentAI.Core.Runtime;
 using Azure.AI.Projects;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using OpenAI.Responses;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents;
 
 #pragma warning disable OPENAI001 // OpenAI.Responses types are for evaluation purposes only and subject to change.
 

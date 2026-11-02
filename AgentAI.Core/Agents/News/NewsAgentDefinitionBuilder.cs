@@ -1,8 +1,11 @@
 using System.ComponentModel;
+using AgentAI.Core.Agents.Definitions;
+using AgentAI.Core.Integrations.News;
+using AgentAI.Core.Runtime;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.News;
 
 internal sealed class NewsAgentDefinitionBuilder(INewsService newsService, TimeProvider timeProvider) : IAgentDefinitionBuilder
 {

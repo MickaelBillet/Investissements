@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Messages;
 
 /// <summary>
 /// One orientation of the synthesis report (structured output of <c>Synthesis.md</c>).

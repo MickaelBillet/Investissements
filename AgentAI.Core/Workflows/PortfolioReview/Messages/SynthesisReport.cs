@@ -1,4 +1,4 @@
-namespace AgentAI;
+namespace AgentAI.Core.Workflows.PortfolioReview.Messages;
 
 public record SynthesisReport(
     IReadOnlyList<string> Warnings,

@@ -1,5 +1,5 @@
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.Mcp;
 
 /// <summary>
 /// Buffers outgoing request bodies so they are sent with an explicit <c>Content-Length</c> instead

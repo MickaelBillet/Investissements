@@ -1,6 +1,8 @@
+using AgentAI.Core.Integrations.News.Helpers;
+using AgentAI.Core.Integrations.News.Models;
 using Microsoft.Extensions.Logging;
 
-namespace AgentAI;
+namespace AgentAI.Core.Integrations.News.Sources.Google;
 
 /// <summary>
 /// Google News search feed, keyed on the company name.

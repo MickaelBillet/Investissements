@@ -1,7 +1,12 @@
+using AgentAI.Core.Integrations.News;
+using AgentAI.Core.Integrations.News.Helpers;
+using AgentAI.Core.Integrations.News.Sources;
+using AgentAI.Core.Integrations.News.Sources.Google;
+using AgentAI.Core.Integrations.News.Sources.Yahoo;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace AgentAI;
+namespace AgentAI.Core.Hosting;
 
 /// <summary>
 /// Registers the company-news feature (<see cref="INewsService"/> and its feed sources).

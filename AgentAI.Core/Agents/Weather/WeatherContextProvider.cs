@@ -1,6 +1,6 @@
 using Microsoft.Agents.AI;
 
-namespace AgentAI;
+namespace AgentAI.Core.Agents.Weather;
 
 /// <summary>
 /// Injects the requested city into the agent's context, so the user only has to type the city name
