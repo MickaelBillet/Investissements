@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <!-- Embedded rather than copied: a MAUI host has no writable/predictable base directory to read them from. -->
-    <EmbeddedResource Include="Instructions\**\*.md" LogicalName="Instructions.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Agents\**\*.md" LogicalName="Instructions.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>
