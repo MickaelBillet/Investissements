@@ -71,13 +71,11 @@ public sealed class McpFunction
     /// </summary>
     private bool IsAuthorized(HttpRequest req)
     {
+        // An unset key must never open the endpoint: forgetting the setting would expose the portfolio.
         var expectedKey = _configuration["MCP_API_KEY"];
-        if (string.IsNullOrEmpty(expectedKey))
-            return true;
-
         var providedKey = req.Headers["x-mcp-api-key"].FirstOrDefault()
                        ?? req.Query["key"].FirstOrDefault();
-        if (providedKey == expectedKey)
+        if (!string.IsNullOrEmpty(expectedKey) && providedKey == expectedKey)
             return true;
 
         // An unset password must never match a missing header.

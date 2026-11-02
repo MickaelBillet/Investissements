@@ -139,14 +139,40 @@ public class McpFunctionTests
     }
 
     [Fact]
-    public async Task McpEndpoint_NoConfiguredKey_AllowsRequest()
+    public async Task McpEndpoint_NoConfiguredKey_ReturnsUnauthorized()
+    {
+        var mock = new Mock<IMcpService>();
+
+        var body = """{"jsonrpc":"2.0","method":"tools/list"}""";
+        var result = await CreateFunction(mock, configuredKey: null).McpEndpoint(MockRequest(apiKey: null, body), CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result);
+        mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("", "any-key")]
+    public async Task McpEndpoint_NoConfiguredKey_RejectsAnyProvidedKey(string? configuredKey, string providedKey)
+    {
+        var mock = new Mock<IMcpService>();
+
+        var result = await CreateFunction(mock, configuredKey).McpEndpoint(MockRequest(apiKey: providedKey), CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result);
+        mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task McpEndpoint_NoConfiguredKey_CorrectDashboardPassword_DelegatesToService()
     {
         var mock = new Mock<IMcpService>();
         mock.Setup(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new JsonRpcResponse());
 
         var body = """{"jsonrpc":"2.0","method":"tools/list"}""";
-        var result = await CreateFunction(mock, configuredKey: null).McpEndpoint(MockRequest(apiKey: null, body), CancellationToken.None);
+        var result = await CreateFunction(mock, configuredKey: null, "dashboard-pwd").McpEndpoint(MockRequest(body: body, password: "dashboard-pwd"), CancellationToken.None);
 
         Assert.IsType<ContentResult>(result);
         mock.Verify(s => s.HandleAsync(It.IsAny<JsonRpcRequest>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -160,7 +186,7 @@ public class McpFunctionTests
         var mock = new Mock<IMcpService>();
 
         var body = $$"""{"jsonrpc":"2.0","method":"{{method}}"}""";
-        var result = await CreateFunction(mock).McpEndpoint(MockRequest(body: body), CancellationToken.None);
+        var result = await CreateFunction(mock, "secret").McpEndpoint(MockRequest("secret", body), CancellationToken.None);
 
         var status = Assert.IsType<StatusCodeResult>(result);
         Assert.Equal(StatusCodes.Status202Accepted, status.StatusCode);
