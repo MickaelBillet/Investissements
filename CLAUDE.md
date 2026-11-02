@@ -147,6 +147,7 @@ Le bouton "Synchroniser" du Client déclenche `snapshotQuotidien()` (le même ET
 - Protection par clé partagée : `doGet` compare `?key=` à la Script Property `SYNC_SECRET_KEY` (jamais commitée dans `Scripts/`, contrairement à `Config.gs`) — pas de protection Google (déploiement "Anyone")
 - Flux : `Client` → `POST /api/sync` (protégé par `DashboardAuthMiddleware`, mot de passe dashboard) → `SyncFunction`/`SyncService` (Api) → `GET .../exec?key=...` (Apps Script) → `snapshotQuotidien()`
 - Le recalcul immédiat de la ligne `Snapshot` du jour met à jour le KPI "Capital net engagé" sans attendre le lendemain 06h00
+- Après un succès, l'Api vide son cache (actifs, snapshots) et le Client recharge les pages déjà ouvertes, sans recharger le navigateur
 - Le compte de service Azure reste lecteur uniquement — aucun changement de son périmètre ; seul Apps Script écrit, comme avant
 - Config Api (App Settings, jamais commitées) : `APPS_SCRIPT_SYNC_URL`, `APPS_SCRIPT_SYNC_KEY` — voir `Api/Docs/CLAUDE.md` §5
 

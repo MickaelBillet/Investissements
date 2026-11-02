@@ -1057,4 +1057,73 @@ public class DashboardViewModelTests
 
         Assert.Equal(expected, vm.GetSelectionTitle(vm.AssetClassPanel));
     }
+
+    // ── ReloadAsync ──────────────────────────────
+
+    [Fact]
+    public async Task ReloadAsync_AfterLoad_ExposesNewDataAndNotifiesWithoutTheLoadingScreen()
+    {
+        var mock = MockWithAssets(TestData.Asset(currentTotal: 100m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        var release = new TaskCompletionSource<IReadOnlyList<AssetDto>>();
+        mock.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).Returns(release.Task);
+        var notified = 0;
+        vm.DataChanged += () => notified++;
+
+        var reload = vm.ReloadAsync();
+        Assert.False(vm.IsLoading);
+        Assert.Equal(1, vm.AssetCount);
+        release.SetResult([TestData.Asset(currentTotal: 100m), TestData.Asset(currentTotal: 200m)]);
+        await reload;
+
+        Assert.Equal(2, vm.AssetCount);
+        Assert.Equal(1, vm.DataVersion);
+        Assert.Equal(1, notified);
+    }
+
+    [Fact]
+    public async Task ReloadAsync_BeforeFirstLoad_DoesNothing()
+    {
+        var mock = MockWithAssets();
+        var vm = CreateVm(mock);
+
+        await vm.ReloadAsync();
+
+        mock.Verify(s => s.GetAssetsAsync(It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal(0, vm.DataVersion);
+    }
+
+    [Fact]
+    public async Task ReloadAsync_WhenItFails_KeepsTheDataAndThrows()
+    {
+        var mock = MockWithAssets(TestData.Asset(currentTotal: 100m));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        mock.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException("indisponible"));
+        var notified = 0;
+        vm.DataChanged += () => notified++;
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => vm.ReloadAsync());
+
+        Assert.Equal(1, vm.AssetCount);
+        Assert.Null(vm.ErrorMessage);
+        Assert.Equal(0, notified);
+    }
+
+    [Fact]
+    public async Task ReloadAsync_WhenGeographyFails_KeepsTheCurrentDonut()
+    {
+        var mock = MockWithAssets(TestData.Asset(currentTotal: 100m));
+        mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new DistributionDto("Europe", 100m, 100m)]);
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        mock.Setup(s => s.GetGeographyDistributionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("indisponible"));
+
+        await vm.ReloadAsync();
+
+        Assert.Equal("Europe", Assert.Single(vm.GetGeographyForClass("Stocks")).Name);
+    }
 }

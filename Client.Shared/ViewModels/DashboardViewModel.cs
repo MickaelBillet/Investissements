@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace InvestissementsDashboard.Client.ViewModels;
 
 public class DashboardViewModel(IPortfolioService portfolioService, ILocalizationService localizationService,
-    IPanelDistributionService panelDistributionService, ILogger<DashboardViewModel> logger)
+    IPanelDistributionService panelDistributionService, ILogger<DashboardViewModel> logger) : IRefreshableViewModel
 {
     private IReadOnlyList<AssetDto>        _assets           = [];
     private IReadOnlyList<DistributionDto> _geoStocks        = [];
@@ -24,6 +24,12 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
     public bool         IsLoading     { get; private set; } = true;
     public string?      ErrorMessage  { get; private set; }
     public int          AssetCount    => ActiveAssets().Count();
+
+    /// <summary>Changes on each reload: lets the page recreate its charts, which ApexCharts does not redraw when only their data changes.</summary>
+    public int DataVersion { get; private set; }
+
+    /// <summary>Raised after a reload, for the page to display the new data.</summary>
+    public event Action? DataChanged;
 
     public PanelState AssetClassPanel  { get; } = new(PanelType.AssetClass);
     public PanelState SupportTypePanel { get; } = new(PanelType.SupportType);
@@ -75,15 +81,42 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         ErrorMessage = null;
         try
         {
+            await LoadDataAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Dashboard data could not be loaded.");
+            ErrorMessage = string.Format(localizationService.Translate("Error_LoadingData"), ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    // IsLoading is left untouched: the current data stays on screen during the reload.
+    public async Task ReloadAsync(CancellationToken ct = default)
+    {
+        if (IsLoading) return;
+
+        await LoadDataAsync(ct);
+        ErrorMessage = null;
+        DataVersion++;
+        DataChanged?.Invoke();
+    }
+
+    // Nothing is assigned until every required read has succeeded: a failed reload leaves the current data intact.
+    private async Task LoadDataAsync(CancellationToken ct)
+    {
             var assetsTask      = portfolioService.GetAssetsAsync(ct);
             var snapshotTask    = portfolioService.GetLastSnapshotAsync(ct);
             var metricsTask     = portfolioService.GetMetricsAsync(ct);
             var historyTask     = portfolioService.GetSnapshotHistoryAsync(ct);
             var performanceTask = portfolioService.GetIndexedHistoryAsync(ct);
-            var geoStocksTask    = LoadDistributionAsync(portfolioService.GetGeographyDistributionAsync, "Geography", AssetClassNames.Stocks, ct);
-            var geoBondsTask     = LoadDistributionAsync(portfolioService.GetGeographyDistributionAsync, "Geography", AssetClassNames.Bonds, ct);
-            var sectorStocksTask = LoadDistributionAsync(portfolioService.GetSectorDistributionAsync, "Sector", AssetClassNames.Stocks, ct);
-            var sectorBondsTask  = LoadDistributionAsync(portfolioService.GetSectorDistributionAsync, "Sector", AssetClassNames.Bonds, ct);
+            var geoStocksTask    = LoadDistributionAsync(portfolioService.GetGeographyDistributionAsync, "Geography", AssetClassNames.Stocks, _geoStocks, ct);
+            var geoBondsTask     = LoadDistributionAsync(portfolioService.GetGeographyDistributionAsync, "Geography", AssetClassNames.Bonds, _geoBonds, ct);
+            var sectorStocksTask = LoadDistributionAsync(portfolioService.GetSectorDistributionAsync, "Sector", AssetClassNames.Stocks, _sectorStocks, ct);
+            var sectorBondsTask  = LoadDistributionAsync(portfolioService.GetSectorDistributionAsync, "Sector", AssetClassNames.Bonds, _sectorBonds, ct);
             var assetTypeRefTask = portfolioService.GetAssetTypeReferenceAsync(ct);
             await Task.WhenAll(assetsTask, snapshotTask, metricsTask, historyTask, performanceTask,
                                geoStocksTask, geoBondsTask, sectorStocksTask, sectorBondsTask, assetTypeRefTask);
@@ -97,22 +130,13 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
             _sectorStocks       = await sectorStocksTask;
             _sectorBonds        = await sectorBondsTask;
             _assetTypeRef       = await assetTypeRefTask;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Dashboard data could not be loaded.");
-            ErrorMessage = string.Format(localizationService.Translate("Error_LoadingData"), ex.Message);
-        }
-        finally
-        {
-            IsLoading = false;
-        }
     }
 
     // The geography and sector donuts are secondary: their failure must not block the rest of the dashboard, so it
-    // leaves them empty instead of failing the whole load — but it is logged, an empty donut alone says nothing.
+    // keeps their current values (empty on the first load) instead of failing the whole load — but it is logged, an
+    // empty donut alone says nothing.
     private async Task<IReadOnlyList<DistributionDto>> LoadDistributionAsync(
-        Func<string, CancellationToken, Task<IReadOnlyList<DistributionDto>>> load, string kind, string assetClass, CancellationToken ct)
+        Func<string, CancellationToken, Task<IReadOnlyList<DistributionDto>>> load, string kind, string assetClass, IReadOnlyList<DistributionDto> current, CancellationToken ct)
     {
         try
         {
@@ -120,8 +144,8 @@ public class DashboardViewModel(IPortfolioService portfolioService, ILocalizatio
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "{Kind} distribution of {AssetClass} could not be loaded; its donut stays empty.", kind, assetClass);
-            return [];
+            logger.LogWarning(ex, "{Kind} distribution of {AssetClass} could not be loaded; its donut keeps its current values.", kind, assetClass);
+            return current;
         }
     }
 

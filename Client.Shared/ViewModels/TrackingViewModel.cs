@@ -4,11 +4,17 @@ using InvestissementsDashboard.Shared.Models;
 
 namespace InvestissementsDashboard.Client.ViewModels;
 
-public class TrackingViewModel(IPortfolioService portfolioService, ILocalizationService localizationService)
+public class TrackingViewModel(IPortfolioService portfolioService, ILocalizationService localizationService) : IRefreshableViewModel
 {
     public bool    IsLoading         { get; private set; } = true;
     public string? HistoryError      { get; private set; }
     public string? BondScheduleError { get; private set; }
+
+    /// <summary>Changes on each reload: lets the page recreate its charts, which ApexCharts does not redraw when only their data changes.</summary>
+    public int DataVersion { get; private set; }
+
+    /// <summary>Raised after a reload, for the page to display the new data.</summary>
+    public event Action? DataChanged;
 
     public IReadOnlyList<IndexedPoint> ROIC_Series { get; private set; } = [];
     public IReadOnlyList<IndexedPoint> LifeStrategySeries { get; private set; } = [];
@@ -70,14 +76,37 @@ public class TrackingViewModel(IPortfolioService portfolioService, ILocalization
         IsLoading = false;
     }
 
+    // IsLoading is left untouched: the current data stays on screen during the reload.
+    public async Task ReloadAsync(CancellationToken ct = default)
+    {
+        if (IsLoading) return;
+
+        var historyTask = portfolioService.GetIndexedHistoryAsync(ct);
+        var scheduleTask = portfolioService.GetBondScheduleAsync(ct);
+        await Task.WhenAll(historyTask, scheduleTask);
+
+        ApplyHistory(await historyTask);
+        BondSchedule = await scheduleTask;
+        HistoryError = null;
+        BondScheduleError = null;
+        // The selected period belongs to the previous data.
+        SelectedPeriodEntry = null;
+        DataVersion++;
+        DataChanged?.Invoke();
+    }
+
+    private void ApplyHistory(IReadOnlyList<PerformancePointDto> data)
+    {
+        ROIC_Series = data.Select(p => new IndexedPoint(p.Date, p.ROIC)).ToList();
+        LifeStrategySeries = data.Where(p => p.LifeStrategy.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy!.Value)).ToList();
+        MsciWorldSeries    = data.Where(p => p.MsciWorld.HasValue).Select(p => new IndexedPoint(p.Date, p.MsciWorld!.Value)).ToList();
+    }
+
     private async Task LoadHistoryAsync(CancellationToken ct)
     {
         try
         {
-            var data = await portfolioService.GetIndexedHistoryAsync(ct);
-            ROIC_Series = data.Select(p => new IndexedPoint(p.Date, p.ROIC)).ToList();
-            LifeStrategySeries = data.Where(p => p.LifeStrategy.HasValue).Select(p => new IndexedPoint(p.Date, p.LifeStrategy!.Value)).ToList();
-            MsciWorldSeries    = data.Where(p => p.MsciWorld.HasValue).Select(p => new IndexedPoint(p.Date, p.MsciWorld!.Value)).ToList();
+            ApplyHistory(await portfolioService.GetIndexedHistoryAsync(ct));
         }
         catch (Exception ex)
         {

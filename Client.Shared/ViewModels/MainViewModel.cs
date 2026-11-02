@@ -7,7 +7,7 @@ namespace InvestissementsDashboard.Client.ViewModels;
 /// Presentation logic of <c>MainLayout</c>: the manual synchronization (and the message that reports its outcome), the logout
 /// and whether the agent entries are shown (only when the host provides <see cref="IAgentRunner"/> and <see cref="IPortfolioReviewRunner"/>, i.e. MAUI).
 /// </summary>
-public class MainViewModel(ISyncService syncService, ISessionService sessionService, ILocalizationService localizer, ILogger<MainViewModel> logger, IPortfolioReviewRunner? reviewRunner = null)
+public class MainViewModel(ISyncService syncService, ISessionService sessionService, ILocalizationService localizer, ILogger<MainViewModel> logger, IEnumerable<IRefreshableViewModel> refreshableViewModels, IPortfolioReviewRunner? reviewRunner = null)
 {
     /// <summary>Whether the analysis entry is shown: only the MAUI host registers an <see cref="IPortfolioReviewRunner"/>.</summary>
     public bool IsAnalysisAvailable => reviewRunner is not null;
@@ -35,6 +35,11 @@ public class MainViewModel(ISyncService syncService, ISessionService sessionServ
                 : string.IsNullOrEmpty(result.ErrorMessage)
                     ? localizer.Translate("Sync_Error")
                     : $"{localizer.Translate("Sync_Error")} — {result.ErrorMessage}";
+
+            if (result.Success)
+            {
+                await ReloadPagesAsync(ct);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -45,6 +50,21 @@ public class MainViewModel(ISyncService syncService, ISessionService sessionServ
         finally
         {
             IsSyncing = false;
+        }
+    }
+
+    // Awaited before the outcome is reported: "synchronized" must not appear while the screen still shows the old values.
+    private async Task ReloadPagesAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.WhenAll(refreshableViewModels.Select(vm => vm.ReloadAsync(ct)));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "The data could not be reloaded after the synchronization");
+            IsSyncSuccess = false;
+            SyncMessage = $"{localizer.Translate("Sync_RefreshError")} — {ex.Message}";
         }
     }
 }

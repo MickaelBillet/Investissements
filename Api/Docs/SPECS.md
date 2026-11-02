@@ -1,7 +1,7 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 2.5 — `auth/verify` vérifie le mot de passe ; `/api/mcp` refusé si `MCP_API_KEY` n'est pas configurée ; documentation alignée sur le code
+**Version :** 2.6 — le cache des actifs et des snapshots est vidé après une synchronisation réussie
 **Date :** 2026-11-02
 
 ---
@@ -423,7 +423,7 @@ En local : définir `MCP_API_KEY` dans `local.settings.json` (gitignorée) ou da
 
 ### 2.12 `POST /api/sync`
 
-Déclenche la synchronisation manuelle : l'Api appelle le Web App Apps Script (`Scripts/SyncWebApp.gs`) qui exécute `snapshotQuotidien()` — même ETL que le trigger de 06h00, ligne `Snapshot` du jour incluse (le KPI « Capital net engagé » est donc à jour immédiatement). Le compte de service Azure reste lecteur seul ; seul Apps Script écrit.
+Déclenche la synchronisation manuelle : l'Api appelle le Web App Apps Script (`Scripts/SyncWebApp.gs`) qui exécute `snapshotQuotidien()` — même ETL que le trigger de 06h00, ligne `Snapshot` du jour incluse (le KPI « Capital net engagé » est donc à jour immédiatement). Le compte de service Azure reste lecteur seul ; seul Apps Script écrit. En cas de succès, l'Api vide son cache des actifs et des snapshots : les lectures suivantes renvoient les nouvelles valeurs (limite en cas de plusieurs instances : `Api/Docs/CLAUDE.md` §8).
 
 **Requête :** aucun corps. **Réponse `200`** (toujours, y compris en cas d'échec fonctionnel) :
 ```json

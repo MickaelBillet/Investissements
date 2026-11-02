@@ -27,6 +27,12 @@ internal sealed class SnapshotService : ISnapshotService
         _logger       = logger;
     }
 
+    public void InvalidateCache()
+    {
+        _cache.Remove(LastSnapshotCacheKey);
+        _cache.Remove(HistoryCacheKey);
+    }
+
     // Single-flight cache: PortfolioMetricsService and the dashboard's own snapshot
     // widget both request the last snapshot concurrently — avoid firing it twice.
     public async Task<SnapshotDto?> GetLastAsync(CancellationToken ct = default)

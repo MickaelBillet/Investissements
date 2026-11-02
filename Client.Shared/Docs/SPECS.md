@@ -1,7 +1,7 @@
 # SPECS.md — Client.Shared (dashboard partagé WASM + MAUI)
 
 **Statut :** Implémenté  
-**Version :** 1.8  
+**Version :** 1.9  
 **Date :** 2026-11-02
 
 ---
@@ -203,7 +203,7 @@ Barre en haut de page : logo + titre, liens **Portefeuille** (`/`), **Suivi** (`
 | Entrée | Action |
 |---|---|
 | Masquer / Afficher les montants | Bascule le mode confidentialité (§7) |
-| Synchroniser | Relance l'ETL via `POST /api/sync` ; spinner pendant l'appel, puis notification de succès (avec le nombre d'actifs ajoutés s'il est > 0) ou d'erreur |
+| Synchroniser | Relance l'ETL via `POST /api/sync`, puis recharge les données des pages ouvertes sans recharger le navigateur : l'écran actuel reste affiché, avec un spinner dans le menu. Notification ensuite : succès (avec le nombre d'actifs ajoutés s'il est > 0) ou erreur. Si seul le rechargement échoue, l'écran garde ses données et une erreur le signale |
 | Documentation | Ouvre `docs/presentation.pdf` du site (lien absolu construit depuis l'URL de l'Api — nouvel onglet / navigateur externe) |
 | Déconnexion | Efface la session et revient à l'écran de connexion |
 

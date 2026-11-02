@@ -65,14 +65,14 @@ Client.Shared/
 │                    BondScheduleDetailTable.razor, LoginGate.razor,
 │                    Dialogs/AgentPickerDialog.razor, Dialogs/AgentResultDialog.razor
 ├── Utils/         → DistributionCalculator.cs, VariationCalculator.cs, GeographySectorFilter.cs, ClientOptions.cs, LocalStorageKeyValueStore.cs
-├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs, AnalysisViewModel.cs
+├── ViewModels/    → IRefreshableViewModel.cs, DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs, AnalysisViewModel.cs
 ├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi), Analysis.razor (/analyse, MAUI uniquement)
 ├── wwwroot/       → css/app.css, icon.svg (servis sous _content/InvestissementsDashboard.Client.Shared/)
 └── Docs/          → CLAUDE.md, SPECS.md, client-shared-class-diagram.drawio/.png (ce dossier)
 
 Client.Tests/      (xUnit + bUnit, référence Client.Shared)
 ├── Components/    → KpiHeader, AssetTable, DistributionTable, DrillDownDonut, HistoryChart,
-│                    BondScheduleChart, BondScheduleDetailTable, LoginGate, AgentPickerDialog, AgentResultDialog, Analysis
+│                    BondScheduleChart, BondScheduleDetailTable, LoginGate, AgentPickerDialog, AgentResultDialog, Analysis, RefreshAfterSync
 ├── Extensions/    → DecimalExtensionsTests, ServiceCollectionExtensionsTests
 ├── Helpers/       → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + mocks)
 ├── Models/        → PanelStateTests
@@ -241,7 +241,9 @@ Layout responsive (`MudGrid`/`MudItem xs="12" md="X"`) : graphique en `md="12"` 
 
 ### 7.8 Synchronisation manuelle — MainViewModel / ISyncService
 
-Le menu « ⋮ » de `MainLayout` contient l'entrée « Synchroniser » : `MainViewModel.SyncAsync()` → `ISyncService` → `POST /api/sync` (voir `Api/Docs/SPECS.md` §2.12). `IsSyncing` désactive l'entrée et affiche un `MudProgressCircular` pendant l'appel. Le `MainViewModel` choisit le message localisé (`SyncMessage`, `IsSyncSuccess`) : succès (`Sync_Success_WithAdded` si `AddedCount > 0`, sinon `Sync_Success_NoAdded`) ou erreur (`Sync_Error` + message de l'Api ou de l'exception, journalisée). `MainLayout` se contente de l'afficher dans un `ISnackbar`. Le `MainViewModel` ne porte aucune logique de rafraîchissement : les KPI se mettent à jour au rechargement.
+Le menu « ⋮ » de `MainLayout` contient l'entrée « Synchroniser » : `MainViewModel.SyncAsync()` → `ISyncService` → `POST /api/sync` (voir `Api/Docs/SPECS.md` §2.12). `IsSyncing` désactive l'entrée et affiche un `MudProgressCircular` pendant l'appel. Le `MainViewModel` choisit le message localisé (`SyncMessage`, `IsSyncSuccess`) : succès (`Sync_Success_WithAdded` si `AddedCount > 0`, sinon `Sync_Success_NoAdded`) ou erreur (`Sync_Error` + message de l'Api ou de l'exception, journalisée). `MainLayout` se contente de l'afficher dans un `ISnackbar`. Après un succès, `MainViewModel` recharge les pages via les `IRefreshableViewModel` injectés (`DashboardViewModel`, `TrackingViewModel`, mêmes instances que les pages) et n'annonce le résultat qu'à la fin : `IsSyncing` couvre aussi le rechargement. Si le rechargement échoue, le message est `Sync_RefreshError` et l'écran garde ses données.
+
+`ReloadAsync` ne touche pas à `IsLoading` : l'écran actuel reste affiché, et ne fait rien si la page n'a jamais été chargée, car son premier chargement lira des données fraîches. Les données ne sont remplacées qu'une fois toutes les lectures réussies. Les pages s'abonnent à `DataChanged` pour se réafficher, et `DataVersion` entre dans le `@key` des graphiques, qu'ApexCharts ne redessine pas sur un simple changement de données (§7.3). Le drill-down du dashboard est conservé ; la période sélectionnée dans l'échéancier est effacée.
 
 ### 7.9 AssetTable — colonne coefficient de zone
 

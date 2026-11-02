@@ -47,6 +47,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AssetViewModel>();
         services.AddScoped<AgentViewModel>();
         services.AddScoped<AnalysisViewModel>();
+        // The same instances as the pages: MainViewModel reloads what they display.
+        services.AddScoped<IRefreshableViewModel>(sp => sp.GetRequiredService<DashboardViewModel>());
+        services.AddScoped<IRefreshableViewModel>(sp => sp.GetRequiredService<TrackingViewModel>());
 
         return services;
     }

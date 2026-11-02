@@ -47,6 +47,18 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public void AddInvestissementsClient_RefreshableViewModels_AreThePagesInstances()
+    {
+        using var provider = BuildProvider(new Uri("https://example.test/"));
+        using var scope = provider.CreateScope();
+
+        var refreshable = scope.ServiceProvider.GetServices<IRefreshableViewModel>().ToList();
+
+        Assert.Contains(scope.ServiceProvider.GetRequiredService<DashboardViewModel>(), refreshable);
+        Assert.Contains(scope.ServiceProvider.GetRequiredService<TrackingViewModel>(), refreshable);
+    }
+
+    [Fact]
     public void AddInvestissementsClient_ExposesDocumentationUriRelativeToApiBase()
     {
         using var provider = BuildProvider(new Uri("https://example.test/"));

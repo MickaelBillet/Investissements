@@ -286,4 +286,19 @@ public class AssetsServiceTests
 
         mock.Verify(s => s.GetRangeAsync("AssetType", It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task InvalidateCache_AfterARead_MakesTheNextReadHitTheSheet()
+    {
+        var mock = MockAssetSheet();
+        var service = CreateService(mock);
+        await service.GetAllAsync();
+        await service.GetAllAsync();
+        mock.Verify(s => s.GetRangeAsync("Asset", It.IsAny<CancellationToken>()), Times.Once);
+
+        service.InvalidateCache();
+        await service.GetAllAsync();
+
+        mock.Verify(s => s.GetRangeAsync("Asset", It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
 }
