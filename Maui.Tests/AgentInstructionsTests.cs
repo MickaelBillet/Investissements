@@ -6,9 +6,9 @@ namespace InvestissementsDashboard.Maui.Tests;
 public class AgentInstructionsTests
 {
     [Theory]
-    [InlineData("ActualitesSociete.md")]
-    [InlineData("AnalyseAction.md")]
-    [InlineData("AllocationPortefeuille.md")]
+    [InlineData("News.md")]
+    [InlineData("Stock.md")]
+    [InlineData("Allocation.md")]
     [InlineData("Context.md")]
     [InlineData("Synthesis.md")]
     public void Instructions_SingleTurnRule_IsPresent(string fileName)
@@ -34,7 +34,7 @@ public class AgentInstructionsTests
     [Fact]
     public void Instructions_Allocation_RequiresTheWatchlistTool()
     {
-        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.AllocationPortefeuille.md");
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.Allocation.md");
         Assert.NotNull(stream);
         using var reader = new StreamReader(stream);
 

@@ -12,7 +12,7 @@ namespace AgentAI.Core.Integrations.Mcp;
 /// server. The connection is kept for later agents built by the same factory, then released by <see cref="DisposeAsync"/>.
 /// A failed connection is not kept, so the next call tries again.
 /// </remarks>
-internal sealed class InvestZaptoMcpToolSource(InvestZaptoMcpClient connector, string? endpoint) : IAsyncDisposable
+internal sealed class InvestZaptoMcpToolSource(InvestZaptoMcpConnector connector, string? endpoint) : IAsyncDisposable
 {
     private McpClient? _client;
 

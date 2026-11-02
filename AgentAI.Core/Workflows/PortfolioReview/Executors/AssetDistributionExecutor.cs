@@ -8,7 +8,7 @@ namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 /// Gathers the geographic and sector distributions of the stocks and bonds, straight from the dashboard Api:
 /// no agent is involved, so the figures are exactly those the dashboard shows.
 /// </summary>
-public sealed class AssetDistributionExecutor(IAssetDistributionSource source) : Executor<AnalysisRequest, DistributionResult>("distribution")
+internal sealed class AssetDistributionExecutor(IAssetDistributionSource source) : Executor<AnalysisRequest, DistributionResult>("distribution")
 {
     // The only classes the Api distributes by geography and sector.
     private static readonly string[] AssetClasses = ["Stocks", "Bonds"];

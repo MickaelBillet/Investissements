@@ -21,7 +21,7 @@ internal sealed class NewsAgentDefinitionBuilder(INewsService newsService, TimeP
         var company = AgentInput.Require(contextInput, "un nom de société");
 
         return Task.FromResult(new AgentDefinition(
-            Instructions: InstructionLoader.Load("ActualitesSociete.md"),
+            Instructions: InstructionLoader.Load("News.md"),
             Tools: [this.CreateNewsTool()],
             HistoryFileName: "chat-history-news.json",
             AIContextProviders: new CompositeContextProvider(new AIContextProvider[]

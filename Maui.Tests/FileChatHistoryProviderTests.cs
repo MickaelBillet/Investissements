@@ -6,12 +6,12 @@ using Xunit;
 
 namespace InvestissementsDashboard.Maui.Tests;
 
-public sealed class CustomChatHistoryProviderTests : IDisposable
+public sealed class FileChatHistoryProviderTests : IDisposable
 {
     private readonly string _directory = Path.Combine(Path.GetTempPath(), $"history-tests-{Guid.NewGuid():N}");
     private readonly string _filePath;
 
-    public CustomChatHistoryProviderTests()
+    public FileChatHistoryProviderTests()
     {
         Directory.CreateDirectory(_directory);
         _filePath = Path.Combine(_directory, "chat-history.json");
@@ -20,8 +20,8 @@ public sealed class CustomChatHistoryProviderTests : IDisposable
         File.WriteAllText(_filePath, JsonSerializer.Serialize(previousRun, AIJsonUtilities.DefaultOptions));
     }
 
-    private CustomChatHistoryProvider Create(bool loadExisting) =>
-        new(_filePath, NullLogger<CustomChatHistoryProvider>.Instance, loadExisting);
+    private FileChatHistoryProvider Create(bool loadExisting) =>
+        new(_filePath, NullLogger<FileChatHistoryProvider>.Instance, loadExisting);
 
     [Fact]
     public void Constructor_LoadExistingTrue_LoadsFile()

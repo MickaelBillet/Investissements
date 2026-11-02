@@ -16,7 +16,7 @@ public class AgentRunnerTests
 {
     private readonly Mock<IAgentConfigSource> _config = new();
     private readonly Mock<IAgentFactory> _factory = new();
-    private readonly Mock<ICustomChatHistoryProvider> _history = new();
+    private readonly Mock<IFileChatHistoryProvider> _history = new();
     private readonly Mock<AIAgent> _agent = new();
     private AgentAIOptions? _receivedOptions;
 
@@ -110,7 +110,7 @@ public class AgentRunnerTests
     {
         _factory
             .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .Returns(new TaskCompletionSource<(AIAgent, ICustomChatHistoryProvider)>().Task);
+            .Returns(new TaskCompletionSource<(AIAgent, IFileChatHistoryProvider)>().Task);
 
         var ex = await Assert.ThrowsAsync<TimeoutException>(
             () => CreateRunner(TimeSpan.FromMilliseconds(50)).RunAsync(AgentChoice.Stock, "Air Liquide", null));

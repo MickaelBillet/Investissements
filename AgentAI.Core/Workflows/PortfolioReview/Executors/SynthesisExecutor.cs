@@ -17,7 +17,7 @@ namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 /// The watchlist comes with the allocation; the scenarios and convictions come with the agent's instructions
 /// (<c>InvestorProfile.md</c>).
 /// </remarks>
-public sealed class SynthesisExecutor(AIAgent agent) : Executor("synthesis")
+internal sealed class SynthesisExecutor(AIAgent agent) : Executor("synthesis")
 {
     private const string AllocationKey = "allocation";
     private const string ContextKey = "context";

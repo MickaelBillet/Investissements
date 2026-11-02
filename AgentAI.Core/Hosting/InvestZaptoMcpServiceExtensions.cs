@@ -9,7 +9,7 @@ namespace AgentAI.Core.Hosting;
 public static class InvestZaptoMcpServiceExtensions
 {
     /// <summary>
-    /// Registers <see cref="InvestZaptoMcpClient"/> as a typed client of <see cref="IHttpClientFactory"/>.
+    /// Registers <see cref="InvestZaptoMcpConnector"/> as a typed client of <see cref="IHttpClientFactory"/>.
     /// </summary>
     /// <param name="services">The service collection to add to.</param>
     /// <returns>
@@ -20,14 +20,14 @@ public static class InvestZaptoMcpServiceExtensions
     /// <see cref="ForceContentLengthHandler"/> is part of the pipeline: the InvestZapto backend answers every
     /// chunked POST with a <c>500 Backend call failure</c>, and the handler is platform-neutral.
     /// Unlike the other registrations of this library this one is not a <c>TryAdd</c>: a host that substitutes
-    /// <see cref="InvestZaptoMcpClient"/> must register its own after this call.
+    /// <see cref="InvestZaptoMcpConnector"/> must register its own after this call.
     /// </remarks>
     public static IHttpClientBuilder AddInvestZaptoMcp(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         return services
-            .AddHttpClient<InvestZaptoMcpClient>()
+            .AddHttpClient<InvestZaptoMcpConnector>()
             .AddHttpMessageHandler(() => new ForceContentLengthHandler());
     }
 }

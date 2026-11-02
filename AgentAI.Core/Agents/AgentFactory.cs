@@ -14,7 +14,7 @@ namespace AgentAI.Core.Agents;
 /// <summary>
 /// Creates <see cref="AIAgent"/> instances backed by Azure AI Foundry, one configuration per <see cref="AgentKind"/>.
 /// </summary>
-public sealed class AgentFactory : IAgentFactory
+internal sealed class AgentFactory : IAgentFactory
 {
     #region Fields
     private readonly IReadOnlyDictionary<AgentKind, IAgentDefinitionBuilder> _builders;
@@ -47,7 +47,7 @@ public sealed class AgentFactory : IAgentFactory
 
     #region Methods
 
-    public async Task<(AIAgent Agent, ICustomChatHistoryProvider HistoryProvider)> CreateAsync(AgentKind kind, string? contextInput = null, string? optionalInput = null)
+    public async Task<(AIAgent Agent, IFileChatHistoryProvider HistoryProvider)> CreateAsync(AgentKind kind, string? contextInput = null, string? optionalInput = null)
     {
         // Only the requested builder runs: the others never connect to the MCP server or validate inputs they do not need.
         var builder = this._builders.GetValueOrDefault(kind)
@@ -77,11 +77,11 @@ public sealed class AgentFactory : IAgentFactory
 
     public ValueTask DisposeAsync() => this._investZaptoTools.DisposeAsync();
 
-    private CustomChatHistoryProvider CreateHistoryProvider(AgentDefinition definition)
+    private FileChatHistoryProvider CreateHistoryProvider(AgentDefinition definition)
     {
         Directory.CreateDirectory(this._options.HistoryDirectory);
         var chatHistoryFilePath = Path.Combine(this._options.HistoryDirectory, definition.HistoryFileName);
-        return new CustomChatHistoryProvider(chatHistoryFilePath, this._loggerFactory.CreateLogger<CustomChatHistoryProvider>(), definition.KeepHistory);
+        return new FileChatHistoryProvider(chatHistoryFilePath, this._loggerFactory.CreateLogger<FileChatHistoryProvider>(), definition.KeepHistory);
     }
 
     private IChatClient ConfigureChatClient(IChatClient chatClient, AgentKind kind, AgentDefinition definition)

@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Lets the tests cover the pure internal helpers (RssFeedParser, CompanyTitleFilter) directly. -->
+    <!-- Lets the tests cover the internal implementations directly. -->
     <InternalsVisibleTo Include="InvestissementsDashboard.Maui.Tests" />
   </ItemGroup>
 

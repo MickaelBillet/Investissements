@@ -24,7 +24,7 @@ namespace AgentAI.Core.Agents;
 /// injected here stay shared. Each factory owns its MCP connection, so the caller disposes it after the run.
 /// </remarks>
 public sealed class AgentFactoryBuilder(
-    InvestZaptoMcpClient investZaptoConnector,
+    InvestZaptoMcpConnector investZaptoConnector,
     INewsService newsService,
     IWebSearchService webSearchService,
     IWeatherService weatherService,

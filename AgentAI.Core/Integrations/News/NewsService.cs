@@ -12,7 +12,7 @@ namespace AgentAI.Core.Integrations.News;
 /// The feeds are free and keyless but undocumented: their format or terms may change, and coverage is
 /// not exhaustive. Each source is queried independently so one failing source does not hide the others.
 /// </remarks>
-public sealed class NewsService : INewsService
+internal sealed class NewsService : INewsService
 {
     private const int MaxArticles = 30;
 

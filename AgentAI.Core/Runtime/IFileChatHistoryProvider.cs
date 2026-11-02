@@ -7,7 +7,7 @@ namespace AgentAI.Core.Runtime;
 /// <summary>
 /// Exposes read access to the chat messages persisted by a custom chat history provider.
 /// </summary>
-public interface ICustomChatHistoryProvider
+public interface IFileChatHistoryProvider
 {
     /// <summary>
     /// Gets the chat messages currently persisted for the conversation.

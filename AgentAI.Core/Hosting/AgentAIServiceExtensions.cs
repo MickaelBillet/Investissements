@@ -8,7 +8,7 @@ namespace AgentAI.Core.Hosting;
 /// <summary>
 /// Registers the AgentAI services in a host's dependency injection container (e.g. a MAUI app).
 /// </summary>
-public static class ServiceCollectionExtensions
+public static class AgentAIServiceExtensions
 {
     /// <summary>
     /// Registers <see cref="IAgentFactory"/> and its dependencies.
@@ -23,7 +23,7 @@ public static class ServiceCollectionExtensions
     /// <see cref="NewsServiceExtensions.AddNewsServices"/>); the host chooses their primary handler through
     /// <c>AddHttpClient&lt;T&gt;()</c>.
     /// Registrations use <c>TryAdd</c> so a host can substitute its own <see cref="INewsService"/> or
-    /// <see cref="TimeProvider"/> by registering them beforehand; <see cref="InvestZaptoMcpClient"/> must be
+    /// <see cref="TimeProvider"/> by registering them beforehand; <see cref="InvestZaptoMcpConnector"/> must be
     /// substituted after this call.
     /// </remarks>
     public static IServiceCollection AddAgentAI(this IServiceCollection services, AgentAIOptions options)
@@ -65,7 +65,7 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <remarks>
     /// Its dependencies stay the host's to register: logging, <see cref="INewsService"/>
-    /// (<see cref="NewsServiceExtensions.AddNewsServices"/>), <see cref="InvestZaptoMcpClient"/>
+    /// (<see cref="NewsServiceExtensions.AddNewsServices"/>), <see cref="InvestZaptoMcpConnector"/>
     /// (<see cref="InvestZaptoMcpServiceExtensions.AddInvestZaptoMcp"/>) and <see cref="IWebSearchService"/>.
     /// </remarks>
     public static IServiceCollection AddAgentFactoryBuilder(this IServiceCollection services)

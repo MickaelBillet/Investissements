@@ -7,7 +7,7 @@ namespace AgentAI.Core.Agents.Stock;
 /// the stock name rather than a full free-text question. The ISIN, when known, removes any ambiguity
 /// between securities sharing a name (share classes, listings).
 /// </summary>
-public sealed class StockContextProvider(string stockName, string? isin = null) : AIContextProvider
+internal sealed class StockContextProvider(string stockName, string? isin = null) : AIContextProvider
 {
     protected override ValueTask<AIContext> ProvideAIContextAsync(
         InvokingContext context, CancellationToken ct = default)

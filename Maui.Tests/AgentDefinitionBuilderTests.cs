@@ -51,7 +51,7 @@ public class AgentDefinitionBuilderTests
     {
         var definition = await new StockAgentDefinitionBuilder(TimeProvider.System).BuildAsync("ASML", "NL0010273215");
 
-        Assert.Equal(InstructionLoader.Load("AnalyseAction.md"), definition.Instructions);
+        Assert.Equal(InstructionLoader.Load("Stock.md"), definition.Instructions);
         Assert.Null(definition.Tools);
         Assert.NotNull(definition.AIContextProviders);
         Assert.Equal("chat-history-stock.json", definition.HistoryFileName);
@@ -62,7 +62,7 @@ public class AgentDefinitionBuilderTests
     {
         var definition = await new NewsAgentDefinitionBuilder(_newsService.Object, TimeProvider.System).BuildAsync("ASML", null);
 
-        Assert.Equal(InstructionLoader.Load("ActualitesSociete.md"), definition.Instructions);
+        Assert.Equal(InstructionLoader.Load("News.md"), definition.Instructions);
         Assert.Equal(NewsAgentDefinitionBuilder.ToolName, Assert.Single(definition.Tools!).Name);
         Assert.NotNull(definition.AIContextProviders);
         Assert.Equal("chat-history-news.json", definition.HistoryFileName);
@@ -124,7 +124,7 @@ public class AgentDefinitionBuilderTests
     [Fact]
     public async Task AllocationBuildAsync_NoMcpUrl_ThrowsInvalidOperation()
     {
-        var connector = new InvestZaptoMcpClient(new HttpClient(), NullLoggerFactory.Instance);
+        var connector = new InvestZaptoMcpConnector(new HttpClient(), NullLoggerFactory.Instance);
         await using var tools = new InvestZaptoMcpToolSource(connector, endpoint: null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => new AllocationAgentDefinitionBuilder(tools, TimeProvider.System).BuildAsync(null, null));

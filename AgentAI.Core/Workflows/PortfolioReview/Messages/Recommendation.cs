@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace AgentAI.Core.Workflows.PortfolioReview.Messages;
 
 /// <summary>
@@ -14,30 +12,3 @@ public record Recommendation(
     string Driver,
     string Rationale,
     RecommendationConfidence Confidence);
-
-// The enums are written as names in the JSON schema sent to the model, which reads and writes them as text.
-
-[JsonConverter(typeof(JsonStringEnumConverter<RecommendationLevel>))]
-public enum RecommendationLevel
-{
-    AssetClass,
-    Theme,
-    Line,
-}
-
-[JsonConverter(typeof(JsonStringEnumConverter<RecommendationDirection>))]
-public enum RecommendationDirection
-{
-    Reinforce,
-    Reduce,
-    Initiate,
-    Watch,
-}
-
-[JsonConverter(typeof(JsonStringEnumConverter<RecommendationConfidence>))]
-public enum RecommendationConfidence
-{
-    Low,
-    Medium,
-    High,
-}
