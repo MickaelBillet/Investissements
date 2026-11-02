@@ -24,7 +24,7 @@ public sealed class AgentRunner(
     // calls) are slower than the single-shot ones, so the limit is generous.
     internal static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(3);
 
-    public async Task<string> RunAsync(AgentChoice agent, string? assetName, string? isin, CancellationToken cancellationToken = default)
+    public async Task<string> RunAsync(AgentChoice agent, string assetName, string? isin, CancellationToken cancellationToken = default)
     {
         AgentKind kind = GetAgentKind(agent);
         string triggerMessage = GetMessage(agent);
@@ -50,11 +50,11 @@ public sealed class AgentRunner(
         }
 
         await using var agentFactory = factoryCreator(options);
-        logger.LogInformation("Agent {Agent}: starting (asset: {Asset}, model: {Model})", agent, assetName ?? "-", options.Model);
+        logger.LogInformation("Agent {Agent}: starting (asset: {Asset}, model: {Model})", agent, assetName, options.Model);
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-        // Naming the stage in the timeout message tells whether the MCP connection or the model call stalled.
-        const string creating = "creating the agent (MCP connection)";
+        // Naming the stage in the timeout message tells whether the agent creation or the model call stalled.
+        const string creating = "creating the agent";
         const string running = "waiting for the model's answer";
         string stage = creating;
 
@@ -125,7 +125,6 @@ public sealed class AgentRunner(
         {
             AgentChoice.Stock => "Lance l'analyse selon la grille en vigueur.",
             AgentChoice.News => "Donne-moi les dernières actualités de cette société.",
-            AgentChoice.Allocation => "Dresse l'état complet de mon portefeuille : positions, valeurs et variations.",
             _ => throw new ArgumentOutOfRangeException(nameof(agent), agent, "Unknown agent."),
         };
     }
@@ -137,7 +136,6 @@ public sealed class AgentRunner(
         {
             AgentChoice.Stock => AgentKind.Stock,
             AgentChoice.News => AgentKind.News,
-            AgentChoice.Allocation => AgentKind.Allocation,
             _ => throw new ArgumentOutOfRangeException(nameof(agent), agent, "Unknown agent."),
         };
     }

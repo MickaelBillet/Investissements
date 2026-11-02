@@ -1,6 +1,6 @@
 # SPECS.md — Maui (application Windows)
 
-**Statut :** Implémenté (parité avec le site + agents IA Stock, Actualités et Allocation)  
+**Statut :** Implémenté (parité avec le site + agents IA Stock et Actualités, workflow d'analyse du portefeuille)  
 **Version :** 1.1  
 **Date :** 2026-10-09
 
@@ -28,17 +28,16 @@ Offrir sur le PC du propriétaire une application native affichant le **même da
 | 12 | Les agents répondent en un seul tour : pas de question finale, pas de conversation. Fermer la boîte de dialogue annule l'exécution |
 | 13 | Si l'endpoint Foundry n'est pas configuré dans l'Api, ou si l'agent échoue, un message d'erreur est affiché dans la boîte de dialogue (l'application démarre normalement sans configuration) |
 | 14 | Les agents s'exécutent dans le processus de l'application avec l'identité Azure du poste (`az login`) ; aucun secret Azure n'est embarqué. Leur usage consomme des tokens Azure AI Foundry facturés à l'usage |
-| 15 | Le menu « ⋮ » propose **Allocation du portefeuille** : un agent interroge le serveur MCP et affiche, dans une boîte de dialogue, un rapport **descriptif** de toutes les positions (valeur actuelle, poids, plus-value latente, ROI), les 5 meilleures et 5 moins bonnes variations et les données manquantes (« non renseigné »). Aucune recommandation. L'agent met environ une minute à répondre |
+| 15 | *(retiré le 2026-11-02)* Entrée de menu **Allocation du portefeuille** : l'agent Allocation sert désormais le workflow d'analyse (n° 19) et répond en JSON |
 | 16 | Le serveur MCP est appelé avec le mot de passe du dashboard déjà saisi à la connexion : aucune clé MCP n'est saisie ni stockée dans l'application. Si l'Api refuse le mot de passe, un message invite à se déconnecter puis à se reconnecter |
 | 17 | Un agent qui ne répond pas au bout de 3 minutes est interrompu avec un message nommant l'étape bloquée (connexion MCP ou réponse du modèle) |
 | 18 | L'application journalise son activité dans un fichier texte local (`logs/maui.log`, dossier de données de l'application, 1 Mo maximum) pour diagnostiquer un agent bloqué |
-| 19 | La barre d'application propose un lien **Analyse**, à côté de **Suivi**, vers une page qui lance immédiatement (sans autre clic) le workflow d'analyse du portefeuille (allocation, contexte et répartitions géographique et sectorielle des actions et obligations en parallèle, puis synthèse) et indique sa fin (« Analyse terminée. ») ; aucun résultat n'est encore affiché. L'exécution est bornée à 3 minutes et s'annule si l'on quitte la page ; si l'Api refuse le mot de passe, un message invite à se reconnecter. L'étape contexte établit, par recherche web (au plus 15 recherches par analyse, faites par l'Api), l'état des lieux macro-économique et géopolitique à la date du jour, indépendamment du portefeuille ; aucune clé de recherche n'est saisie dans l'application |
+| 19 | La barre d'application propose un lien **Analyse**, à côté de **Suivi**, vers une page qui lance immédiatement (sans autre clic) le workflow d'analyse du portefeuille (allocation et watchlist, contexte, répartitions géographique et sectorielle des actions et obligations en parallèle, puis synthèse par un agent, qui produit avertissements, forces, faiblesses et recommandations à partir de ces entrées et du profil de l'investisseur) et indique sa fin (« Analyse terminée. ») ; le rapport n'est pas encore affiché, seuls ses compteurs sont journalisés. Non validé contre le vrai modèle. L'exécution est bornée à 3 minutes et s'annule si l'on quitte la page ; si l'Api refuse le mot de passe, un message invite à se reconnecter. L'étape contexte établit, par recherche web (au plus 15 recherches par analyse, faites par l'Api), l'état des lieux macro-économique et géopolitique à la date du jour, indépendamment du portefeuille ; aucune clé de recherche n'est saisie dans l'application |
 
 ## 3. Hors périmètre (évolutions prévues)
 
 - Agents Chat et Météo (déjà dans la bibliothèque `AgentAI.Core`, non exposés dans l'interface) — voir `CLAUDE.md` racine §14.
 - Réglage de l'URL de l'Api et connexion Azure interactive (sans `az login`).
 - Boucle conversationnelle avec les agents (questions de relance).
-- Variation de valeur par période (1 mois, YTD, 1 an) dans le rapport d'allocation : exigerait un historique par actif (Sheet, ETL et outil MCP).
 - Distribution à d'autres postes (certificat de confiance ou signature par une autorité).
 - Exécution des tests et du build MAUI en CI.

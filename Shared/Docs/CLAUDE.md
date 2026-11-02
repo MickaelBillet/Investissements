@@ -14,6 +14,7 @@ Shared/
 │   ├── BondScheduleDto.cs (BondScheduleDto + BondScheduleItemDto)
 │   ├── SyncResultDto.cs
 │   ├── AgentConfigDto.cs       # GET /api/agents/config : endpoint Foundry et modèle des agents MAUI (null = non configuré)
+│   ├── WatchlistItemDto.cs     # Name, ISIN : outil MCP get_watchlist et AllocationResult.Watchlist d'AgentAI.Core
 │   ├── WebSearchDto.cs         # WebSearchRequestDto, WebSearchResultDto, enums WebSearchTopic / WebSearchTimeRange (sérialisés en noms) — POST /api/websearch et outil SearchWeb d'AgentAI.Core
 │   └── Mcp/McpModels.cs        # JSON-RPC : JsonRpcRequest/Response/Error, McpInitializeResult, McpToolsListResult, McpToolsCallResult, McpContent, McpJsonOptions
 ├── Constants/

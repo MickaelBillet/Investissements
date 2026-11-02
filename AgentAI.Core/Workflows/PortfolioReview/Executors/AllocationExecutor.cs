@@ -10,7 +10,7 @@ public sealed class AllocationExecutor(AIAgent agent) : Executor<AnalysisRequest
     public override async ValueTask<AllocationResult> HandleAsync(AnalysisRequest message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         // French because it is the agent's working language; the field mapping lives in its instructions
-        // (AllocationPortefeuille.md) so that the menu entry and the workflow share a single definition.
+        // (AllocationPortefeuille.md).
         var prompt = $"Dresse l'état de mon portefeuille au {message.Date:yyyy-MM-dd}.";
 
         // RunAsync<T> : schéma JSON envoyé au modèle + désérialisation en un seul appel.
