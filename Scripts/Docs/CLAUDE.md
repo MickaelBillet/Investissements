@@ -113,7 +113,7 @@ Pas de framework : fonctions `test*` à lancer dans l'éditeur. Disponibles : `t
 
 Toutes les valeurs de dimension sont des constantes dans `Config.gs` (`ASSET_CLASS`, `ASSET_TYPE`, `SUPPORT_TYPE`, `SUPPORT`, `RISK`). Ne jamais coder de chaînes en dur — utiliser toujours ces constantes.
 
-`Config.gs` est commité (IDs de feuilles, adresse du rapport) : aucun secret ne doit y figurer. Les constantes `SHEET_ASSET_CLASS`, `SHEET_ASSET_TYPE`, `SHEET_SUPPORT_TYPE` et `SHEET_SUPPORT` ne sont plus utilisées.
+`Config.gs` est commité (IDs de feuilles, adresse du rapport) : aucun secret ne doit y figurer. `SHEET_ASSET_CLASS` et `SHEET_SUPPORT_TYPE` servent encore au rapport hebdo (`getReferenceIds`) ; `SHEET_ASSET_TYPE` et `SHEET_SUPPORT` ne sont plus utilisées.
 
 Les constantes `COL_SOURCE_*` définissent les index de colonnes de la feuille source (Bilan). Les constantes `COL_*` définissent les index de colonnes de l'onglet Asset (DEST).
 

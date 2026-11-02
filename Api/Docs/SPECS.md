@@ -1,14 +1,14 @@
 # SPECS.md — Api (Azure Functions)
 
 **Statut :** Implémenté  
-**Version :** 2.3 — ajout de `GET /api/agents/config` ; `/api/mcp` accepte aussi le mot de passe du dashboard
-**Date :** 2026-10-24
+**Version :** 2.5 — `auth/verify` vérifie le mot de passe ; `/api/mcp` refusé si `MCP_API_KEY` n'est pas configurée ; documentation alignée sur le code
+**Date :** 2026-11-02
 
 ---
 
 ## 1. Vue d'ensemble
 
-L'Api expose 16 routes HTTP : 11 endpoints REST de lecture, `GET /api/agents/config` (configuration des agents MAUI), `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle), `POST /api/websearch` (recherche web pour les agents de l'application MAUI) et 1 endpoint MCP. Toutes, sauf `mcp` et `auth/verify`, exigent le header `x-dashboard-password` (voir `Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints REST sont accessibles uniquement depuis le Blazor WASM hébergé sur le même Azure Static Web Apps. L'endpoint MCP est consommé par Claude Code.
+L'Api expose 17 routes HTTP : 12 endpoints REST de lecture, `GET /api/agents/config` (configuration des agents MAUI), `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle), `POST /api/websearch` (recherche web pour les agents de l'application MAUI) et 1 endpoint MCP. Toutes, sauf `mcp`, exigent le header `x-dashboard-password` (voir `Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints sont joignables par le proxy d'Azure Static Web Apps : les endpoints REST sont consommés par le dashboard (site et application MAUI), l'endpoint MCP par les assistants IA (Claude Code, Claude Desktop, Claude Web) et les agents MAUI.
 
 `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` sont mis en cache (single-flight, TTL 30s) — voir `Api/Docs/CLAUDE.md` §8.
 
@@ -66,7 +66,7 @@ Retourne la distribution du portefeuille par dimension, avec le poids de chaque 
 ```json
 [
   {
-    "id": 0,
+    "id": null,
     "name": "Stocks",
     "currentTotal": 35000.00,
     "weightInPortfolio": 66.05
@@ -375,7 +375,7 @@ La clé est transmise via le header `x-mcp-api-key` **ou** le paramètre de requ
 
 | Cas | Comportement |
 |---|---|
-| `MCP_API_KEY` non configurée (dev local) | Toutes les requêtes sont acceptées |
+| `MCP_API_KEY` non configurée | Seul le mot de passe du dashboard est accepté ; sinon HTTP 401 |
 | Ni clé correcte, ni mot de passe du dashboard correct (un `DASHBOARD_PASSWORD` non configuré n'est jamais accepté) | HTTP 401 Unauthorized |
 | Mot de passe du dashboard correct (`x-dashboard-password`) | Traitement normal |
 | Clé correcte (header ou query param) | Traitement normal |
@@ -417,7 +417,7 @@ La clé est transmise via le header `x-mcp-api-key` **ou** le paramètre de requ
 **Claude Web** : Settings → Integrations → Add MCP Server → URL `https://invest.zapto.fr/api/mcp?key=<ta-clé>` (query param car Claude Web ne supporte pas les headers personnalisés).
 
 En production : définir `MCP_API_KEY` dans Azure Function App Settings.  
-En local : définir `MCP_API_KEY` dans `local.settings.json` (gitignorée) ou dans l'environnement shell.
+En local : définir `MCP_API_KEY` dans `local.settings.json` (gitignorée) ou dans l'environnement shell ; sans elle, seul le mot de passe du dashboard ouvre l'accès.
 
 ---
 
@@ -441,7 +441,7 @@ Déclenche la synchronisation manuelle : l'Api appelle le Web App Apps Script (`
 
 ### 2.13 `GET /api/auth/verify`
 
-Sert à l'écran de connexion du Client pour tester un mot de passe candidat (header `x-dashboard-password`). La route est exemptée de `DashboardAuthMiddleware` pour rester joignable avant connexion. **Comportement actuel :** répond toujours `200 OK`, quel que soit le mot de passe — anomalie connue décrite dans `Api/Docs/CLAUDE.md` §6 (le comportement attendu est `200` si le mot de passe est correct, `401` sinon).
+Sert à l'écran de connexion du Client pour tester un mot de passe candidat (header `x-dashboard-password`). Protégée par `DashboardAuthMiddleware` comme les autres routes : `200` si le mot de passe est correct, `401` sinon.
 
 ### 2.14 `POST /api/websearch`
 
@@ -490,8 +490,9 @@ Chaque champ vaut `null` quand l'App Setting correspondante (`AGENT_FOUNDRY_ENDP
 | Code | Cas |
 |---|---|
 | `200 OK` | Succès |
-| `401 Unauthorized` | Header `x-dashboard-password` absent ou incorrect (toutes les routes sauf `mcp` et `auth/verify`) ; `DASHBOARD_PASSWORD` non configuré = tout refusé |
+| `401 Unauthorized` | Header `x-dashboard-password` absent ou incorrect (toutes les routes sauf `mcp`) ; `DASHBOARD_PASSWORD` non configuré = tout refusé |
 | `400 Bad Request` | Paramètre invalide (ex : dimension inconnue sur `/api/assets/distribution/{dimension}`) |
+| `502 Bad Gateway` | Service externe en échec : recherche web (`POST /api/websearch`, voir §2.14), ou `HttpRequestException` sur les autres routes (voir la note ci-dessous) |
 | `500 Internal Server Error` | Erreur lors de l'appel à l'API Google Sheets, du mapping ou du calcul |
 
 > Les `Functions/*.cs` ont encore un `catch (HttpRequestException)` → 502, hérité de l'ancien `AppsScriptService`. Le SDK `Google.Apis.Sheets.v4` lève plutôt `Google.GoogleApiException`, qui ne correspond pas à ce catch — en pratique toute erreur Sheets tombe donc dans le `catch` générique (500). Ce bloc 502 est inoffensif mais mort ; à nettoyer ou à remplacer par un `catch (GoogleApiException)` dans un futur passage.

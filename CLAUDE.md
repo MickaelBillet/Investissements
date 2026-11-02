@@ -35,7 +35,7 @@ Les données sont maintenues dans un Google Sheets personnel, mis à jour quotid
 - Les identifiants du compte de service Google (email + clé privée) ne doivent jamais être exposés côté client
 
 **Opérationnelles :**
-- Mise à jour des données entièrement automatique (aucune intervention manuelle)
+- Consolidation des données entièrement automatique : seule la saisie du Bilan (feuille source) reste manuelle
 - Le dashboard doit toujours afficher les données les plus récentes disponibles
 
 ---
@@ -59,7 +59,7 @@ Google Sheets (multi-onglets, style BDD)
                               Azure Static Web Apps + nom de domaine custom
 ```
 
-Apps Script ne fait qu'écrire (ETL quotidien + rapport hebdomadaire par email) ; son seul point d'entrée HTTP est un Web App minimal dédié à la synchronisation manuelle (§5.2.5). L'Api lit le Sheet directement via l'API Google Sheets officielle (`Google.Apis.Sheets.v4`, compte de service), dans un projet dédié `GoogleSheets/`.
+S'y ajoutent l'application Windows MAUI, qui reprend le dashboard et exécute les agents IA sur le poste (§14), et les clients MCP externes, qui passent par `/api/mcp`. Apps Script ne fait qu'écrire (ETL quotidien + rapport hebdomadaire par email) ; son seul point d'entrée HTTP est un Web App minimal dédié à la synchronisation manuelle (§5.2.5). L'Api lit le Sheet directement via l'API Google Sheets officielle (`Google.Apis.Sheets.v4`, compte de service), dans un projet dédié `GoogleSheets/`.
 
 ### Stack technique
 
@@ -131,8 +131,8 @@ Voir SECURITY.MD
 
 #### 5.2.2 Protection des endpoints Azure Functions
 - Les Azure Functions sont liées à Azure Static Web Apps via le mécanisme de **Managed Functions**
-- Elles ne sont pas exposées publiquement sur Internet
-- Seul le Blazor WASM hébergé sur le même Static Web Apps peut les appeler
+- Elles ne sont joignables que par le proxy du Static Web Apps (`https://invest.zapto.fr/api/*`), donc depuis Internet : la protection vient de l'authentification de l'Api (§5.2.4), pas d'une restriction réseau
+- Clients : le Blazor WASM, l'application MAUI et les clients MCP externes
 - Aucune clé de fonction (Function Key) nécessaire
 
 #### 5.2.3 Protection des données Google Sheets
@@ -154,12 +154,10 @@ Le bouton "Synchroniser" du Client déclenche `snapshotQuotidien()` (le même ET
 
 Le dashboard entier est protégé par un **mot de passe unique géré par notre propre code** — pas par l'authentification d'Azure Static Web Apps (voir historique ci-dessous).
 
-- `DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP de l'Api, comparé à l'App Setting `DASHBOARD_PASSWORD` — sauf `/api/mcp` (vérification propre : clé `MCP_API_KEY` pour les clients externes, ou mot de passe du dashboard pour les agents de l'application MAUI) et `/api/auth/verify` (doit rester accessible pour que l'écran de connexion puisse tester un mot de passe)
+- `DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP de l'Api, comparé à l'App Setting `DASHBOARD_PASSWORD` — sauf `/api/mcp` (vérification propre : clé `MCP_API_KEY` pour les clients externes, ou mot de passe du dashboard pour les agents de l'application MAUI ; une clé non configurée n'ouvre jamais l'accès). L'écran de connexion teste un mot de passe avec `GET /api/auth/verify`, protégée comme les autres routes
 - Fail-safe : si `DASHBOARD_PASSWORD` n'est pas configuré, l'accès est refusé par défaut (jamais d'accès ouvert par omission)
 - Côté Client, `App.razor` affiche un écran de connexion (`Client.Shared/Shared/LoginGate.razor`) tant que `ISessionService.IsAuthenticated` est faux — le mot de passe saisi est mémorisé via `IKeyValueStore` (`localStorage` du navigateur côté site WASM, `SecureStorage` chiffré côté application MAUI) et renvoyé automatiquement sur chaque appel Api (`DashboardPasswordHandler`)
 - Le bouton de masquage des montants (barre de menu) reste un confort indépendant (ex. partage d'écran par le propriétaire une fois connecté), pas une frontière de sécurité
-
-> ⚠️ **Anomalie connue (à corriger) :** `GET /api/auth/verify` est exemptée de `DashboardAuthMiddleware` et répond toujours `200`, si bien que l'écran de connexion accepte n'importe quel mot de passe ; les autres endpoints répondent `401` sans le bon mot de passe (les données restent protégées). Voir `Api/Docs/CLAUDE.md` §6.
 
 **Historique — pourquoi pas l'authentification native Azure Static Web Apps.** Une première version utilisait les rôles personnalisés d'Azure Static Web Apps (Microsoft Entra ID + rôle `owner`, via `rolesSource` puis via Invitations). Les deux mécanismes se sont révélés peu fiables en pratique sur le plan **Free** (contrainte budget zéro, §2) : `rolesSource` nécessite l'authentification personnalisée, réservée au plan Standard, et le mécanisme d'Invitations a montré un comportement incohérent (rôle attribué puis perdu entre sessions, 403 sur des ressources statiques). Le mot de passe interne ci-dessus, entièrement sous notre contrôle, remplace ces deux approches.
 
@@ -172,7 +170,7 @@ Deux Google Sheets sont utilisés :
 | Constante | Rôle |
 |---|---|
 | `SOURCE_ID` | Feuille personnelle de l'utilisateur — onglet "Bilan" (source des valeurs brutes) |
-| `DEST_ID` | Feuille structurée API — onglets "Asset" et "Snapshot" (écrite par l'Apps Script, lue directement par l'Api via l'API Google Sheets) |
+| `DEST_ID` | Feuille structurée API — onglets "Asset" et "Snapshot" (écrits par l'Apps Script), "AssetType" et "Watchlist" (maintenus à la main), tous lus directement par l'Api via l'API Google Sheets |
 
 ### 6.1 Principe général
 Le Google Sheets DEST est structuré comme une base de données relationnelle. Chaque onglet représente une table distincte avec un rôle précis.
@@ -200,7 +198,7 @@ Une ligne par actif. Colonnes (index 0-based) :
 | 14 | O | `COL_ISIN` | Code ISIN (saisie manuelle, jamais écrit par l'ETL ; peut être vide) |
 | 15 | P | — | Taux de coupon annuel des obligations (format pourcentage, saisie manuelle, jamais écrit par l'ETL ; vide = pas de coupon) — lu par l'Api pour l'échéancier |
 
-Les colonnes O (ISIN) et P (taux de coupon) sont saisies à la main : `syncCurrentTotal()` et la création automatique d'actifs ne les écrasent jamais (plage écrite limitée à A–N). La colonne P n'a pas de constante dans `Config.gs` : aucun script ne la lit. Les colonnes K–N sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
+Les colonnes O (ISIN) et P (taux de coupon) sont saisies à la main : `syncCurrentTotal()` et la création automatique d'actifs ne les écrasent jamais (plage écrite limitée à A–N). La colonne P n'a pas de constante dans `Config.gs` : aucun script ne la lit. Les colonnes J–N sont remplies automatiquement par `syncCurrentTotal()` depuis l'onglet "Bilan" du SOURCE_ID. Les lignes `"Not Defined"` sont ignorées partout.
 
 ### 6.3 Onglet `Snapshot` (DEST_ID)
 
@@ -228,6 +226,19 @@ Une ligne par action suivie (hors portefeuille), maintenue à la main — aucun 
 | 1 | B | `ISIN` |
 
 Lue par `WatchlistService` (Api) et exposée uniquement par l'outil MCP `get_watchlist`, qu'appelle l'agent Allocation pour le workflow d'analyse du portefeuille (MAUI).
+
+### 6.3ter Onglet `AssetType` (DEST_ID)
+
+Une ligne par type d'actif, maintenue à la main — aucun script ne l'écrit. Ligne 1 = en-tête. Colonnes lues par l'Api (index 0-based) :
+
+| Index | Colonne | Description |
+|---|---|---|
+| 0 | A | `Id` |
+| 1 | B | `Name` — valeur de `ASSET_TYPE` |
+| 3 | D | `LabelFR` — libellé affiché par le dashboard (repli : `Name`) |
+| 4 | E | `GeoSectorEligible` — l'actif entre dans les répartitions géographique et sectorielle |
+
+Lue par `AssetsService` (Api) et exposée par `GET /api/assets/types/reference`.
 
 ### 6.4 Valeur sentinelle `"ND"`
 
@@ -272,7 +283,7 @@ investment-dashboard/
 ├── SECURITY.md                      # Règles de sécurité générales
 ├── .mcp.json                        # Déclaration du serveur MCP du projet
 ├── Investissements.slnx             # Solution du CI : Api, Api.Tests, Client, Client.Shared, Client.Tests, Shared
-├── Investissements.Maui.slnx        # Solution MAUI (Windows uniquement) : AgentAI.Core, Client.Shared, Maui, Maui.Tests, Shared
+├── Investissements.Maui.slnx        # Solution MAUI (Windows uniquement) : AgentAI.Core, Api, Client.Shared, GoogleSheets, Maui, Maui.Tests, Shared
 ├── Client/                          # Hôte Blazor WASM mince (Program.cs, index.html, staticwebapp.config.json)
 │   └── Docs/
 │       ├── CLAUDE.md                # Architecture technique de l'hôte WASM
@@ -387,7 +398,7 @@ jobs:
 
 - **Sous-domaine choisi** : `invest.zapto.fr`
 - **Registrar** : Ionos
-- **Enregistrement DNS à créer** :
+- **Enregistrement DNS (en place)** :
 
 | Type  | Hôte     | Valeur cible                    |
 |-------|----------|---------------------------------|
@@ -435,7 +446,7 @@ Les composants sont à développer dans cet ordre :
 3. **Azure Functions** — ✅ Endpoints REST implémentés (`Api/`) — lecture directe du Sheet via l'API Google Sheets (`GoogleSheets/`)
 4. **Blazor WASM** — ✅ Dashboard implémenté (`Client/`)
 5. **CI/CD** — ✅ Pipeline opérationnel
-6. **Domaine custom** — ✅ Décision prise : `invest.zapto.fr` — CNAME à créer chez Ionos, validation dans Azure Portal
+6. **Domaine custom** — ✅ Fait : `invest.zapto.fr` (CNAME chez Ionos, validé dans Azure Portal)
 
 ---
 

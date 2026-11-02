@@ -2,7 +2,7 @@
 
 ## 1. Rôle
 
-Couche backend serverless entre Google Sheets et le Blazor WASM. Lit le Sheet `InvestData` directement via l'API Google Sheets officielle (compte de service, projet `GoogleSheets/`), expose des endpoints REST internes consommés uniquement par le frontend hébergé sur le même Azure Static Web Apps.
+Couche backend serverless entre Google Sheets et le Blazor WASM. Lit le Sheet `InvestData` directement via l'API Google Sheets officielle (compte de service, projet `GoogleSheets/`), expose, derrière le proxy d'Azure Static Web Apps, des endpoints REST consommés par le dashboard (site et application MAUI) et un endpoint MCP pour les assistants IA et les agents MAUI.
 
 ---
 
@@ -17,7 +17,7 @@ Couche backend serverless entre Google Sheets et le Blazor WASM. Lit le Sheet `I
 | Déploiement | Lié à Azure Static Web Apps (Managed Functions) |
 | Projets référencés | `Shared` (net8.0, DTOs) et `GoogleSheets` (net9.0) |
 
-> **Note CI :** le `csproj` cible **net9.0**, alors que la liste officielle des runtimes des fonctions managées s'arrête à .NET 8 (voir `CLAUDE.md` racine §8.3 et §14.5 — incohérence à vérifier). Le workflow passe l'Api en source (`api_location: 'Api'`) et laisse Oryx la construire ; en cas d'échec du déploiement, prévoir un build explicite.
+> **Note CI :** le `csproj` cible **net9.0**, alors que la liste officielle des runtimes des fonctions managées s'arrête à .NET 8 (voir `CLAUDE.md` racine §8.4 et §14.5 — incohérence à vérifier). Le workflow passe l'Api en source (`api_location: 'Api'`) et laisse Oryx la construire ; en cas d'échec du déploiement, prévoir un build explicite.
 
 ---
 
@@ -42,7 +42,7 @@ Api/
 │   ├── SyncFunction.cs            # POST /api/sync — déclenche la synchro manuelle (Apps Script)
 │   └── WebSearchFunction.cs       # POST /api/websearch — recherche web des agents MAUI (Tavily)
 ├── Middleware/
-│   └── DashboardAuthMiddleware.cs # Vérifie x-dashboard-password sur toutes les routes (sauf mcp/auth/verify)
+│   └── DashboardAuthMiddleware.cs # Vérifie x-dashboard-password sur toutes les routes (sauf mcp)
 ├── Interfaces/                 # Interfaces des services
 │   ├── IAgentConfigService.cs
 │   ├── IAssetsService.cs
@@ -182,9 +182,7 @@ Valeurs valides pour `/api/portfolio/geography/{assetClass}` et `/api/portfolio/
 
 ### Authentification du dashboard
 
-`DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP, comparé à l'App Setting `DASHBOARD_PASSWORD` (fail-safe : non configuré = accès refusé). Deux exceptions, identifiées par le nom de la Function (`context.FunctionDefinition.Name`) : `McpFunction.McpEndpoint` (fait sa propre vérification : clé `MCP_API_KEY` pour Claude Code, qui ne peut pas saisir de mot de passe interactif, **ou** `x-dashboard-password` égal à `DASHBOARD_PASSWORD` pour les agents de l'application MAUI ; un mot de passe non configuré n'ouvre jamais l'accès) et `AuthFunction.Verify` (doit rester accessible pour tester un mot de passe candidat depuis l'écran de connexion du Client). Toute nouvelle Function HTTP est protégée par défaut — l'ajouter à la liste `ExemptFunctions` du middleware est le seul moyen de l'exclure.
-
-> ⚠️ **Anomalie connue (à corriger) :** `AuthFunction.Verify` étant exemptée, le middleware ne contrôle pas le mot de passe pour cette route et la Function répond toujours `200 OK`. Or `SessionService.VerifyAsync` (Client) se fie à ce statut : l'écran de connexion accepte donc n'importe quel mot de passe, alors que tous les autres endpoints répondent `401` sans le bon mot de passe (les données restent protégées). Le commentaire de `AuthFunction.cs` suppose à tort que le middleware vérifie aussi cette route. Correctif possible : comparer `x-dashboard-password` à `DASHBOARD_PASSWORD` dans `Verify` elle-même (ou retirer `Verify` de `ExemptFunctions`).
+`DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP, comparé à l'App Setting `DASHBOARD_PASSWORD` (fail-safe : non configuré = accès refusé). Une seule exception, identifiée par le nom de la Function (`context.FunctionDefinition.Name`) : `McpFunction.McpEndpoint` (fait sa propre vérification : clé `MCP_API_KEY` pour Claude Code, qui ne peut pas saisir de mot de passe interactif, **ou** `x-dashboard-password` égal à `DASHBOARD_PASSWORD` pour les agents de l'application MAUI ; une clé ou un mot de passe non configurés n'ouvrent jamais l'accès). `AuthFunction.Verify` n'est pas exemptée : elle ne répond `200` que si le middleware a accepté le mot de passe, ce qui permet à l'écran de connexion de tester un mot de passe candidat. Toute nouvelle Function HTTP est protégée par défaut — l'ajouter à la liste `ExemptFunctions` du middleware est le seul moyen de l'exclure.
 
 Voir `CLAUDE.md` (racine) §5.2.4 pour le détail côté Client (écran de connexion) et l'historique des approches abandonnées (rôles Azure Static Web Apps).
 
@@ -263,9 +261,10 @@ Sert l'outil `SearchWeb` de l'agent Contexte (application MAUI, voir `AgentAI.Co
 
 ## 11. Tests (`Api.Tests/`)
 
-xUnit + Moq, 168 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+xUnit + Moq, 179 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
 - `Functions/` — `AgentConfigFunction`, `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`, `WebSearchFunction`
 - `Mcp/` — `McpHandlerTests`
+- `Middleware/` — `DashboardAuthMiddleware`
 - `Services/` — `AgentConfigService`, `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`, `WatchlistService`, `WebSearchService`
 
 Commande : `dotnet test "Api.Tests/InvestissementsDashboard.Api.Tests.csproj"` (seule suite exécutée par la CI).

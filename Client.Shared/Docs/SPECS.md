@@ -1,19 +1,20 @@
 # SPECS.md — Client.Shared (dashboard partagé WASM + MAUI)
 
 **Statut :** Implémenté  
-**Version :** 1.7  
-**Date :** 2026-10-05
+**Version :** 1.8  
+**Date :** 2026-11-02
 
 ---
 
 ## 1. Vue d'ensemble
 
-Ces spécifications décrivent le dashboard tel qu'il s'affiche dans les deux hôtes (site `Client/` et application `Maui/`), qui partagent le même code. Avant toute page, un **écran de connexion** (§8) protège l'ensemble ; une fois connecté, le dashboard expose deux pages :
+Ces spécifications décrivent le dashboard tel qu'il s'affiche dans les deux hôtes (site `Client/` et application `Maui/`), qui partagent le même code. Avant toute page, un **écran de connexion** (§8) protège l'ensemble ; une fois connecté, le dashboard expose deux pages, plus une troisième dans l'application Windows :
 
 | Route | Vue |
 |---|---|
 | `/` | Dashboard — état instantané du portefeuille |
 | `/suivi` | Suivi — évolution de la performance dans le temps et échéancier de remboursement obligataire |
+| `/analyse` | Analyse du portefeuille — application Windows uniquement (voir §3.7) |
 
 ---
 
@@ -192,7 +193,6 @@ Tant que l'utilisateur n'est pas authentifié, seul `LoginGate` est affiché (lo
 - Le mot de passe saisi est testé via `GET /api/auth/verify`, mémorisé via `IKeyValueStore`, puis envoyé automatiquement (`x-dashboard-password`) sur chaque appel à l'Api.
 - Session à **expiration glissante d'1 h** : chaque appel réussi la repousse ; après 1 h sans appel réussi, retour à l'écran de connexion.
 - Mot de passe refusé : message d'erreur `Login_InvalidPassword` ; bouton désactivé pendant la vérification.
-- ⚠️ Anomalie connue côté Api : `auth/verify` répond toujours `200` (voir `Api/Docs/CLAUDE.md` §6).
 
 ---
 
