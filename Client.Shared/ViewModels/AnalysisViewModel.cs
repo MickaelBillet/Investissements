@@ -5,7 +5,7 @@ namespace InvestissementsDashboard.Client.ViewModels;
 
 /// <summary>
 /// Drives the portfolio review workflow from the analysis page. Only its completion is shown for now: the workflow
-/// exposes no result while its synthesis step is a skeleton.
+/// runner exposes no result until the page displays the synthesis report.
 /// </summary>
 public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider timeProvider, IPortfolioReviewRunner? runner = null)
 {

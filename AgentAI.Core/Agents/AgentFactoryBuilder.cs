@@ -34,6 +34,7 @@ public sealed class AgentFactoryBuilder(
             new AllocationAgentDefinitionBuilder(mcpTools, timeProvider),
             new NewsAgentDefinitionBuilder(newsService, timeProvider),
             new ContextAgentDefinitionBuilder(webSearchService),
+            new SynthesisAgentDefinitionBuilder(),
         ];
 
         return new AgentFactory(options, CreateProjectClient(options), mcpTools, builders, loggerFactory);

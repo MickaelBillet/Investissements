@@ -74,6 +74,7 @@ public class AgentFactoryTests
     [InlineData(AgentKind.Allocation)]
     [InlineData(AgentKind.News)]
     [InlineData(AgentKind.Context)]
+    [InlineData(AgentKind.Synthesis)]
     public async Task Build_EveryKind_IsWired(AgentKind kind)
     {
         await using var factory = CreateBuilder().Build(Options());

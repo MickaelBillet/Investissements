@@ -21,7 +21,7 @@ public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBui
         var allocation = await CreateAllocationExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
         var context = await CreateContextExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
         var distribution = new AssetDistributionExecutor(distributionSource);
-        var synthesis = new SynthesisExecutor();
+        var synthesis = await CreateSynthesisExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
 
         return new WorkflowBuilder(start)
             .AddFanOutEdge(start, [allocation, context, distribution])
@@ -42,5 +42,11 @@ public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBui
     {
         var (agent, _) = await agentFactory.CreateAsync(AgentKind.Context).WaitAsync(cancellationToken).ConfigureAwait(false);
         return new ContextExecutor(agent);
+    }
+
+    private static async Task<SynthesisExecutor> CreateSynthesisExecutorAsync(IAgentFactory agentFactory, CancellationToken cancellationToken)
+    {
+        var (agent, _) = await agentFactory.CreateAsync(AgentKind.Synthesis).WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new SynthesisExecutor(agent);
     }
 }

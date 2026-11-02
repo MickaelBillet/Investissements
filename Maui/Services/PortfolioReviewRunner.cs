@@ -51,7 +51,7 @@ public sealed class PortfolioReviewRunner(
                         break;
 
                     // The synthesis report is the workflow's only output: receiving it means the review is complete.
-                    // It is not returned yet, the synthesis being a skeleton.
+                    // It is not returned yet: the page does not display it.
                     case WorkflowOutputEvent output when output.As<SynthesisReport>() is not null:
                         logger.LogInformation("Portfolio review: completed after {Seconds:0.0}s", stopwatch.Elapsed.TotalSeconds);
                         return;

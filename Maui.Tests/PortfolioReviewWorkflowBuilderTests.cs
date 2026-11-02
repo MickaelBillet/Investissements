@@ -17,7 +17,8 @@ public class PortfolioReviewWorkflowBuilderTests
           "totalValue": 1500.0,
           "lines": [
             { "name": "MSCI World", "isin": "IE00B4L5Y983", "assetClass": "Stocks", "sector": "Diversified", "region": "World", "value": 1500.0, "weight": 100.0, "unrealizedGain": 200.0, "roi": 25.0 }
-          ]
+          ],
+          "watchlist": []
         }
         """;
 
@@ -30,10 +31,22 @@ public class PortfolioReviewWorkflowBuilderTests
         }
         """;
 
+    private const string SynthesisJson = """
+        {
+          "warnings": ["Concentration sur la technologie"],
+          "strengths": ["Exposition mondiale"],
+          "weaknesses": ["Peu d'obligations"],
+          "recommendations": [
+            { "level": "AssetClass", "target": "Bonds", "direction": "Reinforce", "driver": "BCE en pause", "rationale": "Les taux se stabilisent.", "confidence": "Medium" }
+          ]
+        }
+        """;
+
     private readonly Mock<IAgentFactory> _factory = new();
     private readonly Mock<ICustomChatHistoryProvider> _history = new();
     private readonly Mock<AIAgent> _agent = new();
     private readonly Mock<AIAgent> _contextAgent = new();
+    private readonly Mock<AIAgent> _synthesisAgent = new();
     private readonly Mock<IAssetDistributionSource> _distributionSource = new();
     private readonly PortfolioReviewWorkflowBuilder _builder = new();
 
@@ -46,7 +59,10 @@ public class PortfolioReviewWorkflowBuilderTests
         _factory
             .Setup(f => f.CreateAsync(AgentKind.Context, It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync((_contextAgent.Object, _history.Object));
-        foreach (var agent in new[] { _agent, _contextAgent })
+        _factory
+            .Setup(f => f.CreateAsync(AgentKind.Synthesis, It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync((_synthesisAgent.Object, _history.Object));
+        foreach (var agent in new[] { _agent, _contextAgent, _synthesisAgent })
         {
             agent
                 .Protected()
@@ -55,6 +71,7 @@ public class PortfolioReviewWorkflowBuilderTests
         }
         SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, AllocationJson))));
         SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, ContextJson))), _contextAgent);
+        SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, SynthesisJson))), _synthesisAgent);
         _distributionSource
             .Setup(s => s.GetGeographyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([new DistributionDto("USA", 1_500m, 100m)]);
@@ -110,6 +127,14 @@ public class PortfolioReviewWorkflowBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_Always_CreatesTheSynthesisAgent()
+    {
+        await _builder.BuildAsync(_factory.Object, _distributionSource.Object);
+
+        _factory.Verify(f => f.CreateAsync(AgentKind.Synthesis, null, null), Times.Once);
+    }
+
+    [Fact]
     public async Task BuildAsync_Run_EmitsContextBeforeSynthesis()
     {
         var events = await RunAsync();
@@ -132,15 +157,25 @@ public class PortfolioReviewWorkflowBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_RunWithAgentJson_OutputsEmptySynthesisReport()
+    public async Task BuildAsync_RunWithAgentJson_OutputsTheSynthesisAgentReport()
     {
         var events = await RunAsync();
 
         var report = events.OfType<WorkflowOutputEvent>().Select(e => e.As<SynthesisReport>()).Single();
         Assert.NotNull(report);
-        Assert.Empty(report.Warnings);
-        Assert.Empty(report.Strengths);
-        Assert.Empty(report.Weaknesses);
+        Assert.Equal(["Concentration sur la technologie"], report.Warnings);
+        Assert.Equal(new Recommendation(RecommendationLevel.AssetClass, "Bonds", RecommendationDirection.Reinforce, "BCE en pause", "Les taux se stabilisent.", RecommendationConfidence.Medium), Assert.Single(report.Recommendations));
+    }
+
+    [Fact]
+    public async Task BuildAsync_SynthesisAgentFails_ProducesNoOutput()
+    {
+        SetupAgent(() => throw new InvalidOperationException("model unavailable"), _synthesisAgent);
+
+        var events = await RunAsync();
+
+        Assert.Contains(events, e => e is ExecutorFailedEvent failed && failed.ExecutorId == "synthesis");
+        Assert.DoesNotContain(events, e => e is SynthesisWrittenEvent or WorkflowOutputEvent);
     }
 
     [Fact]

@@ -98,6 +98,20 @@ public class AgentDefinitionBuilderTests
     }
 
     [Fact]
+    public async Task SynthesisBuildAsync_Always_LoadsInstructionsWithoutToolsWithLowEffortAndNoHistory()
+    {
+        var definition = await new SynthesisAgentDefinitionBuilder().BuildAsync(null, null);
+
+        Assert.StartsWith(InstructionLoader.Load("Synthesis.md"), definition.Instructions);
+        Assert.EndsWith(InstructionLoader.Load("InvestorProfile.md"), definition.Instructions);
+        Assert.Null(definition.Tools);
+        Assert.Null(definition.AIContextProviders);
+        Assert.Equal(ResponseReasoningEffortLevel.Low, definition.ReasoningEffort);
+        Assert.False(definition.KeepHistory);
+        Assert.Equal("chat-history-synthesis.json", definition.HistoryFileName);
+    }
+
+    [Fact]
     public async Task AllocationBuildAsync_NoMcpUrl_ThrowsInvalidOperation()
     {
         var connector = new InvestZaptoMcpClient(new HttpClient(), NullLoggerFactory.Instance);

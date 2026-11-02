@@ -1,21 +1,28 @@
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
 namespace AgentAI;
 
 /// <summary>
-/// Combines the allocation, the context and the asset distributions into the review's output. Skeleton: the
-/// report is empty for now.
+/// Has the Synthesis agent combine the allocation, the context and the asset distributions into the review's output.
 /// </summary>
 /// <remarks>
 /// The fan-in barrier delivers its three inputs as three separate messages, in no guaranteed order. Each handler
 /// keeps its input in the workflow state (rather than in fields, so a checkpoint would capture it) and the report
 /// is written once all three are there.
+/// The watchlist comes with the allocation; the scenarios and convictions come with the agent's instructions
+/// (<c>InvestorProfile.md</c>).
 /// </remarks>
-public sealed class SynthesisExecutor() : Executor("synthesis")
+public sealed class SynthesisExecutor(AIAgent agent) : Executor("synthesis")
 {
     private const string AllocationKey = "allocation";
     private const string ContextKey = "context";
     private const string DistributionKey = "distribution";
+
+    // Accents kept as is: escaping them would only grow the prompt the model has to read.
+    private static readonly JsonSerializerOptions PromptJsonOptions = new(JsonSerializerDefaults.Web) { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
         protocolBuilder
@@ -53,9 +60,29 @@ public sealed class SynthesisExecutor() : Executor("synthesis")
             return;
         }
 
-        var report = new SynthesisReport([], [], []);
+        var prompt = BuildPrompt(allocation, portfolioContext, distribution);
+        var response = await agent.RunAsync<SynthesisReport>(prompt, cancellationToken: cancellationToken);
+        var report = response.Result;
 
         await context.AddEventAsync(new SynthesisWrittenEvent(report), cancellationToken);
         await context.YieldOutputAsync(report, cancellationToken);
     }
+
+    // French because it is the agent's working language.
+    // The date comes from the context, which ContextExecutor forces to the requested one; the allocation's is the model's.
+    private static string BuildPrompt(AllocationResult allocation, PortfolioContext portfolioContext, DistributionResult distribution) =>
+        $"""
+        Rédige la synthèse du portefeuille au {portfolioContext.Date:yyyy-MM-dd}.
+
+        Allocation actuelle :
+        {JsonSerializer.Serialize(allocation, PromptJsonOptions)}
+
+        Contexte du jour :
+        {JsonSerializer.Serialize(portfolioContext, PromptJsonOptions)}
+
+        Expositions calculées (actions et obligations uniquement) :
+        {JsonSerializer.Serialize(distribution, PromptJsonOptions)}
+
+        Watchlist : le champ watchlist de l'allocation liste les valeurs suivies sans être détenues. C'est la seule source autorisée pour une recommandation de type Initiate.
+        """;
 }

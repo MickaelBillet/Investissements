@@ -44,7 +44,7 @@ public class PortfolioReviewRunnerTests
             .ReturnsAsync(() => new WorkflowBuilder(step).WithOutputFrom(step).Build());
     }
 
-    private static SynthesisReport EmptyReport() => new([], [], []);
+    private static SynthesisReport EmptyReport() => new([], [], [], []);
 
     // Honours the token like a real model call: a delay that ignores it would keep the workflow's background run alive.
     private static async ValueTask<SynthesisReport> NeverAnswers(AnalysisRequest _, CancellationToken ct)
