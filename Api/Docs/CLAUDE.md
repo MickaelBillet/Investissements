@@ -228,6 +228,8 @@ Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.Wh
 
 À reproduire pour tout nouvel appel Sheets partagé par plusieurs services invoqués en parallèle.
 
+**Invalidation :** après une synchronisation réussie, `SyncService` appelle `IAssetsService.InvalidateCache()` et `ISnapshotService.InvalidateCache()`, pour que le rechargement du Client lise ce que l'ETL vient d'écrire. La référence `AssetType` et la watchlist restent en cache : l'ETL ne les écrit pas. **Limite :** `IMemoryCache` est propre à chaque instance de l'Api. Si plusieurs instances tournent, seule celle qui a traité la synchronisation est vidée ; les autres servent leur copie jusqu'à expiration (30 s, ou 5 min pour l'historique).
+
 ---
 
 ## 9. Règles d'implémentation
@@ -243,7 +245,7 @@ Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.Wh
 
 ## 10. Synchronisation manuelle (`SyncService`)
 
-`SyncService.TriggerAsync` lit `APPS_SCRIPT_SYNC_URL` et `APPS_SCRIPT_SYNC_KEY` via `IConfiguration`, appelle `GET <url>?key=<clé>` (clé URL-encodée) et traduit la réponse JSON de `Scripts/SyncWebApp.gs` en `SyncResultDto(Success, AddedCount, ErrorMessage)`. Jamais d'exception vers l'appelant : configuration absente, réponse non-JSON (déploiement du Web App à vérifier), erreur Apps Script et erreurs réseau/timeout sont toutes converties en `SyncResultDto` avec `Success = false` et un message en français. `SyncFunction` renvoie `200` avec ce DTO, ou `500` sur exception inattendue. Le `HttpClient` a un timeout de 100 s : l'ETL complet est long, mais reste sous la limite de 45 s du proxy SWA seulement si Apps Script répond vite (au-delà, le Client voit une erreur 500).
+`SyncService.TriggerAsync` lit `APPS_SCRIPT_SYNC_URL` et `APPS_SCRIPT_SYNC_KEY` via `IConfiguration`, appelle `GET <url>?key=<clé>` (clé URL-encodée) et traduit la réponse JSON de `Scripts/SyncWebApp.gs` en `SyncResultDto(Success, AddedCount, ErrorMessage)`. Jamais d'exception vers l'appelant : configuration absente, réponse non-JSON (déploiement du Web App à vérifier), erreur Apps Script et erreurs réseau/timeout sont toutes converties en `SyncResultDto` avec `Success = false` et un message en français. En cas de succès, les caches des actifs et des snapshots sont vidés (§8). `SyncFunction` renvoie `200` avec ce DTO, ou `500` sur exception inattendue. Le `HttpClient` a un timeout de 100 s : l'ETL complet est long, mais reste sous la limite de 45 s du proxy SWA seulement si Apps Script répond vite (au-delà, le Client voit une erreur 500).
 
 ---
 
@@ -261,7 +263,7 @@ Sert l'outil `SearchWeb` de l'agent Contexte (application MAUI, voir `AgentAI.Co
 
 ## 11. Tests (`Api.Tests/`)
 
-xUnit + Moq, 179 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+xUnit + Moq, 185 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
 - `Functions/` — `AgentConfigFunction`, `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`, `WebSearchFunction`
 - `Mcp/` — `McpHandlerTests`
 - `Middleware/` — `DashboardAuthMiddleware`

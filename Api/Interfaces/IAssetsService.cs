@@ -9,4 +9,7 @@ public interface IAssetsService
     Task<IReadOnlyList<AggregateDto>>   GetEtfStocksByInformationAsync(CancellationToken ct = default);
     Task<IReadOnlyList<AssetDto>>       GetByAssetTypeAndInformationAsync(string assetType, string information, CancellationToken ct = default);
     Task<IReadOnlyList<AssetTypeReferenceDto>> GetAssetTypeReferenceAsync(CancellationToken ct = default);
+
+    /// <summary>Forgets the cached assets, so the next read returns what the ETL just wrote.</summary>
+    void InvalidateCache();
 }

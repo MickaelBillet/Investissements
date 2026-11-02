@@ -97,7 +97,7 @@ SRS_30 Dans le tableau des actifs d'une zone géographique (SRS_21), la colonne 
 
 #### Synchronisation manuelle
 
-SRS_31 Un menu de la barre d'application propose « Synchroniser » : l'action relance l'ETL complet (synchro des actifs depuis le Bilan, création des actifs manquants, snapshot du jour) sans attendre le déclenchement automatique de 06h00, affiche un indicateur d'attente puis une notification de succès ou d'erreur
+SRS_31 Un menu de la barre d'application propose « Synchroniser » : l'action relance l'ETL complet (synchro des actifs depuis le Bilan, création des actifs manquants, snapshot du jour) sans attendre le déclenchement automatique de 06h00, recharge les données affichées sans recharger la page ni passer par le cache de l'Api, affiche un indicateur d'attente puis une notification de succès ou d'erreur
 
 #### Mode confidentialité
 

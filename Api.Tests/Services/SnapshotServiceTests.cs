@@ -115,4 +115,20 @@ public class SnapshotServiceTests
 
         mock.Verify(s => s.GetRangeAsync("Snapshot", It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task InvalidateCache_AfterReads_MakesLastAndHistoryHitTheSheetAgain()
+    {
+        var mock = MockSnapshotSheet(SnapshotRow("2026-05-01", 70000d, 40.1d, 80.2d, 60000d, 75000d, 900d));
+        var service = CreateService(mock);
+        await service.GetLastAsync();
+        await service.GetHistoryAsync();
+        mock.Invocations.Clear();
+
+        service.InvalidateCache();
+        await service.GetLastAsync();
+        await service.GetHistoryAsync();
+
+        mock.Verify(s => s.GetRangeAsync("Snapshot", It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
 }

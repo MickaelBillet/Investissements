@@ -9,13 +9,17 @@ internal sealed class SyncService : ISyncService
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
+    private readonly IAssetsService _assetsService;
+    private readonly ISnapshotService _snapshotService;
     private readonly ILogger<SyncService> _logger;
 
-    public SyncService(HttpClient httpClient, IConfiguration configuration, ILogger<SyncService> logger)
+    public SyncService(HttpClient httpClient, IConfiguration configuration, IAssetsService assetsService, ISnapshotService snapshotService, ILogger<SyncService> logger)
     {
-        _httpClient    = httpClient;
-        _configuration = configuration;
-        _logger        = logger;
+        _httpClient      = httpClient;
+        _configuration   = configuration;
+        _assetsService   = assetsService;
+        _snapshotService = snapshotService;
+        _logger          = logger;
     }
 
     public async Task<SyncResultDto> TriggerAsync(CancellationToken ct = default)
@@ -52,6 +56,11 @@ internal sealed class SyncService : ISyncService
                 _logger.LogError("Apps Script sync failed: {Error}", payload?.Error ?? "unknown error");
                 return new SyncResultDto(false, 0, payload?.Error ?? "Erreur inconnue.");
             }
+
+            // The ETL has just rewritten the Sheet: without this, the reload that follows would read the old values.
+            // Only this instance's memory is cleared: another instance would serve its copy until the copy expires.
+            _assetsService.InvalidateCache();
+            _snapshotService.InvalidateCache();
 
             return new SyncResultDto(true, payload.AddedCount, null);
         }

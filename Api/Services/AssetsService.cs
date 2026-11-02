@@ -35,6 +35,9 @@ internal sealed class AssetsService : IAssetsService
         _logger       = logger;
     }
 
+    // The AssetType reference stays cached: it is maintained by hand and the ETL never writes it.
+    public void InvalidateCache() => _cache.Remove(AssetsCacheKey);
+
     // Single-flight cache: avoids the dashboard's concurrent widgets each triggering
     // their own full-sheet read and overloading the Google Sheets API quota.
     public async Task<IReadOnlyList<AssetDto>> GetAllAsync(CancellationToken ct = default)

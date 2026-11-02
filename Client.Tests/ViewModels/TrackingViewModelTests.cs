@@ -406,4 +406,64 @@ public class TrackingViewModelTests
 
         Assert.Empty(vm.SelectedPeriodBonds);
     }
+
+    // ── ReloadAsync ──────────────────────────────
+
+    [Fact]
+    public async Task ReloadAsync_AfterLoad_ExposesNewDataAndNotifies()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint(new DateOnly(2025, 1, 1)));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([TestData.PerformancePoint(new DateOnly(2025, 1, 1)), TestData.PerformancePoint(new DateOnly(2025, 1, 2))]);
+        var notified = 0;
+        vm.DataChanged += () => notified++;
+
+        await vm.ReloadAsync();
+
+        Assert.Equal(2, vm.ROIC_Series.Count);
+        Assert.Equal(1, vm.DataVersion);
+        Assert.Equal(1, notified);
+        Assert.False(vm.IsLoading);
+    }
+
+    [Fact]
+    public async Task ReloadAsync_BeforeFirstLoad_DoesNothing()
+    {
+        var mock = MockWithHistory();
+        var vm = CreateVm(mock);
+
+        await vm.ReloadAsync();
+
+        mock.Verify(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal(0, vm.DataVersion);
+    }
+
+    [Fact]
+    public async Task ReloadAsync_WhenItFails_KeepsTheDataAndThrows()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint(new DateOnly(2025, 1, 1)));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        mock.Setup(s => s.GetIndexedHistoryAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException("indisponible"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => vm.ReloadAsync());
+
+        Assert.Single(vm.ROIC_Series);
+        Assert.Equal(0, vm.DataVersion);
+    }
+
+    [Fact]
+    public async Task ReloadAsync_WithSelectedPeriod_ClearsTheSelection()
+    {
+        var mock = MockWithHistory(TestData.PerformancePoint(new DateOnly(2025, 1, 1)));
+        var vm = CreateVm(mock);
+        await vm.InitializeAsync();
+        vm.SelectPeriod(new BondSchedulePeriodDto(2027, null, 100m, [], 0m));
+
+        await vm.ReloadAsync();
+
+        Assert.Null(vm.SelectedPeriodEntry);
+    }
 }

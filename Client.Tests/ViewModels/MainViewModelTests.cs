@@ -17,7 +17,10 @@ public class MainViewModelTests
         _localizer.Setup(l => l.Translate(It.IsAny<string>())).Returns<string>(key => key);
     }
 
-    private MainViewModel Create() => new(_sync.Object, _session.Object, _localizer.Object, NullLogger<MainViewModel>.Instance);
+    private readonly Mock<IRefreshableViewModel> _dashboard = new();
+    private readonly Mock<IRefreshableViewModel> _tracking = new();
+
+    private MainViewModel Create() => new(_sync.Object, _session.Object, _localizer.Object, NullLogger<MainViewModel>.Instance, [_dashboard.Object, _tracking.Object]);
 
     private void SetupResult(SyncResultDto result) =>
         _sync.Setup(s => s.TriggerAsync(It.IsAny<CancellationToken>())).ReturnsAsync(result);
@@ -116,7 +119,7 @@ public class MainViewModelTests
     [Fact]
     public void IsAnalysisAvailable_WithRunner_IsTrue()
     {
-        var vm = new MainViewModel(_sync.Object, _session.Object, _localizer.Object, NullLogger<MainViewModel>.Instance, reviewRunner: new Mock<IPortfolioReviewRunner>().Object);
+        var vm = new MainViewModel(_sync.Object, _session.Object, _localizer.Object, NullLogger<MainViewModel>.Instance, [], reviewRunner: new Mock<IPortfolioReviewRunner>().Object);
 
         Assert.True(vm.IsAnalysisAvailable);
     }
@@ -125,5 +128,57 @@ public class MainViewModelTests
     public void SyncMessage_BeforeAnySync_IsNull()
     {
         Assert.Null(Create().SyncMessage);
+    }
+
+    [Fact]
+    public async Task SyncAsync_WhenSyncSucceeds_ReloadsEveryPage()
+    {
+        SetupResult(new SyncResultDto(true, 0, null));
+
+        await Create().SyncAsync();
+
+        _dashboard.Verify(v => v.ReloadAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _tracking.Verify(v => v.ReloadAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncAsync_WhenSyncFails_DoesNotReload()
+    {
+        SetupResult(new SyncResultDto(false, 0, "refusé"));
+
+        await Create().SyncAsync();
+
+        _dashboard.Verify(v => v.ReloadAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncAsync_WhileReloading_StaysSyncingAndReportsOnlyAtTheEnd()
+    {
+        SetupResult(new SyncResultDto(true, 0, null));
+        var reload = new TaskCompletionSource();
+        _dashboard.Setup(v => v.ReloadAsync(It.IsAny<CancellationToken>())).Returns(reload.Task);
+        var vm = Create();
+
+        var sync = vm.SyncAsync();
+        Assert.True(vm.IsSyncing);
+        reload.SetResult();
+        await sync;
+
+        Assert.False(vm.IsSyncing);
+        Assert.True(vm.IsSyncSuccess);
+    }
+
+    [Fact]
+    public async Task SyncAsync_WhenReloadFails_ReportsTheRefreshError()
+    {
+        SetupResult(new SyncResultDto(true, 0, null));
+        _dashboard.Setup(v => v.ReloadAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException("indisponible"));
+        var vm = Create();
+
+        await vm.SyncAsync();
+
+        Assert.False(vm.IsSyncSuccess);
+        Assert.Equal("Sync_RefreshError — indisponible", vm.SyncMessage);
+        Assert.False(vm.IsSyncing);
     }
 }

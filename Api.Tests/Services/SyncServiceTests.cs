@@ -11,7 +11,10 @@ namespace InvestissementsDashboard.Api.Tests.Services;
 
 public class SyncServiceTests
 {
-    private static SyncService CreateService(HttpResponseMessage response, string? syncUrl = "https://script.google.com/exec", string? syncKey = "secret")
+    private readonly Mock<IAssetsService> _assets = new();
+    private readonly Mock<ISnapshotService> _snapshots = new();
+
+    private SyncService CreateService(HttpResponseMessage response, string? syncUrl = "https://script.google.com/exec", string? syncKey = "secret")
     {
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock
@@ -29,7 +32,13 @@ public class SyncServiceTests
             })
             .Build();
 
-        return new SyncService(httpClient, configuration, NullLogger<SyncService>.Instance);
+        return new SyncService(httpClient, configuration, _assets.Object, _snapshots.Object, NullLogger<SyncService>.Instance);
+    }
+
+    private void VerifyCachesInvalidated(Times times)
+    {
+        _assets.Verify(a => a.InvalidateCache(), times);
+        _snapshots.Verify(s => s.InvalidateCache(), times);
     }
 
     private static HttpResponseMessage JsonResponse(HttpStatusCode statusCode, string json)
@@ -89,12 +98,38 @@ public class SyncServiceTests
             })
             .Build();
 
-        var service = new SyncService(httpClient, configuration, NullLogger<SyncService>.Instance);
+        var service = new SyncService(httpClient, configuration, _assets.Object, _snapshots.Object, NullLogger<SyncService>.Instance);
 
         var result = await service.TriggerAsync();
 
         Assert.False(result.Success);
         Assert.Equal(0, result.AddedCount);
         Assert.NotNull(result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task TriggerAsync_WhenAppsScriptSucceeds_InvalidatesAssetsAndSnapshotCaches()
+    {
+        await CreateService(JsonResponse(HttpStatusCode.OK, """{"success":true,"addedCount":0}""")).TriggerAsync();
+
+        VerifyCachesInvalidated(Times.Once());
+    }
+
+    [Theory]
+    [InlineData("""{"success":false,"error":"Unauthorized"}""")]
+    [InlineData("not json")]
+    public async Task TriggerAsync_WhenSyncFails_KeepsTheCaches(string body)
+    {
+        await CreateService(JsonResponse(HttpStatusCode.OK, body)).TriggerAsync();
+
+        VerifyCachesInvalidated(Times.Never());
+    }
+
+    [Fact]
+    public async Task TriggerAsync_WhenNotConfigured_KeepsTheCaches()
+    {
+        await CreateService(JsonResponse(HttpStatusCode.OK, "{}"), syncUrl: null).TriggerAsync();
+
+        VerifyCachesInvalidated(Times.Never());
     }
 }
