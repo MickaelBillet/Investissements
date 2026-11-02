@@ -572,7 +572,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 - Configuration : servie par l'Api à chaque lancement (`GET /api/agents/config`), sans page de paramètres ni variable d'environnement ; l'URL du MCP est déduite de celle de l'Api.
 - Identité Azure : `DefaultAzureCredential` (`az login`) sur le PC pour commencer ; option ultérieure `InteractiveBrowserCredential` avec cache de jeton (non vérifié en MAUI packagé). **Jamais de secret de principal de service dans l'application** (un binaire se décompile). `ExcludeManagedIdentityCredential` reste actif.
 - Secrets de l'application : seul le mot de passe du dashboard, dans `SecureStorage`, jamais dans le code. La clé MCP, la clé de recherche web et la configuration Foundry restent dans l'Api.
-- `InvestZaptoMcpClient`, `RssFeedReader` et `YahooTickerResolver` sont des **clients typés d'`IHttpClientFactory`** enregistrés par `AgentAI.Core` ; l'hôte choisit le handler primaire (`SocketsHttpHandler` sous Windows).
+- `InvestZaptoMcpConnector`, `RssFeedReader` et `YahooTickerResolver` sont des **clients typés d'`IHttpClientFactory`** enregistrés par `AgentAI.Core` ; l'hôte choisit le handler primaire (`SocketsHttpHandler` sous Windows).
 
 ### 14.4 Plan par étapes (une validation avant chaque suivante)
 

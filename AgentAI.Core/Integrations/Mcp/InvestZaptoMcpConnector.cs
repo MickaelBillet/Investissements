@@ -17,25 +17,25 @@ namespace AgentAI.Core.Integrations.Mcp;
 /// <see cref="InvestZaptoMcpServiceExtensions.AddInvestZaptoMcp"/>) so this class carries no
 /// platform-specific handler and can be reused from a browser host.
 /// </remarks>
-public class InvestZaptoMcpClient
+public class InvestZaptoMcpConnector
 {
     #region Fields
     private const int MaxAttempts = 3;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(2);
     private readonly HttpClient _httpClient;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger<InvestZaptoMcpClient> _logger;
+    private readonly ILogger<InvestZaptoMcpConnector> _logger;
     #endregion
 
     #region Constructor
-    public InvestZaptoMcpClient(HttpClient httpClient, ILoggerFactory loggerFactory)
+    public InvestZaptoMcpConnector(HttpClient httpClient, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(loggerFactory);
 
         _httpClient = httpClient;
         _loggerFactory = loggerFactory;
-        _logger = loggerFactory.CreateLogger<InvestZaptoMcpClient>();
+        _logger = loggerFactory.CreateLogger<InvestZaptoMcpConnector>();
     }
     #endregion
 

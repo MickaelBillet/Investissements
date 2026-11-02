@@ -47,7 +47,7 @@ public class InvestZaptoMcpToolSourceTests
         Assert.Equal(0, _requestCount);
     }
 
-    private InvestZaptoMcpClient CreateConnector(HttpStatusCode status) =>
+    private InvestZaptoMcpConnector CreateConnector(HttpStatusCode status) =>
         new(new HttpClient(new StubHandler(() =>
         {
             Interlocked.Increment(ref _requestCount);

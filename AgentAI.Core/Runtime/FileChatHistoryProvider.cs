@@ -11,17 +11,17 @@ namespace AgentAI.Core.Runtime;
 /// A <see cref="ChatHistoryProvider"/> that persists the conversation history to a local JSON file,
 /// so history survives across process restarts.
 /// </summary>
-internal sealed class CustomChatHistoryProvider : ChatHistoryProvider, ICustomChatHistoryProvider
+internal sealed class FileChatHistoryProvider : ChatHistoryProvider, IFileChatHistoryProvider
 {
     private readonly string _filePath;
     private readonly List<ChatMessage> _messages;
-    private readonly ILogger<CustomChatHistoryProvider> _logger;
+    private readonly ILogger<FileChatHistoryProvider> _logger;
 
     /// <param name="loadExisting">
     /// <see langword="false"/> starts from an empty history without reading the file; the file is then overwritten
     /// by the next run, so it keeps that run only.
     /// </param>
-    public CustomChatHistoryProvider(string filePath, ILogger<CustomChatHistoryProvider> logger, bool loadExisting = true)
+    public FileChatHistoryProvider(string filePath, ILogger<FileChatHistoryProvider> logger, bool loadExisting = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ArgumentNullException.ThrowIfNull(logger);

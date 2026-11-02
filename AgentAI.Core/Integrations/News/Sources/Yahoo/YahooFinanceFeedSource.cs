@@ -7,7 +7,7 @@ namespace AgentAI.Core.Integrations.News.Sources.Yahoo;
 /// Yahoo Finance headline feed, keyed on the ticker resolved from the ISIN. Already scoped to the
 /// security, so its articles are not filtered on the title.
 /// </summary>
-public sealed class YahooFinanceFeedSource : INewsFeedSource
+internal sealed class YahooFinanceFeedSource : INewsFeedSource
 {
     private readonly YahooTickerResolver _tickerResolver;
     private readonly IRssFeedReader _reader;

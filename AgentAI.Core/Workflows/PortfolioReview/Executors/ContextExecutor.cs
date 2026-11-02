@@ -9,7 +9,7 @@ namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 /// Establishes the economic and geopolitical context at the requested date, through the Context agent and its web
 /// search; runs in parallel with <see cref="AllocationExecutor"/> and knows nothing of the portfolio.
 /// </summary>
-public sealed class ContextExecutor(AIAgent agent) : Executor<AnalysisRequest, PortfolioContext>("context")
+internal sealed class ContextExecutor(AIAgent agent) : Executor<AnalysisRequest, PortfolioContext>("context")
 {
     public override async ValueTask<PortfolioContext> HandleAsync(AnalysisRequest message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {

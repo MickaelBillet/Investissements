@@ -49,7 +49,7 @@ Maui.Tests/
 ├── AgentDefinitionBuilderTests.cs # définition de chaque agent (instructions, outils, historique, effort), saisies requises
 ├── ModelCallLoggingChatClientTests.cs # trace d'un succès (jetons) et d'un échec
 ├── InvestZaptoMcpToolSourceTests.cs # URL absente, connexion refusée puis réessayée, libération sans connexion
-├── CustomChatHistoryProviderTests.cs, NewsContextProviderTests.cs, StockContextProviderTests.cs
+├── FileChatHistoryProviderTests.cs, NewsContextProviderTests.cs, StockContextProviderTests.cs
 ├── PortfolioReviewRunnerTests.cs # builder mocké renvoyant un workflow d'une étape de test : sortie, fabrique et source du lancement transmises, échec, 401 MCP, délai, annulation
 ├── PortfolioReviewWorkflowBuilderTests.cs # vrai builder, AgentFactory/agents (Allocation, Context, Synthesis)/source mockés : les trois agents demandés, rapport de l'agent en sortie, synthèse produite après l'allocation, le contexte et les répartitions, échec d'une étape sans synthèse, arguments null, annulation
 ├── SynthesisExecutorTests.cs     # barrière fan-in réelle, trois sources de test, agent mocké : un seul appel et un seul rapport, attend l'entrée la plus lente, contenu du message

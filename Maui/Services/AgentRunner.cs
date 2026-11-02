@@ -58,7 +58,7 @@ public sealed class AgentRunner(
         const string running = "waiting for the model's answer";
         string stage = creating;
 
-        (AIAgent aiAgent, ICustomChatHistoryProvider historyProvider) created;
+        (AIAgent aiAgent, IFileChatHistoryProvider historyProvider) created;
         try
         {
             // CreateAsync takes no token: WaitAsync lets the timeout and the user's cancellation interrupt the wait.

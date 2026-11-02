@@ -14,7 +14,7 @@ internal sealed class StockAgentDefinitionBuilder(TimeProvider timeProvider) : I
         var stockName = AgentInput.Require(contextInput, "un nom d'action");
 
         return Task.FromResult(new AgentDefinition(
-            Instructions: InstructionLoader.Load("AnalyseAction.md"),
+            Instructions: InstructionLoader.Load("Stock.md"),
             Tools: null,
             HistoryFileName: "chat-history-stock.json",
             AIContextProviders: new CompositeContextProvider(new AIContextProvider[]

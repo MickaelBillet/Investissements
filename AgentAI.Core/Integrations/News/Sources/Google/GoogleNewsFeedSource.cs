@@ -7,7 +7,7 @@ namespace AgentAI.Core.Integrations.News.Sources.Google;
 /// <summary>
 /// Google News search feed, keyed on the company name.
 /// </summary>
-public sealed class GoogleNewsFeedSource : INewsFeedSource
+internal sealed class GoogleNewsFeedSource : INewsFeedSource
 {
     private readonly IRssFeedReader _reader;
     private readonly ILogger<GoogleNewsFeedSource> _logger;

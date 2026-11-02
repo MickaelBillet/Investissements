@@ -12,7 +12,7 @@ namespace AgentAI.Core.Integrations.Mcp;
 /// class stays platform-neutral: native hosts plug a <c>SocketsHttpHandler</c>, while a browser host
 /// (Blazor WASM) can plug its own handler or skip this workaround altogether.
 /// </remarks>
-public sealed class ForceContentLengthHandler : DelegatingHandler
+internal sealed class ForceContentLengthHandler : DelegatingHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {

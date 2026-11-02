@@ -29,5 +29,5 @@ public interface IAgentFactory : IAsyncDisposable
     /// Asynchronous because some agent kinds (e.g. <see cref="AgentKind.Allocation"/>) require
     /// connecting to an external MCP server before their tools are known.
     /// </remarks>
-    Task<(AIAgent Agent, ICustomChatHistoryProvider HistoryProvider)> CreateAsync(AgentKind kind, string? contextInput = null, string? optionalInput = null);
+    Task<(AIAgent Agent, IFileChatHistoryProvider HistoryProvider)> CreateAsync(AgentKind kind, string? contextInput = null, string? optionalInput = null);
 }

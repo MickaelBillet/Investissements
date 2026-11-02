@@ -29,7 +29,7 @@ public class AgentFactoryTests
 
     private static AgentFactoryBuilder CreateBuilder() =>
         new(
-            new InvestZaptoMcpClient(new HttpClient(), NullLoggerFactory.Instance),
+            new InvestZaptoMcpConnector(new HttpClient(), NullLoggerFactory.Instance),
             new Mock<INewsService>().Object,
             new Mock<IWebSearchService>().Object,
             new Mock<IWeatherService>().Object,
@@ -39,7 +39,7 @@ public class AgentFactoryTests
     private static AgentFactory CreateFactory(params IAgentDefinitionBuilder[] builders)
     {
         var options = Options();
-        var mcpTools = new InvestZaptoMcpToolSource(new InvestZaptoMcpClient(new HttpClient(), NullLoggerFactory.Instance), endpoint: null);
+        var mcpTools = new InvestZaptoMcpToolSource(new InvestZaptoMcpConnector(new HttpClient(), NullLoggerFactory.Instance), endpoint: null);
         var projectClient = new AIProjectClient(new Uri(FoundryEndpoint), new DefaultAzureCredential());
         return new AgentFactory(options, projectClient, mcpTools, builders, NullLoggerFactory.Instance);
     }

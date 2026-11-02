@@ -11,7 +11,7 @@ namespace AgentAI.Core.Agents.News;
 /// The date lives here rather than in <see cref="DateContextProvider"/>: that provider tells the agent
 /// to flag anything older than 6 months, which contradicts the one-week window of this agent.
 /// </remarks>
-public sealed class NewsContextProvider(string company, string? isin, int days, TimeProvider time) : AIContextProvider
+internal sealed class NewsContextProvider(string company, string? isin, int days, TimeProvider time) : AIContextProvider
 {
     protected override ValueTask<AIContext> ProvideAIContextAsync(
         InvokingContext context, CancellationToken ct = default)

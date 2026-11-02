@@ -3,7 +3,7 @@ using Microsoft.Agents.AI;
 
 namespace AgentAI.Core.Runtime;
 
-public sealed class DateContextProvider(TimeProvider time) : AIContextProvider
+internal sealed class DateContextProvider(TimeProvider time) : AIContextProvider
 {
     protected override ValueTask<AIContext> ProvideAIContextAsync(InvokingContext context, CancellationToken ct = default)
     {

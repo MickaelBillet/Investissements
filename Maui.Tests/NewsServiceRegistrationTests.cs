@@ -208,7 +208,7 @@ public class NewsServiceRegistrationTests
             return new HttpResponseMessage(HttpStatusCode.OK);
         }));
         using var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(InvestZaptoMcpClient));
+        var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(InvestZaptoMcpConnector));
 
         using var content = new UnknownLengthContent("{\"jsonrpc\":\"2.0\"}");
         await client.PostAsync("https://invest.test/api/mcp", content);
@@ -224,7 +224,7 @@ public class NewsServiceRegistrationTests
         services.AddInvestZaptoMcp();
         using var provider = services.BuildServiceProvider();
 
-        Assert.NotNull(provider.GetRequiredService<InvestZaptoMcpClient>());
+        Assert.NotNull(provider.GetRequiredService<InvestZaptoMcpConnector>());
     }
 
     private static INewsService Create(string? google, string? yahoo = null, string? search = null, List<Uri>? requests = null) =>

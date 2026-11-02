@@ -18,7 +18,7 @@ internal sealed class AllocationAgentDefinitionBuilder(InvestZaptoMcpToolSource 
     public async Task<AgentDefinition> BuildAsync(string? contextInput, string? optionalInput, CancellationToken cancellationToken = default)
     {
         return new AgentDefinition(
-            Instructions: InstructionLoader.Load("AllocationPortefeuille.md"),
+            Instructions: InstructionLoader.Load("Allocation.md"),
             Tools: await mcpTools.GetToolsAsync(cancellationToken).ConfigureAwait(false),
             HistoryFileName: "chat-history-allocation.json",
             // Dated because the report is.

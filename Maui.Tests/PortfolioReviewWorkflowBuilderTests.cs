@@ -47,7 +47,7 @@ public class PortfolioReviewWorkflowBuilderTests
         """;
 
     private readonly Mock<IAgentFactory> _factory = new();
-    private readonly Mock<ICustomChatHistoryProvider> _history = new();
+    private readonly Mock<IFileChatHistoryProvider> _history = new();
     private readonly Mock<AIAgent> _agent = new();
     private readonly Mock<AIAgent> _contextAgent = new();
     private readonly Mock<AIAgent> _synthesisAgent = new();
@@ -244,7 +244,7 @@ public class PortfolioReviewWorkflowBuilderTests
     public async Task BuildAsync_Cancelled_ThrowsOperationCanceled()
     {
         // CreateAsync takes no token: only the builder's WaitAsync can interrupt it.
-        var never = new TaskCompletionSource<(AIAgent, ICustomChatHistoryProvider)>();
+        var never = new TaskCompletionSource<(AIAgent, IFileChatHistoryProvider)>();
         _factory
             .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .Returns(never.Task);

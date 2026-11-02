@@ -2,7 +2,7 @@ using Microsoft.Agents.AI;
 
 namespace AgentAI.Core.Runtime;
 
-public sealed class CompositeContextProvider(IEnumerable<AIContextProvider> providers) : AIContextProvider
+internal sealed class CompositeContextProvider(IEnumerable<AIContextProvider> providers) : AIContextProvider
 {
     protected override ValueTask<AIContext> ProvideAIContextAsync(InvokingContext ctx, CancellationToken ct = default)
     {
