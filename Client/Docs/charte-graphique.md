@@ -1,5 +1,7 @@
 # Charte Graphique — Application de Suivi des Investissements
 
+> En cas d'écart, le code et `Client.Shared/Docs/CLAUDE.md` (§5 et §6) font foi.
+
 ---
 
 ## 1. Identité visuelle
@@ -22,6 +24,8 @@
 | Bordures & séparateurs | `#E9E9E7` | 233, 233, 231 | Lignes de tableau, contours de cartes       |
 
 ### Couleurs d'accentuation par type d'actif
+
+Dans l'application, les donuts attribuent ces couleurs **par position**, selon les palettes de `Client.Shared/Docs/CLAUDE.md` §6, et non par type d'actif fixe.
 
 | Type d'actif   | Hex       | RGB             | Variante claire (tags) |
 |----------------|-----------|-----------------|------------------------|
@@ -59,7 +63,7 @@
 | Montant principal (KPI) | Système sans-serif | 36 px   | Bold 700  | `#37352F`   |
 | Labels de graphique   | Système sans-serif  | 12 px   | Regular 400 | `#787774`  |
 
-**Police système recommandée** : `-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif` (stack Notion)
+**Police** : `'Helvetica Neue', Helvetica, Arial, sans-serif` (polices système, aucune police externe)
 
 ---
 
@@ -128,7 +132,7 @@
 | Padding interne des cartes | `16–20px`|
 | Espacement lignes tableau  | `44px` (hauteur de ligne) |
 
-**Grille** : 2 colonnes pour le dashboard (50/50), tableau pleine largeur.
+**Grille** : `MudGrid`. Trois donuts côte à côte en vue initiale ; en drill-down, le donut à gauche (5/12) et le tableau à droite (7/12).
 
 ---
 
@@ -137,7 +141,7 @@
 - Style : outline, trait fin (1.5px)
 - Taille : `16px` inline, `20px` dans les boutons
 - Couleur : `#787774` (repos), `#37352F` (actif/hover)
-- Source recommandée : Lucide Icons, Heroicons, ou équivalent
+- Source : icônes MudBlazor intégrées (`Icons.Material.Outlined.*`), aucune bibliothèque externe
 
 ---
 
@@ -146,6 +150,6 @@
 1. **Couleur = information** : chaque couleur est associée à un type d'actif. Ne pas utiliser les couleurs de manière décorative.
 2. **Données au centre** : le design est au service de la lisibilité des chiffres. Privilégier l'espace blanc et l'alignement.
 3. **Pas de dark mode par défaut** : l'interface est conçue en mode clair. Un dark mode pourra être ajouté ultérieurement en inversant fond/texte et ajustant les saturations.
-4. **Responsive** : les deux colonnes du dashboard passent en empilement vertical sous `768px`. Les tableaux deviennent scrollables horizontalement.
-5. **Montants** : format `$XX,XXX.XX` avec séparateur de milliers virgule, décimales point. Alignés à droite.
+4. **Responsive** : les colonnes du dashboard passent en empilement vertical sous le point de rupture `md` de MudBlazor. Les tableaux deviennent scrollables horizontalement.
+5. **Montants** : format `€ 12 345,67` (culture `fr-FR`). Alignés à droite.
 6. **Pourcentages ROI** : 2 décimales, colorés vert/rouge selon signe.

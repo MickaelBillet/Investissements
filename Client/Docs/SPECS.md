@@ -1,8 +1,8 @@
 # SPECS.md — Client (hôte Blazor WebAssembly)
 
 **Statut :** Implémenté  
-**Version :** 2.0  
-**Date :** 2026-10-05
+**Version :** 2.1  
+**Date :** 2026-11-02
 
 ---
 
@@ -18,7 +18,7 @@ Le dashboard (écran de connexion, KPI, répartition, suivi, échéancier, mode 
 | 2 | L'Api est appelée sur la **même origine** que le site (`/api/*`), via le proxy Static Web Apps — aucune clé n'est exposée dans le navigateur |
 | 3 | En développement local, l'Api est jointe sur `http://localhost:7071/` (`appsettings.Development.json`) |
 | 4 | La session (mot de passe + expiration) est conservée dans le `localStorage` du navigateur, retrouvée au rechargement tant que l'expiration glissante d'1 h n'est pas dépassée |
-| 5 | Toute route inconnue est réécrite vers `index.html` (navigation côté client) ; `/api/*`, `/_framework/*`, `/_content/*`, `/css/*`, `/docs/*` et les fichiers statiques en sont exclus |
+| 5 | Toute route inconnue est réécrite vers `index.html` (navigation côté client) ; `/api/*`, `/_framework/*`, `/_content/*`, `/css/*`, `/docs/*`, `/.well-known/*` et les fichiers statiques en sont exclus |
 | 6 | Les réponses portent les en-têtes de sécurité `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` restrictive |
 | 7 | Le lien « Documentation » du menu ouvre `docs/presentation.pdf` dans un nouvel onglet |
 | 8 | Écran de démarrage « Chargement » affiché pendant le téléchargement du runtime WebAssembly (`index.html`) |

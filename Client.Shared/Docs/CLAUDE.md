@@ -13,7 +13,7 @@ Elle consomme les endpoints Azure Functions (`/api/*`), n'embarque aucune clé A
 ### Contrat avec les hôtes
 Un hôte doit :
 1. enregistrer une implémentation de `IKeyValueStore` (stockage persistant de la session et du mode confidentialité) — `LocalStorageKeyValueStore` (fournie, WASM) ou `SecureStorageKeyValueStore` (`Maui/`) ;
-2. appeler `services.AddInvestissementsClient(apiBaseUri)` (`Extensions/ServiceCollectionExtensions.cs`) : enregistre MudBlazor, ApexCharts, la localisation, `ClientOptions`, `ILocalizationService`, `IPrivacyModeService`, `ISessionService` (avec son propre `HttpClient` sans handler de mot de passe), `DashboardPasswordHandler`, les `HttpClient` typés `IPortfolioService`/`ISyncService`, `IPanelDistributionService`, les neuf ViewModels (scoped) et force la culture `fr-FR` ;
+2. appeler `services.AddInvestissementsClient(apiBaseUri)` (`Extensions/ServiceCollectionExtensions.cs`) : enregistre MudBlazor, ApexCharts, la localisation, `ClientOptions`, `ILocalizationService`, `IPrivacyModeService`, `ISessionService` (avec son propre `HttpClient` sans handler de mot de passe), `DashboardPasswordHandler`, les `HttpClient` typés `IPortfolioService`/`ISyncService`, `IPanelDistributionService`, les huit ViewModels (scoped) et force la culture `fr-FR` ;
 3. monter `App` sur `#app` et `HeadOutlet` sur `head::after`, et lier dans sa page d'hébergement le CSS de MudBlazor, `_content/InvestissementsDashboard.Client.Shared/css/app.css` et le bundle CSS isolé.
 
 L'URL de l'Api est toujours fournie par l'hôte (`ClientOptions.ApiBaseUri`) — jamais déduite de `NavigationManager.BaseUri`, qui n'a aucun sens dans un `BlazorWebView`. Assets de la RCL : `_content/InvestissementsDashboard.Client.Shared/` (`css/app.css`, `icon.svg`).
@@ -53,7 +53,7 @@ Client.Shared/
 ├── Model/         → DistributionItem.cs, IndexedPoint.cs, PanelState.cs, BondSchedulePeriodDto.cs
 ├── Pages/         → Home.razor (/home-legacy, redirige vers /)
 ├── Resources/     → Translations.cs (classe marqueur), Translations.resx (toutes les chaînes UI)
-├── Services/      → IKeyValueStore.cs, LocalStorageKeyValueStore.cs, ClientOptions.cs,
+├── Services/      → IKeyValueStore.cs,
 │                    IPortfolioService.cs, PortfolioService.cs, ISyncService.cs, SyncService.cs,
 │                    ILocalizationService.cs, LocalizationService.cs,
 │                    IPrivacyModeService.cs, PrivacyModeService.cs,
@@ -64,15 +64,15 @@ Client.Shared/
 │                    KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
 │                    BondScheduleDetailTable.razor, LoginGate.razor,
 │                    Dialogs/AgentPickerDialog.razor, Dialogs/AgentResultDialog.razor
-├── Utils/         → DistributionCalculator.cs, VariationCalculator.cs, GeographySectorFilter.cs (namespace `…Client.Utils`)
+├── Utils/         → DistributionCalculator.cs, VariationCalculator.cs, GeographySectorFilter.cs, ClientOptions.cs, LocalStorageKeyValueStore.cs
 ├── ViewModels/    → DashboardViewModel.cs, TrackingViewModel.cs, LoginGateViewModel.cs, AppViewModel.cs, MainViewModel.cs, AssetViewModel.cs, AgentViewModel.cs, AnalysisViewModel.cs
-├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi)
+├── Views/         → Dashboard.razor (/), Tracking.razor (/suivi), Analysis.razor (/analyse, MAUI uniquement)
 ├── wwwroot/       → css/app.css, icon.svg (servis sous _content/InvestissementsDashboard.Client.Shared/)
 └── Docs/          → CLAUDE.md, SPECS.md, client-shared-class-diagram.drawio/.png (ce dossier)
 
 Client.Tests/      (xUnit + bUnit, référence Client.Shared)
 ├── Components/    → KpiHeader, AssetTable, DistributionTable, DrillDownDonut, HistoryChart,
-│                    BondScheduleChart, BondScheduleDetailTable, LoginGate, AgentPickerDialog, AgentResultDialog
+│                    BondScheduleChart, BondScheduleDetailTable, LoginGate, AgentPickerDialog, AgentResultDialog, Analysis
 ├── Extensions/    → DecimalExtensionsTests, ServiceCollectionExtensionsTests
 ├── Helpers/       → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + mocks)
 ├── Models/        → PanelStateTests
@@ -238,7 +238,6 @@ Layout responsive (`MudGrid`/`MudItem xs="12" md="X"`) : graphique en `md="12"` 
 - Vérification côté serveur : `Api/Middleware/DashboardAuthMiddleware.cs` (voir `Api/Docs/CLAUDE.md`) — cette vérification reste stateless (pas de notion d'expiration côté Api, uniquement côté Client)
 - Remplace l'authentification native Azure Static Web Apps (rôles/Invitations), abandonnée pour manque de fiabilité sur le plan Free — voir `CLAUDE.md` (racine) §5.2.4
 - **Limite connue (WASM)** : avec `LocalStorageKeyValueStore`, le mot de passe et l'expiration sont stockés en clair dans `localStorage`, visibles via les DevTools — protection suffisante contre un visiteur lambda, pas contre un accès physique à la session du navigateur. Côté MAUI, `SecureStorageKeyValueStore` les chiffre via l'OS.
-- **Anomalie connue** : `GET /api/auth/verify` répond actuellement toujours `200` (route exemptée du middleware) — l'écran de connexion accepte donc n'importe quel mot de passe tant que l'Api n'est pas corrigée ; les données restent protégées (`401` sans le bon mot de passe). Voir `Api/Docs/CLAUDE.md` §6.
 
 ### 7.8 Synchronisation manuelle — MainViewModel / ISyncService
 

@@ -87,8 +87,6 @@ user.EmailHash = HashWithColumnSalt(email, columnSalt);       // Sel de colonne
 - Prévoir une **stratégie de rotation des clés** (RSA vulnérable aux ordinateurs quantiques)
 - **Ne jamais créer ses propres algorithmes ou implémentations**
 
-> 📖 Détails d'implémentation : `references/cryptography.md`
-
 ---
 
 ## 2. AUTHENTIFICATION
@@ -101,8 +99,6 @@ user.EmailHash = HashWithColumnSalt(email, columnSalt);       // Sel de colonne
 - **Tokens** : expiration configurée, chemins par défaut changés
 - **Providers externes** : valider les claims, pas de données sensibles dans les tickets JWT
 - **Toujours tester activement** que chaque protection fonctionne
-
-> 📖 Détails d'implémentation : `references/authentication.md`
 
 ---
 
@@ -149,8 +145,6 @@ if (invoice == null) return NotFound(); // NotFound, pas Forbid
 - **Jamais utiliser le nom original** — générer un UUID
 - Stocker hors de la racine web
 
-> 📖 Détails d'implémentation : `references/input-validation.md`
-
 ---
 
 ## 5. ACCÈS AUX DONNÉES (EF Core)
@@ -162,8 +156,6 @@ if (invoice == null) return NotFound(); // NotFound, pas Forbid
 - **ValueConverter** pour chiffrement transparent (attention : pas searchable directement)
 - **DbContext séparé** pour les logs de sécurité
 - **Tester les sauvegardes** — chiffrer les fichiers, sauvegarder aussi les clés
-
-> 📖 Détails d'implémentation dans les exemples de code ci-dessous
 
 ---
 
@@ -177,8 +169,6 @@ if (invoice == null) return NotFound(); // NotFound, pas Forbid
 - **Honeypots** pour détecter les bots
 - **Messages génériques en production** + correlationId — jamais de stack trace
 - **Fail closed** : en cas d'erreur de vérification sécurité → refuser l'accès
-
-> 📖 Détails d'implémentation : `references/logging.md`
 
 ---
 
@@ -207,8 +197,6 @@ if (invoice == null) return NotFound(); // NotFound, pas Forbid
 - **Swagger désactivé en production**
 - **Kestrel derrière un reverse proxy** — `AddServerHeader = false`
 - **Environnement de test aussi sécurisé que la production**
-
-> 📖 Détails d'implémentation : `references/configuration.md`
 
 ---
 
@@ -249,15 +237,3 @@ if (invoice == null) return NotFound(); // NotFound, pas Forbid
 | **Tester activement** | Ne jamais supposer qu'une protection est active |
 
 **STRIDE** : Spoofing · Tampering · Repudiation · Information Disclosure · Denial of Service · Elevation of Privilege
-
----
-
-## Références
-
-| Domaine | Fichier |
-|---------|---------|
-| Cryptographie (IV, sel, AES, hachage) | `references/cryptography.md` |
-| Authentification & Autorisation | `references/authentication.md` |
-| Validation des entrées (XSS, CSRF, SQLi) | `references/input-validation.md` |
-| Logging & erreurs | `references/logging.md` |
-| Configuration & headers | `references/configuration.md` |

@@ -38,6 +38,7 @@ Un rapport hebdomadaire (email HTML) est envoyé chaque lundi à 08h00, génér�
 ```
 Navigateur (Blazor WASM)  ─── HTTPS ───┐
                                         ▼
+Application Windows (MAUI) ── HTTPS ───┤
 Claude Code / Claude (MCP) ─ POST /api/mcp ─▶  Azure Functions (Api, C#)
                                         │
                                         ▼  API Google Sheets officielle (compte de service, lecture seule)
@@ -45,14 +46,14 @@ Claude Code / Claude (MCP) ─ POST /api/mcp ─▶  Azure Functions (Api, C#)
                           Google Sheets (DEST) — lu directement, sans intermédiaire
 ```
 
-L'Apps Script n'expose plus de Web App HTTP : il ne fait qu'écrire (ETL + rapport hebdomadaire). L'Api lit le Sheet directement via l'API Google Sheets officielle — pas de cold start, pas d'intermédiaire.
+L'Apps Script ne fait qu'écrire (ETL + rapport hebdomadaire) ; son seul point d'entrée HTTP est un Web App protégé par clé, qui relance l'ETL depuis le bouton « Synchroniser » du dashboard. L'Api lit le Sheet directement via l'API Google Sheets officielle — pas de cold start, pas d'intermédiaire.
 
 ### 2.2 Composants
 
 | Composant | Rôle |
 |---|---|
-| **Google Sheets** | Source de vérité — deux feuilles : `SOURCE` (saisie manuelle) et `DEST` (structurée type BDD, onglets `Asset`/`Snapshot`) |
-| **Google Apps Script** | ETL quotidien (06h00) + rapport hebdomadaire (lundi 08h00) — écriture uniquement, plus jamais appelé depuis l'extérieur |
+| **Google Sheets** | Source de vérité — deux feuilles : `SOURCE` (saisie manuelle) et `DEST` (structurée type BDD, onglets `Asset`, `Snapshot`, `AssetType`, `Watchlist`) |
+| **Google Apps Script** | ETL quotidien (06h00) + rapport hebdomadaire (lundi 08h00) — écriture uniquement ; appelé de l'extérieur pour la seule synchronisation manuelle |
 | **Azure Functions (Api)** | Backend serverless C# — lit le Sheet via un compte de service dédié, expose des endpoints REST + un endpoint MCP pour l'intégration avec les assistants IA (Claude) |
 | **Blazor WebAssembly (Client)** | Dashboard — ne détient aucune clé API ni donnée sensible, consomme uniquement les endpoints de l'Api |
 | **Azure Static Web Apps** | Hébergement gratuit du Client + de l'Api (Managed Functions), domaine personnalisé `invest.zapto.fr` |
@@ -60,7 +61,7 @@ L'Apps Script n'expose plus de Web App HTTP : il ne fait qu'écrire (ETL + rappo
 
 ### 2.3 Point notable — intégration MCP
 
-L'Api expose un endpoint `POST /api/mcp` (protocole JSON-RPC 2.0, Model Context Protocol) permettant à un assistant IA (Claude Code, Claude Desktop, Claude Web) d'interroger le portefeuille en langage naturel — 9 outils exposés (répartition par classe d'actif, historique de performance, échéancier obligataire, répartition géographique...), avec la même logique métier et les mêmes données que le dashboard.
+L'Api expose un endpoint `POST /api/mcp` (protocole JSON-RPC 2.0, Model Context Protocol) permettant à un assistant IA (Claude Code, Claude Desktop, Claude Web) d'interroger le portefeuille en langage naturel — 9 outils exposés (actifs, répartition par classe d'actif, historique de performance, répartition géographique, watchlist...), avec la même logique métier et les mêmes données que le dashboard.
 
 ### 2.4 Application Windows et agents IA
 
@@ -81,7 +82,9 @@ Une application MAUI Windows (`Maui/`) reprend le dashboard et exécute des agen
 | Graphiques | ApexCharts for Blazor | Couvre tous les types de visualisation requis |
 | Hébergement | Azure Static Web Apps (plan Free) | Gratuit, intégration native des Azure Functions |
 | CI/CD | GitHub Actions | Intégration native avec Azure Static Web Apps |
-| Tests | xUnit + Moq (Api), xUnit + bUnit (Client) | Couverture systématique des services et composants |
+| Application Windows | .NET MAUI, `BlazorWebView`, .NET 10 | Même dashboard que le site, agents IA sur le poste |
+| Agents IA | Microsoft Agent Framework, Azure AI Foundry | Exécutés hors de l'Api, à cause de la limite de 45 s du proxy |
+| Tests | xUnit + Moq (Api, Maui), xUnit + bUnit (Client) | Couverture systématique des services et composants |
 
 **Architecture applicative** : MVVM côté Client (Views / ViewModels / Model / Shared / Services), architecture en couches côté Api (Functions → Services → Mappers), modèles partagés entre les deux projets.
 
@@ -89,11 +92,11 @@ Une application MAUI Windows (`Maui/`) reprend le dashboard et exécute des agen
 
 ## 4. Sécurité
 
-- **Accès au dashboard** : protégé par un mot de passe unique (`DashboardAuthMiddleware`), vérifié sur toutes les requêtes de l'Api sauf l'endpoint de vérification du mot de passe lui-même et l'endpoint MCP (protégé par sa propre clé). Fail-safe : mot de passe non configuré = accès refusé par défaut.
+- **Accès au dashboard** : protégé par un mot de passe unique (`DashboardAuthMiddleware`), vérifié sur toutes les requêtes de l'Api sauf l'endpoint MCP (protégé par sa propre clé ou ce mot de passe). Fail-safe : clé ou mot de passe non configurés = accès refusé par défaut.
 - **Identifiants Google** (email + clé privée du compte de service) : stockés uniquement dans les App Settings Azure, chiffrés au repos, jamais exposés côté client ni dans le code source.
 - **Droits du compte de service** : accès **lecteur uniquement** sur le Google Sheet — il ne peut jamais modifier les données, seul l'Apps Script (compte Google propriétaire) écrit.
-- **Endpoints Azure Functions** : liés à Azure Static Web Apps (Managed Functions), non exposés publiquement sur Internet — seul le Client hébergé sur le même Static Web Apps peut les appeler.
-- **Session utilisateur** : expiration glissante d'une heure côté navigateur, mot de passe mémorisé dans le `localStorage`.
+- **Endpoints Azure Functions** : liés à Azure Static Web Apps (Managed Functions), joignables par son proxy depuis Internet — la protection vient de l'authentification ci-dessus, pas d'une restriction réseau.
+- **Session utilisateur** : expiration glissante d'une heure côté navigateur, mot de passe mémorisé dans le `localStorage` (site) ou chiffré par le système (application Windows).
 
 ---
 
@@ -113,4 +116,4 @@ Une application MAUI Windows (`Maui/`) reprend le dashboard et exécute des agen
 
 ---
 
-*Document généré à partir de la documentation technique du projet (CLAUDE.md racine, Api, Client, Scripts).*
+*Document généré à partir de la documentation technique du projet (CLAUDE.md racine, Api, Client, Maui, Scripts).*

@@ -29,7 +29,7 @@ Le scope demandé est `SpreadsheetsReadonly` : le compte de service ne peut jama
 
 - Ne jamais logguer ni exposer ces trois valeurs.
 - Pas de logique métier ici : le mapping lignes → DTO est dans `Api/Mappers/SheetMappers.cs`.
-- Le projet n'appartient à aucune des deux solutions (`Investissements.slnx`, `Investissements.Maui.slnx`) : il est construit via la `ProjectReference` de l'Api. Les services de l'Api sont testés avec un `Mock<IGoogleSheetsClient>` (`Api.Tests/`).
+- Le projet figure dans `Investissements.Maui.slnx` mais pas dans `Investissements.slnx` : la CI le construit via la `ProjectReference` de l'Api. Les services de l'Api sont testés avec un `Mock<IGoogleSheetsClient>` (`Api.Tests/`).
 
 ## 5. Git — Règle absolue
 

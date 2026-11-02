@@ -29,7 +29,7 @@ Client/
     ├── staticwebapp.config.json# navigationFallback + en-têtes de sécurité globaux
     ├── appsettings.json        # ApiBaseUrl vide → repli sur l'adresse de base du site
     ├── appsettings.Development.json  # ApiBaseUrl: http://localhost:7071/
-    ├── docs/presentation.pdf   # servi tel quel ; lien « Documentation » du menu
+    ├── docs/presentation.pdf   # servi tel quel ; lien « Documentation » du menu. Copie de Docs/Presentation.pdf : à recopier quand celui-ci change
     ├── favicon.png, icon-192.png
     └── lib/bootstrap/          # vendored, non utilisé par index.html
 ```

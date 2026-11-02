@@ -28,8 +28,8 @@ Les champs de chaque DTO sont décrits dans `Api/Docs/SPECS.md` §4.
 
 - Les DTOs sont des `record` immuables ; les champs `?` valent `null` quand la donnée est indisponible ou non calculable (sentinelle `"ND"` du Sheet, voir `CLAUDE.md` racine §6.4) — ne jamais les remplacer par `0`.
 - Toute modification d'un DTO est un changement de contrat : mettre à jour l'Api (`SheetMappers`, services), les ViewModels/composants du Client, l'outil MCP concerné et `Api/Docs/SPECS.md` §4 dans le même geste, avec leurs tests.
-- Les constantes de `Constants/` doivent rester alignées sur `Scripts/Config.gs` (`ASSET_CLASS`, `ASSET_TYPE`, `SUPPORT_TYPE`, `SUPPORT`) et sur la taxonomie du `CLAUDE.md` racine §6.5. Elles ne sont référencées par aucun code à ce jour (l'Api et le Client comparent encore des chaînes) : les utiliser pour tout nouveau code plutôt que de coder ces chaînes en dur.
-- `GeographyParser` est utilisé par l'Api (`GeographyService`) et par le Client (`DashboardViewModel`, coefficients de zone) : un seul parseur pour les deux côtés.
+- Les constantes de `Constants/` doivent rester alignées sur `Scripts/Config.gs` (`ASSET_CLASS`, `ASSET_TYPE`, `SUPPORT_TYPE`, `SUPPORT`) et sur la taxonomie du `CLAUDE.md` racine §6.5. `Client.Shared` les utilise ; les utiliser pour tout nouveau code plutôt que de coder ces chaînes en dur.
+- `GeographyParser` est utilisé par l'Api (`GeographyService`) et par le Client (`GeographySectorFilter`, coefficients de zone) : un seul parseur pour les deux côtés.
 - Aucune dépendance (ni paquet NuGet, ni référence de projet) : la bibliothèque doit rester utilisable partout.
 
 ## 4. Tests
