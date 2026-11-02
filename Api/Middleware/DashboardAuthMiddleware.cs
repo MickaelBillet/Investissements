@@ -13,8 +13,7 @@ public sealed class DashboardAuthMiddleware : IFunctionsWorkerMiddleware
 
     private static readonly string[] ExemptFunctions =
     [
-        nameof(McpFunction.McpEndpoint),
-        nameof(AuthFunction.Verify)
+        nameof(McpFunction.McpEndpoint)
     ];
 
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
