@@ -61,7 +61,7 @@ Client.Shared/
 │                    IPanelDistributionService.cs, PanelDistributionService.cs (répartitions des panneaux du dashboard),
 │                    IAgentRunner.cs, IPortfolioReviewRunner.cs (seams optionnels, voir §7.10 et §7.13)
 ├── Shared/        → DrillDownDonut.razor, AssetTable.razor, DistributionTable.razor,
-│                    KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor,
+│                    KpiHeader.razor, KpiCard.razor, HistoryChart.razor, BondScheduleChart.razor, SynthesisReportView.razor,
 │                    BondScheduleDetailTable.razor, LoginGate.razor,
 │                    Dialogs/AgentPickerDialog.razor, Dialogs/AgentResultDialog.razor
 ├── Utils/         → DistributionCalculator.cs, VariationCalculator.cs, GeographySectorFilter.cs, ClientOptions.cs, LocalStorageKeyValueStore.cs
@@ -71,7 +71,7 @@ Client.Shared/
 └── Docs/          → CLAUDE.md, SPECS.md, client-shared-class-diagram.drawio/.png (ce dossier)
 
 Client.Tests/      (xUnit + bUnit, référence Client.Shared)
-├── Components/    → KpiHeader, AssetTable, DistributionTable, DrillDownDonut, HistoryChart,
+├── Components/    → SynthesisReportView, KpiHeader, AssetTable, DistributionTable, DrillDownDonut, HistoryChart,
 │                    BondScheduleChart, BondScheduleDetailTable, LoginGate, AgentPickerDialog, AgentResultDialog, Analysis, RefreshAfterSync
 ├── Extensions/    → DecimalExtensionsTests, ServiceCollectionExtensionsTests
 ├── Helpers/       → TestData (factories AssetDto, SnapshotDto, PerformancePointDto + mocks)
@@ -270,11 +270,12 @@ La page Paramètres (`IAgentSettings`, `SettingsViewModel`, `Views/Settings.razo
 
 ### 7.13 IPortfolioReviewRunner — page Analyse (MAUI uniquement)
 
-Troisième seam optionnel, **non enregistré** par `AddInvestissementsClient` (même raison que §7.10) : `IPortfolioReviewRunner.RunAsync(DateOnly date, ct)` → `Task` exécute le workflow `PortfolioReview` d'`AgentAI.Core` (allocation, contexte et répartitions en parallèle, puis synthèse) et se termine quand la synthèse est produite. **Aucun résultat** n'est exposé tant que la page n'affiche pas le rapport ; son type de sortie sera alors défini dans `Shared/Models`, cette bibliothèque ne référençant pas `AgentAI.Core`. Distinct d'`IAgentRunner`, qui renvoie le texte libre d'un agent.
+Troisième seam optionnel, **non enregistré** par `AddInvestissementsClient` (même raison que §7.10) : `IPortfolioReviewRunner.RunAsync(DateOnly date, ct)` → `Task<SynthesisReport>` exécute le workflow `PortfolioReview` d'`AgentAI.Core` (allocation, contexte et répartitions en parallèle, puis synthèse) et renvoie le rapport. `SynthesisReport` et `Recommendation` sont dans `Shared/Models`, cette bibliothèque ne référençant pas `AgentAI.Core`. Distinct d'`IAgentRunner`, qui renvoie le texte libre d'un agent.
 
 - `MainViewModel.IsAnalysisAvailable` (runner présent) affiche le lien **Analyse** (`/analyse`) juste après **Suivi** dans la barre d'application.
-- `AnalysisViewModel` (scoped, runner optionnel, `TimeProvider` — enregistré par `AddInvestissementsClient` en `TryAddSingleton(TimeProvider.System)`) : `IsAvailable`, `IsRunning`, `IsCompleted`, `Error`, `LaunchAsync()` (date du jour, réinitialise l'état, journalise et capture l'erreur, ignore l'annulation) et `Cancel()`. Seule la fin de l'analyse est signalée.
-- `Views/Analysis.razor` (`/analyse`) : l'analyse démarre **à l'ouverture de la page** (`OnInitializedAsync`), donc dès le clic sur **Analyse** — pas de bouton de lancement ; progression `MudProgressLinear`, puis « Analyse terminée. » (`Analysis_Done`) ou erreur `MudAlert` — aucune donnée affichée ; quitter la page (`Dispose`) annule l'exécution. Rien n'est affiché ni lancé sans runner (site WASM). Limite : Blazor ne recrée pas un composant pour une navigation vers la route courante, donc recliquer sur **Analyse** depuis `/analyse` ne relance rien.
+- `AnalysisViewModel` (scoped, runner optionnel, `TimeProvider` — enregistré par `AddInvestissementsClient` en `TryAddSingleton(TimeProvider.System)`) : `IsAvailable`, `IsRunning`, `Report`, `ReportDate`, `Error`, `LaunchAsync()` (date du jour, réinitialise l'état, journalise et capture l'erreur, ignore l'annulation) et `Cancel()`. Étant scoped, il conserve le rapport tant que l'application reste ouverte : revenir sur la page ne relance pas d'analyse payante. Le rapport n'est pas enregistré sur le disque.
+- `Views/Analysis.razor` (`/analyse`) : l'analyse démarre **au clic sur le bouton** `Analysis_Launch`, jamais à l'ouverture de la page, car chaque exécution consomme des tokens ; bouton désactivé et progression `MudProgressLinear` pendant l'exécution, puis date et rapport (`Shared/SynthesisReportView.razor`) ou erreur `MudAlert` ; quitter la page (`Dispose`) annule l'exécution. Rien n'est affiché ni lancé sans runner (site WASM).
+- `Shared/SynthesisReportView.razor` : avertissements, recommandations dans l'ordre reçu, forces et faiblesses ; une section vide est masquée. Direction, niveau et confiance sont traduits (`Analysis_Direction_*`, `Analysis_Level_*`, `Analysis_Confidence_*`). La cible n'est traduite que pour une classe d'actifs : un thème ou une ligne est un texte libre du modèle. Le bouton de masquage des montants ne s'applique pas à ce texte.
 
 ## 8. Localisation
 

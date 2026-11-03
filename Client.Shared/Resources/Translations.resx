@@ -161,7 +161,23 @@
   <data name="Agent_Error"        xml:space="preserve"><value>L'agent a échoué</value></data>
   <data name="Nav_Analysis"       xml:space="preserve"><value>Analyse</value></data>
   <data name="Analysis_Running"   xml:space="preserve"><value>Analyse du portefeuille en cours…</value></data>
-  <data name="Analysis_Done"      xml:space="preserve"><value>Analyse terminée.</value></data>
+  <data name="Analysis_Launch"    xml:space="preserve"><value>Lancer l'analyse</value></data>
   <data name="Analysis_Error"     xml:space="preserve"><value>L'analyse a échoué</value></data>
+  <data name="Analysis_ReportDate" xml:space="preserve"><value>Analyse du</value></data>
+  <data name="Analysis_Warnings"  xml:space="preserve"><value>Avertissements</value></data>
+  <data name="Analysis_Recommendations" xml:space="preserve"><value>Recommandations</value></data>
+  <data name="Analysis_Strengths" xml:space="preserve"><value>Forces</value></data>
+  <data name="Analysis_Weaknesses" xml:space="preserve"><value>Faiblesses</value></data>
+  <data name="Analysis_Driver"    xml:space="preserve"><value>Moteur</value></data>
+  <data name="Analysis_Direction_Reinforce" xml:space="preserve"><value>Renforcer</value></data>
+  <data name="Analysis_Direction_Reduce" xml:space="preserve"><value>Alléger</value></data>
+  <data name="Analysis_Direction_Initiate" xml:space="preserve"><value>Initier</value></data>
+  <data name="Analysis_Direction_Watch" xml:space="preserve"><value>Surveiller</value></data>
+  <data name="Analysis_Level_AssetClass" xml:space="preserve"><value>Classe d'actifs</value></data>
+  <data name="Analysis_Level_Theme" xml:space="preserve"><value>Thème</value></data>
+  <data name="Analysis_Level_Line" xml:space="preserve"><value>Ligne</value></data>
+  <data name="Analysis_Confidence_Low" xml:space="preserve"><value>Confiance faible</value></data>
+  <data name="Analysis_Confidence_Medium" xml:space="preserve"><value>Confiance moyenne</value></data>
+  <data name="Analysis_Confidence_High" xml:space="preserve"><value>Confiance élevée</value></data>
 
 </root>

@@ -4,6 +4,7 @@ using AgentAI.Core.Workflows.PortfolioReview;
 using AgentAI.Core.Workflows.PortfolioReview.Events;
 using AgentAI.Core.Workflows.PortfolioReview.Messages;
 using InvestissementsDashboard.Client.Services;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.Logging;
 
@@ -28,7 +29,7 @@ public sealed class PortfolioReviewRunner(
     // Same bound as AgentRunner: the allocation step alone takes about a minute (several MCP tool calls).
     internal static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(3);
 
-    public async Task RunAsync(DateOnly date, CancellationToken cancellationToken = default)
+    public async Task<SynthesisReport> RunAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(timeout ?? DefaultTimeout);
@@ -54,10 +55,9 @@ public sealed class PortfolioReviewRunner(
                         break;
 
                     // The synthesis report is the workflow's only output: receiving it means the review is complete.
-                    // It is not returned yet: the page does not display it.
-                    case WorkflowOutputEvent output when output.As<SynthesisReport>() is not null:
+                    case WorkflowOutputEvent output when output.As<SynthesisReport>() is { } report:
                         logger.LogInformation("Portfolio review: completed after {Seconds:0.0}s", stopwatch.Elapsed.TotalSeconds);
-                        return;
+                        return report;
 
                     // The framework reports executor failures as events rather than exceptions thrown to the caller.
                     case ExecutorFailedEvent failed:

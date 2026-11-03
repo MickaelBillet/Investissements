@@ -1,4 +1,4 @@
-namespace AgentAI.Core.Workflows.PortfolioReview.Messages;
+namespace InvestissementsDashboard.Shared.Models;
 
 /// <summary>
 /// One orientation of the synthesis report (structured output of <c>Synthesis.md</c>).

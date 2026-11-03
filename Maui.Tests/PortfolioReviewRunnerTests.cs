@@ -71,6 +71,17 @@ public class PortfolioReviewRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_WorkflowYieldsSynthesis_ReturnsTheReport()
+    {
+        var expected = new SynthesisReport(["Avertissement"], [], [], []);
+        SetupStep((_, _) => ValueTask.FromResult(expected));
+
+        var report = await CreateRunner().RunAsync(Date);
+
+        Assert.Same(expected, report);
+    }
+
+    [Fact]
     public async Task RunAsync_Always_PassesTheRunFactoryToTheBuilder()
     {
         SetupStep((_, _) => ValueTask.FromResult(EmptyReport()));

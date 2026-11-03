@@ -1,0 +1,64 @@
+@inject ILocalizationService L
+
+<MudStack Spacing="3">
+    @TextSection("Analysis_Warnings", Report.Warnings)
+
+    @if (Report.Recommendations is { Count: > 0 })
+    {
+        <MudCard Elevation="0">
+            <MudCardContent>
+                <MudText Typo="Typo.h6">@L.Translate("Analysis_Recommendations")</MudText>
+                <MudStack Spacing="3" Style="margin-top:8px;">
+                    @foreach (var recommendation in Report.Recommendations)
+                    {
+                        <div>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@DirectionColor(recommendation.Direction)">@L.Translate($"Analysis_Direction_{recommendation.Direction}")</MudChip>
+                                <MudText Typo="Typo.subtitle1" Style="font-weight:700;">@TargetLabel(recommendation)</MudText>
+                                <MudText Typo="Typo.caption" Style="color:#787774;">@L.Translate($"Analysis_Level_{recommendation.Level}") · @L.Translate($"Analysis_Confidence_{recommendation.Confidence}")</MudText>
+                            </MudStack>
+                            <MudText Typo="Typo.body2" Style="margin-top:4px;"><strong>@L.Translate("Analysis_Driver") :</strong> @recommendation.Driver</MudText>
+                            <MudText Typo="Typo.body2">@recommendation.Rationale</MudText>
+                        </div>
+                    }
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+
+    @TextSection("Analysis_Strengths", Report.Strengths)
+    @TextSection("Analysis_Weaknesses", Report.Weaknesses)
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public SynthesisReport Report { get; set; } = default!;
+
+    private RenderFragment TextSection(string titleKey, IReadOnlyList<string>? items) => @<text>
+        @if (items is { Count: > 0 })
+        {
+            <MudCard Elevation="0">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">@L.Translate(titleKey)</MudText>
+                    <ul style="margin:8px 0 0;padding-left:20px;">
+                        @foreach (var item in items)
+                        {
+                            <li><MudText Typo="Typo.body2">@item</MudText></li>
+                        }
+                    </ul>
+                </MudCardContent>
+            </MudCard>
+        }
+    </text>;
+
+    // Only an asset class is a known key: a theme or a line is free text from the model, and may be a homonym of a key.
+    private string TargetLabel(Recommendation recommendation) =>
+        recommendation.Level == RecommendationLevel.AssetClass ? L.Translate(recommendation.Target) : recommendation.Target;
+
+    private static MudBlazor.Color DirectionColor(RecommendationDirection direction) => direction switch
+    {
+        RecommendationDirection.Reinforce => MudBlazor.Color.Success,
+        RecommendationDirection.Reduce    => MudBlazor.Color.Warning,
+        RecommendationDirection.Initiate  => MudBlazor.Color.Info,
+        _                                 => MudBlazor.Color.Default,
+    };
+}

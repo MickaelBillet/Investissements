@@ -1,5 +1,6 @@
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.ViewModels;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -8,6 +9,7 @@ namespace InvestissementsDashboard.Client.Tests.ViewModels;
 public class AnalysisViewModelTests
 {
     private static readonly DateOnly Today = new(2026, 10, 20);
+    private static readonly SynthesisReport Report = new(["Avertissement"], [], [], []);
 
     private readonly Mock<IPortfolioReviewRunner> _runner = new();
 
@@ -33,21 +35,22 @@ public class AnalysisViewModelTests
     }
 
     [Fact]
-    public async Task LaunchAsync_RunnerCompletes_SetsIsCompleted()
+    public async Task LaunchAsync_RunnerCompletes_ExposesTheReportAndItsDate()
     {
-        _runner.Setup(r => r.RunAsync(Today, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _runner.Setup(r => r.RunAsync(Today, It.IsAny<CancellationToken>())).ReturnsAsync(Report);
         var vm = Create();
 
         await vm.LaunchAsync();
 
-        Assert.True(vm.IsCompleted);
+        Assert.Same(Report, vm.Report);
+        Assert.Equal(Today, vm.ReportDate);
         Assert.Null(vm.Error);
         Assert.False(vm.IsRunning);
         _runner.Verify(r => r.RunAsync(Today, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task LaunchAsync_RunnerThrows_SetsErrorAndNotCompleted()
+    public async Task LaunchAsync_RunnerThrows_SetsErrorAndNoReport()
     {
         _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new InvalidOperationException("MCP indisponible"));
@@ -56,15 +59,19 @@ public class AnalysisViewModelTests
         await vm.LaunchAsync();
 
         Assert.Equal("MCP indisponible", vm.Error);
-        Assert.False(vm.IsCompleted);
+        Assert.Null(vm.Report);
         Assert.False(vm.IsRunning);
     }
 
     [Fact]
-    public async Task LaunchAsync_Cancelled_LeavesNoErrorAndNotCompleted()
+    public async Task LaunchAsync_Cancelled_LeavesNoErrorAndNoReport()
     {
         _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
-               .Returns<DateOnly, CancellationToken>((_, ct) => Task.Delay(Timeout.Infinite, ct));
+               .Returns<DateOnly, CancellationToken>(async (_, ct) =>
+               {
+                   await Task.Delay(Timeout.Infinite, ct);
+                   return Report;
+               });
         var vm = Create();
 
         var launch = vm.LaunchAsync();
@@ -73,7 +80,7 @@ public class AnalysisViewModelTests
         await launch;
 
         Assert.Null(vm.Error);
-        Assert.False(vm.IsCompleted);
+        Assert.Null(vm.Report);
         Assert.False(vm.IsRunning);
     }
 
@@ -82,14 +89,29 @@ public class AnalysisViewModelTests
     {
         _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new InvalidOperationException("échec"))
-               .Returns(Task.CompletedTask);
+               .ReturnsAsync(Report);
         var vm = Create();
 
         await vm.LaunchAsync();
         await vm.LaunchAsync();
 
         Assert.Null(vm.Error);
-        Assert.True(vm.IsCompleted);
+        Assert.Same(Report, vm.Report);
+    }
+
+    [Fact]
+    public async Task LaunchAsync_SecondLaunchFails_RemovesThePreviousReport()
+    {
+        _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+               .ReturnsAsync(Report)
+               .ThrowsAsync(new InvalidOperationException("échec"));
+        var vm = Create();
+
+        await vm.LaunchAsync();
+        await vm.LaunchAsync();
+
+        Assert.Null(vm.Report);
+        Assert.Null(vm.ReportDate);
     }
 
     private sealed class FixedTimeProvider(DateOnly date) : TimeProvider

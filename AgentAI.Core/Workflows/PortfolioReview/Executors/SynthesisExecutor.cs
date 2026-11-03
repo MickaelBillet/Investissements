@@ -2,6 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using AgentAI.Core.Workflows.PortfolioReview.Events;
 using AgentAI.Core.Workflows.PortfolioReview.Messages;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 
