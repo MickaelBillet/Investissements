@@ -109,6 +109,25 @@ public class ContextExecutorTests
     }
 
     [Fact]
+    public async Task HandleAsync_NoFactors_ThrowsWithoutEmittingEvent()
+    {
+        _agent
+            .Protected()
+            .Setup<Task<AgentResponse>>(
+                "RunCoreAsync",
+                ItExpr.IsAny<IEnumerable<ChatMessage>>(),
+                ItExpr.IsAny<AgentSession?>(),
+                ItExpr.IsAny<AgentRunOptions?>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new AgentResponse(new ChatMessage(ChatRole.Assistant, """{ "date": "2026-10-19", "situation": "", "factors": [], "indicators": [] }""")));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => HandleAsync().AsTask());
+
+        Assert.Contains("no factor", ex.Message);
+        _context.Verify(c => c.AddEventAsync(It.IsAny<ContextRetrievedEvent>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public void ContextRetrievedEvent_ToString_CountsFactorsAndFilledIndicators()
     {
         var context = new PortfolioContext(

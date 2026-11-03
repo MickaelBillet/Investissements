@@ -12,12 +12,15 @@ public class ApiWebSearchServiceTests
 {
     private HttpRequestMessage? _request;
     private string? _requestBody;
+    private long? _contentLengthBeforeRead;
 
     private ApiWebSearchService Create(Func<HttpResponseMessage> respond) =>
         new(new HttpClient(new StubHandler(async request =>
             {
                 _request = request;
-                _requestBody = await request.Content!.ReadAsStringAsync();
+                // Captured before reading: reading buffers the content, which would make its length known anyway.
+                _contentLengthBeforeRead = request.Content!.Headers.ContentLength;
+                _requestBody = await request.Content.ReadAsStringAsync();
                 return respond();
             }))
             { BaseAddress = new Uri("https://invest.test/") },
@@ -39,6 +42,16 @@ public class ApiWebSearchServiceTests
         Assert.Equal("taux OAT 10 ans", body.RootElement.GetProperty("query").GetString());
         Assert.Equal("Finance", body.RootElement.GetProperty("topic").GetString());
         Assert.Equal("Week", body.RootElement.GetProperty("timeRange").GetString());
+    }
+
+    [Fact]
+    public async Task SearchAsync_Request_AnnouncesContentLength()
+    {
+        var service = Create(() => Json("[]"));
+
+        await service.SearchAsync("taux OAT 10 ans", WebSearchTopic.Finance, WebSearchTimeRange.Week, default);
+
+        Assert.Equal(System.Text.Encoding.UTF8.GetByteCount(_requestBody!), _contentLengthBeforeRead);
     }
 
     [Fact]

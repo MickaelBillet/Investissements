@@ -30,7 +30,9 @@ public class PortfolioReviewWorkflowBuilderTests
         {
           "date": "2026-10-19",
           "situation": "BCE en pause.",
-          "factors": [],
+          "factors": [
+            { "description": "Pause de la BCE", "type": "Support", "assetClasses": ["Bonds"], "sectors": ["Government"], "regions": ["Europe"], "horizon": "ShortTerm", "sources": [] }
+          ],
           "indicators": []
         }
         """;
@@ -153,6 +155,18 @@ public class PortfolioReviewWorkflowBuilderTests
     public async Task BuildAsync_ContextFails_ProducesNoSynthesis()
     {
         SetupAgent(() => throw new InvalidOperationException("web search unavailable"), _contextAgent);
+
+        var events = await RunAsync();
+
+        Assert.Contains(events, e => e is ExecutorFailedEvent failed && failed.ExecutorId == "context");
+        Assert.DoesNotContain(events, e => e is SynthesisWrittenEvent or WorkflowOutputEvent);
+    }
+
+    [Fact]
+    public async Task BuildAsync_ContextWithoutFactors_ProducesNoSynthesis()
+    {
+        const string emptyContext = """{ "date": "2026-10-19", "situation": "", "factors": [], "indicators": [] }""";
+        SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, emptyContext))), _contextAgent);
 
         var events = await RunAsync();
 

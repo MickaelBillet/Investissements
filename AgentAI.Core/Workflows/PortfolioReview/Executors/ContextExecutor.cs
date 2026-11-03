@@ -18,6 +18,13 @@ internal sealed class ContextExecutor(AIAgent agent) : Executor<AnalysisRequest,
 
         var response = await agent.RunAsync<PortfolioContext>(prompt, cancellationToken: cancellationToken);
 
+        // Search errors go to the model, not to the workflow: without this check the synthesis would still write a
+        // report, with recommendations that no factor supports.
+        if (response.Result.Factors.Count == 0)
+        {
+            throw new InvalidOperationException("the context came back with no factor: the web searches probably failed (see the log).");
+        }
+
         // The date is known: it is not left to the model, which could restate it differently.
         var portfolioContext = response.Result with { Date = message.Date };
 

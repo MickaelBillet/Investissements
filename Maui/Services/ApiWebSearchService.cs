@@ -17,7 +17,12 @@ public sealed class ApiWebSearchService(HttpClient httpClient, ILogger<ApiWebSea
     {
         try
         {
-            using var response = await httpClient.PostAsJsonAsync(Route, new WebSearchRequestDto(query, topic, timeRange), cancellationToken);
+            // Buffered to announce a Content-Length: the Static Web Apps proxy answers "500 Backend call failure" to a
+            // chunked POST, which is what PostAsJsonAsync sends, and the request would never reach the Api.
+            using var content = JsonContent.Create(new WebSearchRequestDto(query, topic, timeRange));
+            await content.LoadIntoBufferAsync(cancellationToken);
+
+            using var response = await httpClient.PostAsync(Route, content, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             var results = await response.Content.ReadFromJsonAsync<List<WebSearchResultDto>>(cancellationToken) ?? [];
