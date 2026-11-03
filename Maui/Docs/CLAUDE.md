@@ -57,7 +57,7 @@ Maui.Tests/
 ├── AssetDistributionExecutorTests.cs # source mockée : Stocks puis Bonds, chaque classe avec ses répartitions, jeton transmis, événement émis, erreur propagée
 ├── AssetDistributionSourceTests.cs   # IPortfolioService mocké : géographie et secteurs relayés, erreur propagée
 ├── AllocationExecutorTests.cs   # étape d'allocation du workflow : désérialisation JSON, watchlist hors des lignes, événement émis
-├── AgentInstructionsTests.cs    # instructions embarquées : règle « tour unique », get_watchlist pour Allocation, aucun plafond pour Synthesis
+├── AgentInstructionsTests.cs    # instructions embarquées : règle « tour unique », get_watchlist pour Allocation, aucun plafond pour Synthesis, signaux des scénarios pour Context, rattachement aux drivers et rôle du fil directeur dans InvestorProfile
 ├── ApiAgentConfigSourceTests.cs # route, désérialisation, 401 propagé
 ├── WebSearch/                   # WebSearchToolTests (plafond de 15, schéma en noms), ApiWebSearchServiceTests (route, corps, Content-Length annoncé, erreurs)
 ├── FileLoggerProviderTests.cs   # écriture, plafond de taille, échec d'écriture sans exception
@@ -106,7 +106,7 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 - Les projets MAUI **ne figurent pas dans `Investissements.slnx`** (restauration impossible sur le runner Ubuntu de la CI). Ils sont dans **`Investissements.Maui.slnx`** (AgentAI.Core, Api, Client.Shared, GoogleSheets, Maui, Maui.Tests, Shared) — Windows uniquement, workload `maui-windows` requis.
 - Build : `dotnet build Investissements.Maui.slnx`
 - Lancer : `dotnet run --project Maui -f net10.0-windows10.0.19041.0` (ou exécuter `Maui/bin/Debug/net10.0-windows10.0.19041.0/win-x64/InvestissementsDashboard.Maui.exe`)
-- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (201 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
+- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (209 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
 - La CI ne construit ni ne teste ce projet.
 - Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `Maui/obj` (cache de génération des icônes).
 
@@ -135,7 +135,7 @@ Une application packagée est isolée : les données de `SecureStorage` et du pr
 - Les agents utilisent l'identité Azure du poste (`DefaultAzureCredential`, `az login`) : non vérifié avec un MSIX packagé (voir CLAUDE.md racine §14.5). Ils consomment des tokens Foundry facturés à l'usage.
 - Agents Chat et Météo non exposés dans l'interface (l'ancien agent Portefeuille a été supprimé : l'agent Allocation couvre la lecture du portefeuille).
 - Agent Allocation : validé en application **non packagée** (`dotnet run`, ≈ 52 s de bout en bout avec un effort de raisonnement `Low`, mesure antérieure à la sortie JSON et à `get_watchlist`) ; non testé en MSIX (identité Azure, `SecureStorage` du package). La durée croît avec le nombre de positions.
-- Workflow d'analyse : **jamais exécuté contre le vrai modèle** depuis l'ajout de l'agent Synthèse (schéma JSON, `get_watchlist`, durée face au délai de 3 min à valider).
+- Workflow d'analyse : deux exécutions complètes contre le vrai modèle le 2026-11-03, avec les recherches web fonctionnelles (schémas JSON acceptés, 111 s et 133 s pour un délai de 3 min). Restent à valider `get_watchlist` (le journal ne nomme pas les outils) et la qualité du rapport, qui n'est pas affiché.
 
 ## 9. Git — Règle absolue
 

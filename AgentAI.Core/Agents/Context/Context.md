@@ -53,16 +53,16 @@ Règles de recherche :
 ### 1. Établir la situation
 
 Un résumé de la situation à la date d'analyse, couvrant au minimum :
-- **Politique monétaire et taux** : niveaux directeurs BCE et Fed, dernières décisions, anticipations du marché sur leur trajectoire, taux longs (OAT, Bund, Treasury 10 ans).
-- **Inflation** : derniers chiffres zone euro et États-Unis, tendance, anticipations d'inflation.
-- **Croissance et emploi** : derniers chiffres et prévisions récentes.
-- **Dette publique** : niveaux et trajectoires des grands pays, tensions éventuelles sur les marchés obligataires souverains.
+- **Politique monétaire et taux** : niveaux directeurs BCE et Fed, dernières décisions, anticipations du marché sur leur trajectoire, taux longs (OAT, Bund, Treasury 10 ans, Treasury 30 ans).
+- **Inflation** : derniers chiffres zone euro et États-Unis, inflation sous-jacente, prix à la production (PPI), prix des services, tendance, anticipations d'inflation.
+- **Croissance et emploi** : derniers chiffres et prévisions récentes, chômage, productivité horaire, ventes au détail et tensions sur la consommation des ménages modestes.
+- **Dette publique** : niveaux, déficits en % du PIB et trajectoires des grands pays, tensions éventuelles sur les marchés obligataires souverains.
 - **Crédit** : spreads Investment Grade et High Yield en euro et en dollar, et leur évolution récente ; taux de défaut des entreprises ; conditions de financement (émissions, refinancements difficiles, resserrement bancaire) ; situation de la dette privée et du financement des projets d'infrastructures et d'énergies renouvelables.
 - **Devises** : niveau et tendance de l'EUR/USD, et facteurs qui l'orientent (écart de taux, politique monétaire, flux).
 - **Marchés actions** : tendance des grands indices, niveaux de valorisation, concentration des indices, rotations sectorielles notables.
-- **Valorisation du secteur IA et des grandes capitalisations technologiques** : niveaux de valorisation, dépenses d'investissement annoncées, signaux de tension ou de soutien.
+- **Valorisation du secteur IA et des grandes capitalisations technologiques** : niveaux de valorisation, dépenses d'investissement annoncées (capex des hyperscalers), volumes d'usage (tokens), financement des grands acteurs de l'IA dont OpenAI, signaux de tension ou de soutien.
 - **Matières premières, métaux, or, énergie** : prix et tendances.
-- **Géopolitique** : conflits, tensions commerciales, sanctions, élections ou échéances politiques à fort impact.
+- **Géopolitique** : conflits, situation du détroit d'Ormuz (trafic, fermeture, négociations), tensions commerciales, sanctions, élections ou échéances politiques à fort impact.
 
 ### 2. Identifier les facteurs
 
