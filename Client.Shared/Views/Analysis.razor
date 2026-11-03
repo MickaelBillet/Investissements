@@ -8,6 +8,13 @@
 @if (ViewModel.IsAvailable)
 {
     <MudStack Spacing="3">
+        @* An explicit button rather than a start on opening: each run costs model tokens. *@
+        <div>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Disabled="@ViewModel.IsRunning" OnClick="ViewModel.LaunchAsync">
+                @L.Translate("Analysis_Launch")
+            </MudButton>
+        </div>
+
         @if (ViewModel.IsRunning)
         {
             <MudText Typo="Typo.body2">@L.Translate("Analysis_Running")</MudText>
@@ -17,16 +24,14 @@
         {
             <MudAlert Severity="Severity.Error">@L.Translate("Analysis_Error") — @ViewModel.Error</MudAlert>
         }
-        else if (ViewModel.IsCompleted)
+        else if (ViewModel.Report is not null)
         {
-            <MudText Typo="Typo.body2">@L.Translate("Analysis_Done")</MudText>
+            <MudText Typo="Typo.caption">@L.Translate("Analysis_ReportDate") @ViewModel.ReportDate?.ToString("dd/MM/yyyy")</MudText>
+            <SynthesisReportView Report="ViewModel.Report" />
         }
     </MudStack>
 }
 
 @code {
-    // The menu entry is the trigger: opening the page starts the analysis.
-    protected override Task OnInitializedAsync() => ViewModel.IsAvailable ? ViewModel.LaunchAsync() : Task.CompletedTask;
-
     public void Dispose() => ViewModel.Cancel();
 }

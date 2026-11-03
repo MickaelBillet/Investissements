@@ -65,7 +65,7 @@ L'Api expose un endpoint `POST /api/mcp` (protocole JSON-RPC 2.0, Model Context 
 
 ### 2.4 Application Windows et agents IA
 
-Une application MAUI Windows (`Maui/`) reprend le dashboard et exécute des agents IA sur le poste du propriétaire (`AgentAI.Core/`, Microsoft Agent Framework et Azure AI Foundry), car ils dépassent la limite de 45 s du proxy Static Web Apps. Le workflow d'analyse lance en parallèle l'allocation, le contexte macro-économique et les répartitions, puis un agent de synthèse produit un rapport structuré ; ce rapport n'est pas encore affiché.
+Une application MAUI Windows (`Maui/`) reprend le dashboard et exécute des agents IA sur le poste du propriétaire (`AgentAI.Core/`, Microsoft Agent Framework et Azure AI Foundry), car ils dépassent la limite de 45 s du proxy Static Web Apps. Le workflow d'analyse lance en parallèle l'allocation, le contexte macro-économique et les répartitions, puis un agent de synthèse produit un rapport structuré, affiché dans la page Analyse.
 
 ---
 

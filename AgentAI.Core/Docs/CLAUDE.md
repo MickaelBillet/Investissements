@@ -42,7 +42,7 @@ AgentAI.Core/
 │   ├── PortfolioReviewWorkflowBuilder.cs   # implémentation sans état (singleton côté hôte)
 │   ├── IAssetDistributionSource.cs         # contrat seul : répartitions géographique et sectorielle, implémenté par l'hôte
 │   ├── Executors/              # StartExecutor (transit), AllocationExecutor (→ AllocationResult), ContextExecutor (agent Context → PortfolioContext), AssetDistributionExecutor (→ DistributionResult), SynthesisExecutor (agent Synthesis → SynthesisReport)
-│   ├── Messages/               # AnalysisRequest, AllocationResult (+ AllocationLine, watchlist en WatchlistItemDto), PortfolioContext (+ ContextFactor, ContextSource, ContextIndicator, enums FactorType/FactorHorizon/ChangeUnit), DistributionResult (+ AssetClassDistribution), SynthesisReport (+ Recommendation, enums RecommendationLevel/RecommendationDirection/RecommendationConfidence)
+│   ├── Messages/               # AnalysisRequest, AllocationResult (+ AllocationLine, watchlist en WatchlistItemDto), PortfolioContext (+ ContextFactor, ContextSource, ContextIndicator, enums FactorType/FactorHorizon/ChangeUnit), DistributionResult (+ AssetClassDistribution) ; le rapport (SynthesisReport, Recommendation et ses enums) est dans Shared/Models, car la page Analyse de Client.Shared l'affiche
 │   └── Events/                 # AllocationRetrievedEvent, ContextRetrievedEvent, AssetDistributionRetrievedEvent, SynthesisWrittenEvent
 ├── Runtime/                    # commun à tous les agents : ModelCallLoggingChatClient (une ligne de journal par appel au modèle), IFileChatHistoryProvider, FileChatHistoryProvider (historique JSON sur disque), CompositeContextProvider, DateContextProvider
 ├── Integrations/               # ce qui parle à l'extérieur

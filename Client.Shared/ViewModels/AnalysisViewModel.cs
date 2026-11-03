@@ -1,11 +1,12 @@
 using InvestissementsDashboard.Client.Services;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.Logging;
 
 namespace InvestissementsDashboard.Client.ViewModels;
 
 /// <summary>
-/// Drives the portfolio review workflow from the analysis page. Only its completion is shown for now: the workflow
-/// runner exposes no result until the page displays the synthesis report.
+/// Drives the portfolio review workflow from the analysis page and holds its report. Scoped, so the report outlives
+/// the page: coming back to it does not pay for a new analysis, as long as the application stays open.
 /// </summary>
 public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider timeProvider, IPortfolioReviewRunner? runner = null)
 {
@@ -15,7 +16,8 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
     public bool IsAvailable => runner is not null;
 
     public bool IsRunning { get; private set; }
-    public bool IsCompleted { get; private set; }
+    public SynthesisReport? Report { get; private set; }
+    public DateOnly? ReportDate { get; private set; }
     public string? Error { get; private set; }
 
     public async Task LaunchAsync()
@@ -30,13 +32,14 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
         _cts = new CancellationTokenSource();
 
         IsRunning = true;
-        IsCompleted = false;
+        Report = null;
+        ReportDate = null;
         Error = null;
         try
         {
             var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
-            await runner.RunAsync(today, _cts.Token);
-            IsCompleted = true;
+            Report = await runner.RunAsync(today, _cts.Token);
+            ReportDate = today;
         }
         catch (OperationCanceledException)
         {

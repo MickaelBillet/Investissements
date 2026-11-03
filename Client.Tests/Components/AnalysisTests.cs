@@ -3,6 +3,7 @@ using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.Tests.Helpers;
 using InvestissementsDashboard.Client.ViewModels;
 using InvestissementsDashboard.Client.Views;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -17,6 +18,8 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
 
     Task IAsyncLifetime.DisposeAsync() => base.DisposeAsync().AsTask();
 
+    private static readonly SynthesisReport Report = new(["Concentration sur la technologie"], [], [], []);
+
     private readonly Mock<IPortfolioReviewRunner> _runner = new();
 
     public AnalysisTests()
@@ -30,31 +33,75 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
         Services.AddSingleton(new AnalysisViewModel(NullLogger<AnalysisViewModel>.Instance, TimeProvider.System, withRunner ? _runner.Object : null));
 
     [Fact]
-    public void Analysis_OnOpen_StartsTheWorkflowOnceWithoutALaunchButton()
+    public void Analysis_OnOpen_DoesNotStartTheWorkflow()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         RegisterViewModel(withRunner: true);
 
         var cut = Render<Analysis>();
 
-        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Once);
-        Assert.Empty(cut.FindAll("button"));
-        cut.WaitForAssertion(() => Assert.Contains(TestData.Translate("Analysis_Done"), cut.Markup));
-        Assert.Empty(cut.FindAll("pre"));
+        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Contains(TestData.Translate("Analysis_Launch"), cut.Find("button").TextContent);
     }
 
     [Fact]
-    public void Analysis_WhileRunning_ShowsProgress()
+    public void Analysis_ClickLaunch_RunsOnceAndShowsTheReport()
     {
-        var pending = new TaskCompletionSource();
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).Returns(pending.Task);
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
         RegisterViewModel(withRunner: true);
-
         var cut = Render<Analysis>();
 
+        cut.Find("button").Click();
+
+        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Once);
+        cut.WaitForAssertion(() => Assert.Contains("Concentration sur la technologie", cut.Markup));
+    }
+
+    [Fact]
+    public void Analysis_WhileRunning_ShowsProgressAndDisablesTheButton()
+    {
+        var pending = new TaskCompletionSource<SynthesisReport>();
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).Returns(pending.Task);
+        RegisterViewModel(withRunner: true);
+        var cut = Render<Analysis>();
+
+        cut.Find("button").Click();
+
         Assert.Contains(TestData.Translate("Analysis_Running"), cut.Markup);
-        Assert.DoesNotContain(TestData.Translate("Analysis_Done"), cut.Markup);
-        pending.SetResult();
+        Assert.True(cut.Find("button").HasAttribute("disabled"));
+        pending.SetResult(Report);
+    }
+
+    [Fact]
+    public void Analysis_RunnerFails_ShowsTheError()
+    {
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+               .ThrowsAsync(new InvalidOperationException("contexte vide"));
+        RegisterViewModel(withRunner: true);
+        var cut = Render<Analysis>();
+
+        cut.Find("button").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(TestData.Translate("Analysis_Error"), cut.Markup);
+            Assert.Contains("contexte vide", cut.Markup);
+        });
+    }
+
+    [Fact]
+    public async Task Analysis_ReopenedAfterAReport_KeepsItWithoutRunningAgain()
+    {
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
+        RegisterViewModel(withRunner: true);
+        var first = Render<Analysis>();
+        first.Find("button").Click();
+        first.WaitForAssertion(() => Assert.Contains("Concentration sur la technologie", first.Markup));
+        await DisposeComponentsAsync();
+
+        var reopened = Render<Analysis>();
+
+        Assert.Contains("Concentration sur la technologie", reopened.Markup);
+        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -64,6 +111,7 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
 
         var cut = Render<Analysis>();
 
+        Assert.Empty(cut.FindAll("button"));
         Assert.DoesNotContain(TestData.Translate("Analysis_Running"), cut.Markup);
     }
 }
