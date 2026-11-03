@@ -30,7 +30,7 @@ Maui/
 ├── Services/AgentRunner.cs                  # IAgentRunner → AgentAI.Core : une AgentFactory par lancement (voir §5bis)
 ├── Services/PortfolioReviewRunner.cs        # IPortfolioReviewRunner → workflow PortfolioReview d'AgentAI.Core (voir §5ter)
 ├── Services/AssetDistributionSource.cs      # IAssetDistributionSource → IPortfolioService (répartitions géographique et sectorielle via l'Api)
-├── Services/ApiWebSearchService.cs          # IWebSearchService → POST /api/websearch (la clé Tavily reste dans l'Api ; mot de passe du dashboard)
+├── Services/ApiWebSearchService.cs          # IWebSearchService → POST /api/websearch (la clé Tavily reste dans l'Api ; mot de passe du dashboard ; corps bufferisé : le proxy SWA refuse le chunked)
 ├── Services/IAgentConfigSource.cs           # source de la configuration des agents (endpoint Foundry, modèle)
 ├── Services/ApiAgentConfigSource.cs         # IAgentConfigSource → GET /api/agents/config (mot de passe du dashboard)
 ├── Services/AgentOptionsProvider.cs         # IAgentConfigSource → AgentAIOptions, à chaque lancement (MCP = Api + api/mcp ; historique injecté)
@@ -51,15 +51,15 @@ Maui.Tests/
 ├── InvestZaptoMcpToolSourceTests.cs # URL absente, connexion refusée puis réessayée, libération sans connexion
 ├── FileChatHistoryProviderTests.cs, NewsContextProviderTests.cs, StockContextProviderTests.cs
 ├── PortfolioReviewRunnerTests.cs # builder mocké renvoyant un workflow d'une étape de test : sortie, fabrique et source du lancement transmises, échec, 401 MCP, délai, annulation
-├── PortfolioReviewWorkflowBuilderTests.cs # vrai builder, AgentFactory/agents (Allocation, Context, Synthesis)/source mockés : les trois agents demandés, rapport de l'agent en sortie, synthèse produite après l'allocation, le contexte et les répartitions, échec d'une étape sans synthèse, arguments null, annulation
+├── PortfolioReviewWorkflowBuilderTests.cs # vrai builder, AgentFactory/agents (Allocation, Context, Synthesis)/source mockés : les trois agents demandés, rapport de l'agent en sortie, synthèse produite après l'allocation, le contexte et les répartitions, échec d'une étape et contexte sans facteur sans synthèse, arguments null, annulation
 ├── SynthesisExecutorTests.cs     # barrière fan-in réelle, trois sources de test, agent mocké : un seul appel et un seul rapport, attend l'entrée la plus lente, contenu du message
-├── ContextExecutorTests.cs       # agent mocké : date de la requête imposée, facteurs et enums en noms, indicateurs null conservés, événement émis
+├── ContextExecutorTests.cs       # agent mocké : date de la requête imposée, facteurs et enums en noms, indicateurs null conservés, événement émis, échec sans aucun facteur
 ├── AssetDistributionExecutorTests.cs # source mockée : Stocks puis Bonds, chaque classe avec ses répartitions, jeton transmis, événement émis, erreur propagée
 ├── AssetDistributionSourceTests.cs   # IPortfolioService mocké : géographie et secteurs relayés, erreur propagée
 ├── AllocationExecutorTests.cs   # étape d'allocation du workflow : désérialisation JSON, watchlist hors des lignes, événement émis
 ├── AgentInstructionsTests.cs    # instructions embarquées : règle « tour unique », get_watchlist pour Allocation, aucun plafond pour Synthesis
 ├── ApiAgentConfigSourceTests.cs # route, désérialisation, 401 propagé
-├── WebSearch/                   # WebSearchToolTests (plafond de 15, schéma en noms), ApiWebSearchServiceTests (route, corps, erreurs)
+├── WebSearch/                   # WebSearchToolTests (plafond de 15, schéma en noms), ApiWebSearchServiceTests (route, corps, Content-Length annoncé, erreurs)
 ├── FileLoggerProviderTests.cs   # écriture, plafond de taille, échec d'écriture sans exception
 ├── NewsServiceRegistrationTests.cs # bout en bout de AddNewsServices (conteneur réel, filtre de titres Google News, Yahoo via ISIN) avec HttpMessageHandler factice
 └── News/                        # tests unitaires : NewsServiceTests (agrégation), GoogleNews/YahooFinanceFeedSource, YahooTickerResolver, RssFeedParser, CompanyTitleFilter
@@ -106,7 +106,7 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 - Les projets MAUI **ne figurent pas dans `Investissements.slnx`** (restauration impossible sur le runner Ubuntu de la CI). Ils sont dans **`Investissements.Maui.slnx`** (AgentAI.Core, Api, Client.Shared, GoogleSheets, Maui, Maui.Tests, Shared) — Windows uniquement, workload `maui-windows` requis.
 - Build : `dotnet build Investissements.Maui.slnx`
 - Lancer : `dotnet run --project Maui -f net10.0-windows10.0.19041.0` (ou exécuter `Maui/bin/Debug/net10.0-windows10.0.19041.0/win-x64/InvestissementsDashboard.Maui.exe`)
-- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (198 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
+- Tests : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (201 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
 - La CI ne construit ni ne teste ce projet.
 - Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `Maui/obj` (cache de génération des icônes).
 
