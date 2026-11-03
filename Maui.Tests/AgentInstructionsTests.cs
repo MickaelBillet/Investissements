@@ -40,4 +40,52 @@ public class AgentInstructionsTests
 
         Assert.Contains("`get_watchlist`", reader.ReadToEnd());
     }
+
+    // The scenarios are watched through these signals, while the Context agent must not know the scenarios themselves.
+    [Theory]
+    [InlineData("Ormuz")]
+    [InlineData("Treasury 30 ans")]
+    [InlineData("PPI")]
+    [InlineData("productivité horaire")]
+    [InlineData("tokens")]
+    public void Instructions_Context_CoverTheScenarioSignals(string signal)
+    {
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.Context.md");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+
+        Assert.Contains(signal, reader.ReadToEnd());
+    }
+
+    // The repository is public, so the profile describes the drivers without naming positions: the model does the mapping.
+    [Fact]
+    public void Instructions_InvestorProfile_AsksToMapLinesToDrivers()
+    {
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.InvestorProfile.md");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+
+        Assert.Contains("Rattache chaque ligne de l'allocation au driver", reader.ReadToEnd());
+    }
+
+    // Synthesis.md only accepts a scenario or a context factor as a driver: the third-party guide must not become one.
+    [Fact]
+    public void Instructions_InvestorProfile_GuidingThreadIsNotADriver()
+    {
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.InvestorProfile.md");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+
+        Assert.Contains("Il ne suffit pas, à lui seul, comme moteur d'une recommandation", reader.ReadToEnd());
+    }
+
+    [Fact]
+    public void Instructions_InvestorProfile_ScenariosPrevailOverGuidingThread()
+    {
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.InvestorProfile.md");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+
+        Assert.Contains("Les scénarios de l'investisseur prévalent sur ce fil directeur", reader.ReadToEnd());
+    }
 }
