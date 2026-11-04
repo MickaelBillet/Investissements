@@ -162,6 +162,8 @@
   <data name="Nav_Analysis"       xml:space="preserve"><value>Analyse</value></data>
   <data name="Analysis_Running"   xml:space="preserve"><value>Analyse du portefeuille en cours…</value></data>
   <data name="Analysis_Launch"    xml:space="preserve"><value>Lancer l'analyse</value></data>
+  <data name="Analysis_Cancel"    xml:space="preserve"><value>Annuler</value></data>
+  <data name="Analysis_Cancelled" xml:space="preserve"><value>Analyse annulée.</value></data>
   <data name="Analysis_Error"     xml:space="preserve"><value>L'analyse a échoué</value></data>
   <data name="Analysis_ReportDate" xml:space="preserve"><value>Analyse du</value></data>
   <data name="Analysis_Warnings"  xml:space="preserve"><value>Avertissements</value></data>

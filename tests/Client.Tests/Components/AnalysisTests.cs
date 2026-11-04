@@ -72,6 +72,43 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
     }
 
     [Fact]
+    public void Analysis_NotRunning_HasNoCancelButton()
+    {
+        RegisterViewModel(withRunner: true);
+
+        var cut = Render<Analysis>();
+
+        Assert.DoesNotContain(cut.FindAll("button"), b => b.TextContent.Contains(TestData.Translate("Analysis_Cancel")));
+    }
+
+    [Fact]
+    public void Analysis_ClickCancel_InterruptsTheRunAndAllowsARestart()
+    {
+        CancellationToken received = default;
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+               .Returns<DateOnly, CancellationToken>(async (_, ct) =>
+               {
+                   received = ct;
+                   await Task.Delay(Timeout.Infinite, ct);
+                   return Report;
+               });
+        RegisterViewModel(withRunner: true);
+        var cut = Render<Analysis>();
+        cut.Find("button").Click();
+
+        cut.FindAll("button").Single(b => b.TextContent.Contains(TestData.Translate("Analysis_Cancel"))).Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(received.IsCancellationRequested);
+            Assert.Contains(TestData.Translate("Analysis_Cancelled"), cut.Markup);
+            Assert.DoesNotContain(TestData.Translate("Analysis_Running"), cut.Markup);
+            var launch = Assert.Single(cut.FindAll("button"));
+            Assert.False(launch.HasAttribute("disabled"));
+        });
+    }
+
+    [Fact]
     public void Analysis_RunnerFails_ShowsTheError()
     {
         _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
