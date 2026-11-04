@@ -10,9 +10,9 @@ Si un secret est détecté : stopper immédiatement et alerter l'utilisateur.
 
 ## Étape 2 — Contrôle qualité
 Lancer les tests du sous-projet concerné :
-- Api    → dotnet test "Api.Tests/InvestissementsDashboard.Api.Tests.csproj"
-- Client, Client.Shared → dotnet test "Client.Tests/InvestissementsDashboard.Client.Tests.csproj"
-- Maui, AgentAI.Core → dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"
+- Api    → dotnet test "tests/Api.Tests/InvestissementsDashboard.Api.Tests.csproj"
+- Client, Client.Shared → dotnet test "tests/Client.Tests/InvestissementsDashboard.Client.Tests.csproj"
+- Maui, AgentAI.Core → dotnet test "tests/Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"
 - Scripts → rappeler d'exécuter manuellement les fonctions test* dans l'éditeur Apps Script
 Stopper et rapporter si des tests échouent — ne pas continuer.
 

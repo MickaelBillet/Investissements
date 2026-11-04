@@ -105,7 +105,7 @@ SRS_32 Un bouton du menu de la barre d'application masque tous les montants en e
 
 #### Application Windows
 
-SRS_33 Une application Windows (MAUI) affiche le même dashboard, avec les mêmes fonctionnalités et les mêmes données que le site, sans navigateur (voir `Maui/Docs/SPECS.md`). Elle stocke le mot de passe de session chiffré par le système
+SRS_33 Une application Windows (MAUI) affiche le même dashboard, avec les mêmes fonctionnalités et les mêmes données que le site, sans navigateur (voir `src/Frontend/Maui/Docs/SPECS.md`). Elle stocke le mot de passe de session chiffré par le système
 
 #### Accès par assistant IA
 
@@ -113,4 +113,4 @@ SRS_34 Un endpoint MCP (JSON-RPC, protégé par clé) expose en lecture les donn
 
 #### Agents IA (application Windows)
 
-SRS_35 Dans l'application Windows uniquement, une icône sur chaque action (`Stock`) du tableau des actifs permet de lancer un agent IA — analyse de l'action ou actualités de la société — dont la réponse s'affiche en un seul tour dans une boîte de dialogue (progression, résultat ou erreur ; fermer la boîte annule l'exécution). Aucune saisie n'est nécessaire : l'endpoint Azure AI Foundry et le modèle sont servis par l'Api. Une page « Analyse » lance aussi, sur un bouton, un workflow d'analyse du portefeuille et affiche son rapport. Absent du site web (voir `Maui/Docs/SPECS.md`)
+SRS_35 Dans l'application Windows uniquement, une icône sur chaque action (`Stock`) du tableau des actifs permet de lancer un agent IA — analyse de l'action ou actualités de la société — dont la réponse s'affiche en un seul tour dans une boîte de dialogue (progression, résultat ou erreur ; fermer la boîte annule l'exécution). Aucune saisie n'est nécessaire : l'endpoint Azure AI Foundry et le modèle sont servis par l'Api. Une page « Analyse » lance aussi, sur un bouton, un workflow d'analyse du portefeuille et affiche son rapport. Absent du site web (voir `src/Frontend/Maui/Docs/SPECS.md`)

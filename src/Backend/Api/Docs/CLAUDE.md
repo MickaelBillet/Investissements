@@ -1,0 +1,280 @@
+# CLAUDE.md — Api (Azure Functions)
+
+## 1. Rôle
+
+Couche backend serverless entre Google Sheets et le Blazor WASM. Lit le Sheet `InvestData` directement via l'API Google Sheets officielle (compte de service, projet `src/Backend/GoogleSheets/`), expose, derrière le proxy d'Azure Static Web Apps, des endpoints REST consommés par le dashboard (site et application MAUI) et un endpoint MCP pour les assistants IA et les agents MAUI.
+
+---
+
+## 2. Stack
+
+| Élément | Choix |
+|---|---|
+| Runtime | .NET 9, Azure Functions v4 isolated worker |
+| Modèle HTTP | `Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore` |
+| Accès données | `Google.Apis.Sheets.v4` via le projet `src/Backend/GoogleSheets/` (référencé, pas de dépendance Google directe dans l'Api) |
+| Tests | xUnit 2.9.3 + Moq 4.20.72 — projet `tests/Api.Tests/` (voir §11) |
+| Déploiement | Lié à Azure Static Web Apps (Managed Functions) |
+| Projets référencés | `Shared` (net8.0, DTOs) et `GoogleSheets` (net9.0) |
+
+> **Note CI :** le `csproj` cible **net9.0**, alors que la liste officielle des runtimes des fonctions managées s'arrête à .NET 8 (voir `CLAUDE.md` racine §8.4 et §14.5 — incohérence à vérifier). Le workflow passe l'Api en source (`api_location: 'Api'`) et laisse Oryx la construire ; en cas d'échec du déploiement, prévoir un build explicite.
+
+---
+
+## 3. Structure du projet
+
+```
+src/Backend/Api/
+├── InvestissementsDashboard.Api.csproj
+├── Program.cs                  # Point d'entrée, DI (services scoped, IGoogleSheetsClient singleton, AddHttpClient<ISyncService, SyncService> timeout 100 s, AddHttpClient<IWebSearchService, WebSearchService> timeout 30 s, AddMemoryCache, DashboardAuthMiddleware)
+├── host.json                   # Config Azure Functions
+├── local.settings.json         # Variables locales (gitignorées)
+├── Functions/                  # Un fichier par endpoint
+│   ├── AgentConfigFunction.cs     # GET /api/agents/config — configuration des agents MAUI (endpoint Foundry, modèle)
+│   ├── AssetsFunction.cs
+│   ├── AuthFunction.cs            # GET /api/auth/verify — teste le mot de passe du dashboard
+│   ├── BondScheduleFunction.cs
+│   ├── GeographyFunction.cs
+│   ├── McpFunction.cs             # Endpoint MCP POST /api/mcp
+│   ├── PortfolioMetricsFunction.cs
+│   ├── SectorFunction.cs          # GET /api/portfolio/sector/{assetClass}
+│   ├── SnapshotFunction.cs
+│   ├── SyncFunction.cs            # POST /api/sync — déclenche la synchro manuelle (Apps Script)
+│   └── WebSearchFunction.cs       # POST /api/websearch — recherche web des agents MAUI (Tavily)
+├── Middleware/
+│   └── DashboardAuthMiddleware.cs # Vérifie x-dashboard-password sur toutes les routes (sauf mcp)
+├── Interfaces/                 # Interfaces des services
+│   ├── IAgentConfigService.cs
+│   ├── IAssetsService.cs
+│   ├── IBondScheduleService.cs
+│   ├── IGeographyService.cs
+│   ├── IPortfolioMetricsService.cs
+│   ├── ISectorService.cs
+│   ├── ISnapshotService.cs
+│   ├── ISyncService.cs
+│   ├── IWatchlistService.cs
+│   ├── IWebSearchService.cs
+│   └── Mcp/
+│       └── IMcpService.cs         # Interface du handler JSON-RPC
+├── Mappers/
+│   └── SheetMappers.cs            # Fonctions pures : lignes brutes Sheets → DTOs (mapping + agrégation)
+├── Mcp/
+│   └── McpToolRegistry.cs         # Registre statique des 9 outils MCP
+├── Services/
+│   ├── AgentConfigService.cs      # Lit AGENT_FOUNDRY_ENDPOINT / AGENT_FOUNDRY_MODEL (valeurs vides → null)
+│   ├── AssetsService.cs
+│   ├── BondScheduleService.cs
+│   ├── GeographyService.cs
+│   ├── PortfolioMetricsService.cs
+│   ├── SectorService.cs           # Répartition sectorielle (un actif = 100 % de son secteur)
+│   ├── SnapshotService.cs
+│   ├── SyncService.cs             # Appelle le Web App Apps Script (HttpClient typé, timeout 100 s)
+│   ├── WatchlistService.cs        # Lit l'onglet Watchlist (Name, ISIN), cache 5 min
+│   ├── WebSearchService.cs        # Appelle l'API Tavily avec WEB_SEARCH_API_KEY (HttpClient typé, timeout 30 s)
+│   └── Mcp/
+│       └── McpService.cs          # Handler JSON-RPC — route vers les services
+├── Properties/
+│   └── AssemblyInfo.cs
+└── Docs/                       # CLAUDE.md, SPECS.md, clean-code-tips.md, api-class-diagram.drawio/.png
+```
+
+Les modèles JSON-RPC (`JsonRpcRequest`, `JsonRpcResponse`, etc.) sont dans `src/Common/Shared/Models/Mcp/McpModels.cs`.
+
+`SheetMappers` est un `static class` interne sans état — fonctions pures (ligne brute → DTO), pas de DI, à distinguer des vrais services injectés dans `Services/`.
+
+---
+
+## 4. Architecture — flux de données
+
+**Flux dashboard (Blazor WASM) :**
+```
+Blazor WASM
+    │ HTTP GET /api/...
+    ▼
+Azure Functions (C#)
+    │ IGoogleSheetsClient.GetRangeAsync("Asset" | "Snapshot" | "AssetType")
+    ▼
+src/Backend/GoogleSheets/ (Google.Apis.Sheets.v4, compte de service)
+    │ lit Google Sheets DEST directement
+    ▼
+Lignes brutes → SheetMappers → DTO
+```
+
+**Flux MCP (Claude Code) :**
+```
+Claude Code (MCP client)
+    │ POST /api/mcp  { "method": "tools/call", "params": { "name": "get_assets", ... } }
+    ▼
+McpFunction → McpService (JSON-RPC router)
+    │ délègue au service métier existant
+    ▼
+IAssetsService / ISnapshotService / etc.
+    │ même flux que le dashboard (lecture directe du Sheet)
+    ▼
+DTO → sérialisé en McpContent
+```
+
+Apps Script ne fait par ailleurs que l'ETL quotidien et le rapport hebdomadaire par email (voir `src/Backend/Scripts/Docs/CLAUDE.md`), sans lien avec l'Api — **sauf** pour la synchro manuelle :
+
+**Flux synchro manuelle (bouton dashboard) :**
+```
+Blazor WASM
+    │ POST /api/sync
+    ▼
+SyncFunction → SyncService
+    │ HttpClient GET https://script.google.com/.../exec?key=...
+    ▼
+Apps Script Web App (src/Backend/Scripts/SyncWebApp.gs, doGet) — vérifie la clé
+    │ appelle snapshotQuotidien() (même fonction que le trigger 06h00)
+    ▼
+{ success, addedCount } → SyncResultDto
+```
+Seul ce point d'entrée HTTP existe côté Apps Script ; le compte de service Azure reste lecteur uniquement (voir `CLAUDE.md` racine §5.2.5).
+
+---
+
+## 5. Configuration
+
+Les variables d'environnement sont injectées via `IConfiguration` (App Settings en prod, `local.settings.json` en dev) :
+
+| Variable | Usage |
+|---|---|
+| `GOOGLE_SHEET_ID` | ID du Google Sheet `InvestData` (`DEST_ID`) |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email du compte de service Google (accès Lecteur sur le Sheet) |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Clé privée du compte de service (format PEM, `\n` littéraux) |
+| `MCP_API_KEY` | Clé d'authentification de l'endpoint MCP (`x-mcp-api-key` ou `?key=`) — clients externes ; l'application MAUI s'authentifie avec `x-dashboard-password` |
+| `DASHBOARD_PASSWORD` | Mot de passe protégeant tout le dashboard (header `x-dashboard-password`, vérifié par `DashboardAuthMiddleware`) — non configuré = accès refusé par défaut |
+| `APPS_SCRIPT_SYNC_URL` | URL `.../exec` du Web App Apps Script (`src/Backend/Scripts/SyncWebApp.gs`) qui exécute `snapshotQuotidien()` |
+| `APPS_SCRIPT_SYNC_KEY` | Clé partagée envoyée en `?key=` à ce Web App — doit correspondre à la Script Property `SYNC_SECRET_KEY` côté Apps Script |
+| `AGENT_FOUNDRY_ENDPOINT` | Endpoint du projet Azure AI Foundry des agents MAUI, servi par `GET /api/agents/config` (non secret : protégé par Entra ID) |
+| `AGENT_FOUNDRY_MODEL` | Déploiement du modèle des agents (facultatif ; vide = `gpt-5-mini`, défaut d'`AgentAI.Core`) |
+| `WEB_SEARCH_API_KEY` | Clé de l'API de recherche Tavily, utilisée par `WebSearchService` (voir §10bis) — jamais transmise au client |
+
+Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
+
+---
+
+## 6. Endpoints
+
+| Méthode | Route | Source |
+|---|---|---|
+| GET | `/api/snapshot` | Sheet `Snapshot`, dernière ligne |
+| GET | `/api/snapshot/history` | Sheet `Snapshot`, toutes les lignes |
+| GET | `/api/assets` | Sheet `Asset`, toutes les lignes |
+| GET | `/api/assets/distribution/{dimension}` | Sheet `Asset`, groupé par colonne (`assetClass`/`assetType`/`support`/`supportType`) |
+| GET | `/api/assets/etfstocks/information` | Sheet `Asset`, filtré `ETF_Stocks`, groupé par `information` |
+| GET | `/api/assets/etfstocks/information/{information}` | Sheet `Asset`, filtré par type + `information` |
+| GET | `/api/assets/types/reference` | Sheet `AssetType` — `AssetTypeReferenceDto` (`labelFr`, `geoSectorEligible`) |
+| GET | `/api/portfolio/metrics` | Compose `AssetsService` + `SnapshotService` |
+| GET | `/api/portfolio/metrics/history` | `PortfolioMetricsService.GetIndexedHistoryAsync` — historique `Snapshot`, normalisé base 100 |
+| GET | `/api/assets/bondschedule` | `BondScheduleService` — agrège les assets par mois/année extrait du champ `information` (format `MM/YYYY`), avec le détail par actif (`bonds[]`) ; ajoute les coupons annuels à venir (taux en colonne P) |
+| GET | `/api/portfolio/geography/{assetClass}` | `GeographyService` — parsing pondéré depuis les assets |
+| GET | `/api/portfolio/sector/{assetClass}` | `SectorService` — somme des assets par `sector` (types `GeoSectorEligible`) |
+| POST | `/api/mcp` | MCP JSON-RPC 2.0 — `McpService` |
+| GET | `/api/auth/verify` | Teste le mot de passe du dashboard — `AuthFunction` |
+| POST | `/api/sync` | Déclenche `snapshotQuotidien()` via le Web App Apps Script protégé — `SyncFunction` / `SyncService` |
+| GET | `/api/agents/config` | Configuration des agents de l'application MAUI (`AgentConfigDto` : endpoint Foundry, modèle) — `AgentConfigFunction` / `AgentConfigService` |
+| POST | `/api/websearch` | Recherche web pour les agents de l'application MAUI (API Tavily) — `WebSearchFunction` / `WebSearchService` |
+
+Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
+
+Valeurs valides pour `/api/portfolio/geography/{assetClass}` et `/api/portfolio/sector/{assetClass}` : `Stocks`, `Bonds`. Les deux routes alimentent les donuts du dashboard et le workflow d'analyse de l'application MAUI.
+
+### Authentification du dashboard
+
+`DashboardAuthMiddleware` (`src/Backend/Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP, comparé à l'App Setting `DASHBOARD_PASSWORD` (fail-safe : non configuré = accès refusé). Une seule exception, identifiée par le nom de la Function (`context.FunctionDefinition.Name`) : `McpFunction.McpEndpoint` (fait sa propre vérification : clé `MCP_API_KEY` pour Claude Code, qui ne peut pas saisir de mot de passe interactif, **ou** `x-dashboard-password` égal à `DASHBOARD_PASSWORD` pour les agents de l'application MAUI ; une clé ou un mot de passe non configurés n'ouvrent jamais l'accès). `AuthFunction.Verify` n'est pas exemptée : elle ne répond `200` que si le middleware a accepté le mot de passe, ce qui permet à l'écran de connexion de tester un mot de passe candidat. Toute nouvelle Function HTTP est protégée par défaut — l'ajouter à la liste `ExemptFunctions` du middleware est le seul moyen de l'exclure.
+
+Voir `CLAUDE.md` (racine) §5.2.4 pour le détail côté Client (écran de connexion) et l'historique des approches abandonnées (rôles Azure Static Web Apps).
+
+### Endpoint MCP
+
+`POST /api/mcp` reçoit des requêtes JSON-RPC 2.0. Méthodes supportées :
+
+| Méthode JSON-RPC | Rôle |
+|---|---|
+| `initialize` | Poignée de main — retourne version protocole (`2024-11-05`) et capacités |
+| `tools/list` | Retourne les 9 outils disponibles (définis dans `McpToolRegistry`) |
+| `tools/call` | Exécute un outil — délègue aux services métier |
+| `notifications/*` (ex. `notifications/initialized`) | Pas de message JSON-RPC en retour : `McpFunction` répond `202 Accepted` sans corps, avant même d'appeler `McpService` (une réponse JSON ferait journaliser « Invalid JSON-RPC message format » au client MCP) |
+
+**Outils exposés :** `get_assets`, `get_assets_distribution`, `get_etf_stocks`, `get_portfolio_metrics`, `get_portfolio_history`, `get_snapshot`, `get_snapshot_history`, `get_geography_distribution`, `get_watchlist` (actions suivies de l'onglet `Watchlist` — nom et ISIN, hors portefeuille ; exposé uniquement via MCP, pas d'endpoint REST).
+
+**Transport :** Streamable HTTP (POST uniquement). Compatible avec Claude Code, Claude Desktop et Claude Web.
+
+---
+
+## 7. Mapping des lignes brutes (`Mappers/SheetMappers.cs`)
+
+`IGoogleSheetsClient.GetRangeAsync` retourne des lignes brutes (`IReadOnlyList<IReadOnlyList<object>>`), avec `ValueRenderOption = UNFORMATTED_VALUE` côté `GoogleSheetsClient` (valeurs typées, pas de formatage locale/devise). `SheetMappers` porte en C# pur la logique historiquement dans `src/Backend/Scripts/Router.gs` (`buildAssetRow`, `buildSnapshotRow`, `groupBy`, `sumColumn`, `aggregateGroup`) :
+
+- Les cellules numériques arrivent en `double` ou `long` selon qu'elles ont une partie décimale ou non — toujours passer par `AsDecimalOrNull`/`AsDecimalOrZero`, jamais de cast direct.
+- Les dates (colonne `Snapshot.Date`) : Google Sheets convertit automatiquement un texte reconnu comme une date en valeur interne — elles reviennent en numéro de série (jours depuis 1899-12-30), typé `long` ou `double` selon le cas. `AsDate` gère les deux, avec un fallback texte pour compatibilité.
+- Sentinel `"ND"` (Not Defined) et lignes `"Not Defined"` : même traitement que côté Apps Script historique (voir `src/Backend/Scripts/Docs/CLAUDE.md`).
+
+---
+
+## 8. Cache — pattern single-flight
+
+Le dashboard déclenche plusieurs services en parallèle au chargement (`Task.WhenAll` côté Client), et certains appels Sheets identiques sont ainsi redemandés simultanément par plusieurs services :
+- Sheet `Asset` : `AssetsFunction`, `GeographyService` (×2, Stocks/Bonds), `SectorService` (×2, Stocks/Bonds), `PortfolioMetricsService`, `BondScheduleService`
+- Sheet `Snapshot` : `SnapshotFunction`, `PortfolioMetricsService`
+
+`AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync`/`GetHistoryAsync` appliquent donc un cache single-flight :
+
+- `IMemoryCache` (enregistré via `services.AddMemoryCache()` dans `Program.cs`), TTL 30s pour `GetAllAsync`/`GetLastAsync` — largement suffisant car les données ne changent qu'une fois par jour (`snapshotQuotidien` à 6h côté Apps Script)
+- `AssetsService.GetAssetTypeReferenceAsync` et `SnapshotService.GetHistoryAsync` appliquent le même pattern avec une TTL plus longue (5 min) — ces données changent rarement/une fois par jour
+- Vérification rapide sans verrou (chemin pris par la quasi-totalité des appels)
+- Si cache vide : `SemaphoreSlim` statique dédié à la clé de cache + double-checked locking, pour qu'une seule requête concurrente déclenche l'appel réel à l'API Sheets
+
+À reproduire pour tout nouvel appel Sheets partagé par plusieurs services invoqués en parallèle.
+
+**Invalidation :** après une synchronisation réussie, `SyncService` appelle `IAssetsService.InvalidateCache()` et `ISnapshotService.InvalidateCache()`, pour que le rechargement du Client lise ce que l'ETL vient d'écrire. La référence `AssetType` et la watchlist restent en cache : l'ETL ne les écrit pas. **Limite :** `IMemoryCache` est propre à chaque instance de l'Api. Si plusieurs instances tournent, seule celle qui a traité la synchronisation est vidée ; les autres servent leur copie jusqu'à expiration (30 s, ou 5 min pour l'historique).
+
+---
+
+## 9. Règles d'implémentation
+
+- Un fichier par Function dans `Functions/`
+- Logger les erreurs avant de retourner un 500 ou 502 (`HttpRequestException` → 502, autres → 500)
+- Pas de logique métier dans les Functions — déléguer aux services
+- Tests unitaires xUnit pour chaque service (mock `IGoogleSheetsClient`, lignes brutes en entrée)
+- `InternalsVisibleTo("DynamicProxyGenAssembly2")` dans `AssemblyInfo.cs` pour Moq sur interfaces internes
+> Prendre en compte les conseils dans le fichier `clean-code-tips.md`
+
+---
+
+## 10. Synchronisation manuelle (`SyncService`)
+
+`SyncService.TriggerAsync` lit `APPS_SCRIPT_SYNC_URL` et `APPS_SCRIPT_SYNC_KEY` via `IConfiguration`, appelle `GET <url>?key=<clé>` (clé URL-encodée) et traduit la réponse JSON de `src/Backend/Scripts/SyncWebApp.gs` en `SyncResultDto(Success, AddedCount, ErrorMessage)`. Jamais d'exception vers l'appelant : configuration absente, réponse non-JSON (déploiement du Web App à vérifier), erreur Apps Script et erreurs réseau/timeout sont toutes converties en `SyncResultDto` avec `Success = false` et un message en français. En cas de succès, les caches des actifs et des snapshots sont vidés (§8). `SyncFunction` renvoie `200` avec ce DTO, ou `500` sur exception inattendue. Le `HttpClient` a un timeout de 100 s : l'ETL complet est long, mais reste sous la limite de 45 s du proxy SWA seulement si Apps Script répond vite (au-delà, le Client voit une erreur 500).
+
+---
+
+## 10bis. Recherche web (`WebSearchService`)
+
+Sert l'outil `SearchWeb` de l'agent Contexte (application MAUI, voir `src/Agents/AgentAI.Core/Docs/CLAUDE.md`). La recherche est faite **ici** et non dans l'application pour que la clé du fournisseur (`WEB_SEARCH_API_KEY`) ne quitte jamais l'Api : MAUI n'envoie que le mot de passe du dashboard (la route n'est pas exemptée du middleware).
+
+- Fournisseur : **Tavily** (`POST https://api.tavily.com/search`, `Authorization: Bearer <clé>`). Offre gratuite : 1 000 crédits par mois, sans carte bancaire ; une fois le quota épuisé, Tavily refuse (`432`), rien n'est facturé.
+- Requête : `search_depth = basic` (1 crédit ; `advanced` en coûte 2), 5 résultats, `include_published_date`, `topic` (`general` / `news` / `finance`), `time_range` omis pour `Any`. La clé est posée sur la **requête** et non sur le client (partagé via `IHttpClientFactory`).
+- Erreurs : clé absente → `InvalidOperationException` (journalisée, aucun appel) → `500` ; refus Tavily (`401` clé fausse, `432`/`433` quota) → `HttpRequestException` portant le statut → `502` ; corps invalide ou `query` vide → `400`.
+- Contrat : `WebSearchRequestDto` / `WebSearchResultDto` (`src/Common/Shared/Models/WebSearchDto.cs`) ; `topic` et `timeRange` circulent en noms (`"Finance"`, `"Month"`).
+- Durée : 1 à 3 s par recherche, timeout du client à 30 s (limite du proxy SWA : 45 s). Le plafond de recherches par analyse (15) est appliqué côté agent (`WebSearchTool`), pas ici.
+
+---
+
+## 11. Tests (`tests/Api.Tests/`)
+
+xUnit + Moq, 185 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+- `Functions/` — `AgentConfigFunction`, `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`, `WebSearchFunction`
+- `Mcp/` — `McpHandlerTests`
+- `Middleware/` — `DashboardAuthMiddleware`
+- `Services/` — `AgentConfigService`, `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`, `WatchlistService`, `WebSearchService`
+
+Commande : `dotnet test "tests/Api.Tests/InvestissementsDashboard.Api.Tests.csproj"` (seule suite exécutée par la CI).
+
+---
+
+## 12. Git — Règle absolue
+
+**Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
+
+Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter que si l'utilisateur dit explicitement "commit" ou "commit et PR". Ne jamais commiter de sa propre initiative pour "sauvegarder" ou "tester le CI". Le merge des PRs est toujours de la responsabilité de l'utilisateur.

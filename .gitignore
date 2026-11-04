@@ -23,6 +23,6 @@ __tablestorage__/
 .azurite/
 
 # MAUI MSIX packaging (signing material and build output stay local)
-Maui/artifacts/
+src/Frontend/Maui/artifacts/
 *.pfx
 *.cer

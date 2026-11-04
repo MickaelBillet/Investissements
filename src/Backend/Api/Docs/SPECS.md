@@ -1,0 +1,535 @@
+# SPECS.md — Api (Azure Functions)
+
+**Statut :** Implémenté  
+**Version :** 2.6 — le cache des actifs et des snapshots est vidé après une synchronisation réussie
+**Date :** 2026-11-02
+
+---
+
+## 1. Vue d'ensemble
+
+L'Api expose 17 routes HTTP : 12 endpoints REST de lecture, `GET /api/agents/config` (configuration des agents MAUI), `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle), `POST /api/websearch` (recherche web pour les agents de l'application MAUI) et 1 endpoint MCP. Toutes, sauf `mcp`, exigent le header `x-dashboard-password` (voir `src/Backend/Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `src/Backend/GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints sont joignables par le proxy d'Azure Static Web Apps : les endpoints REST sont consommés par le dashboard (site et application MAUI), l'endpoint MCP par les assistants IA (Claude Code, Claude Desktop, Claude Web) et les agents MAUI.
+
+`AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` sont mis en cache (single-flight, TTL 30s) — voir `src/Backend/Api/Docs/CLAUDE.md` §8.
+
+**Base URL (local)** : `http://localhost:7071`  
+**Base URL (prod)** : interne au Static Web Apps
+
+---
+
+## 2. Endpoints
+
+### 2.1 `GET /api/assets`
+
+Retourne tous les actifs du portefeuille avec leurs métriques complètes.
+
+**Réponse** : `AssetDto[]`
+
+```json
+[
+  {
+    "id": 1,
+    "name": "MSCI World ETF",
+    "assetClass": "Stocks",
+    "supportType": "PEA",
+    "support": "PEA TR",
+    "assetType": "ETF_Stocks",
+    "information": "",
+    "risk": 4,
+    "totalPurchases": 5000.00,
+    "totalSales": 0.00,
+    "dividends": 0.00,
+    "currentTotal": 6200.00,
+    "unrealizedGain": 1200.00,
+    "yield": 0.00,
+    "roi": 24.00,
+    "weightInPortfolio": 8.10
+  }
+]
+```
+
+**Notes :**
+- `totalPurchases`, `totalSales`, `dividends` sont `null` quand la valeur est `"ND"` dans le sheet
+- `currentTotal` est `null` si indisponible dans le sheet
+- `unrealizedGain`, `yield`, `roi` sont `null` quand les données financières sont incomplètes
+
+---
+
+### 2.2 `GET /api/assets/distribution/{dimension}`
+
+Retourne la distribution du portefeuille par dimension, avec le poids de chaque groupe.
+
+**Paramètre de route** : `dimension` — valeurs valides : `assetClass`, `assetType`, `supportType`, `support`
+
+**Réponse** : `DistributionDto[]`
+
+```json
+[
+  {
+    "id": null,
+    "name": "Stocks",
+    "currentTotal": 35000.00,
+    "weightInPortfolio": 66.05
+  }
+]
+```
+
+**Notes :**
+- `id` est toujours `null` — non consommé par le Client, la lecture de l'onglet de référence a été retirée lors de la migration vers l'API Sheets
+- Pas de tri appliqué — ordre de première apparition dans l'onglet `Asset`
+
+---
+
+### 2.3 `GET /api/assets/etfstocks/information`
+
+Retourne les ETF_Stocks groupés par champ `information`, avec métriques agrégées.
+
+**Réponse** : `AggregateDto[]`
+
+```json
+[
+  {
+    "name": "World",
+    "totalPurchases": 12000.00,
+    "totalSales": 0.00,
+    "dividends": 0.00,
+    "currentTotal": 14500.00,
+    "hasIncompleteData": false,
+    "unrealizedGain": 2500.00,
+    "yield": 0.00,
+    "roi": 20.83,
+    "weightInGroup": 100.00,
+    "weightInPortfolio": 27.36
+  }
+]
+```
+
+---
+
+### 2.4 `GET /api/assets/etfstocks/information/{information}`
+
+Retourne les actifs de type `ETF_Stocks` filtrés par valeur du champ `information`.
+
+**Paramètre de route** : `information` — valeur libre correspondant au champ `information` de l'actif
+
+**Réponse** : `AssetDto[]`
+
+Même structure que `GET /api/assets`.
+
+---
+
+### 2.4bis `GET /api/assets/types/reference`
+
+Retourne les métadonnées brutes de l'onglet `AssetType` (id, libellé FR, éligibilité géo/secteur) — source unique consommée par le Client pour afficher les libellés `AssetType` et filtrer la ventilation géographique/sectorielle, sans aucune liste codée en dur.
+
+**Réponse** : `AssetTypeReferenceDto[]`
+
+```json
+[
+  { "id": 1, "name": "Stock", "labelFr": "Action", "geoSectorEligible": true },
+  { "id": 6, "name": "Savings", "labelFr": "Épargne", "geoSectorEligible": false }
+]
+```
+
+---
+
+### 2.5 `GET /api/assets/bondschedule`
+
+Retourne, par mois, le capital obligataire remboursé et les coupons à percevoir, agrégés depuis tous les actifs. C'est la granularité la plus fine (mois) qui est renvoyée — l'agrégation par trimestre ou par année pour l'affichage est faite côté Client (voir `src/Frontend/Client/Docs/SPECS.md` §4.2).
+
+**Réponse** : `BondScheduleDto[]`
+
+```json
+[
+  {
+    "year": 2027,
+    "month": 5,
+    "amount": 3941.00,
+    "coupons": 412.50,
+    "bonds": [
+      { "name": "Obligation Renault 2027", "amount": 2941.00, "coupon": 250.00 },
+      { "name": "Obligation Orange 2027",  "amount": 1000.00, "coupon": 85.00 },
+      { "name": "Obligation EDF 2029",     "amount": 0.00,    "coupon": 77.50 }
+    ]
+  },
+  { "year": 2029, "month": 5, "amount": 5200.00, "coupons": 77.50, "bonds": [ { "name": "Obligation EDF 2029", "amount": 5200.00, "coupon": 77.50 } ] }
+]
+```
+
+**Logique de calcul (`BondScheduleService`) :**
+- Pour chaque actif, extrait une échéance au format `MM/YYYY` isolée dans le champ `information` (ex. "Obligation Renault, échéance 05/2027") — une année seule (sans mois) n'est plus reconnue
+- Regroupe les actifs partageant le même mois et la même année dans `bonds` (`name` + `currentTotal` de chaque actif), et `amount` est la somme de `bonds[].amount` pour cette période
+- **Aucun filtre par `assetClass`** — tout actif dont `information` contient une échéance `MM/YYYY` isolée est inclus, pas seulement `AssetClass = Bonds`
+- Actifs sans échéance détectée ou sans `currentTotal` exclus
+- **Coupons** : le taux annuel vient de la colonne P de `Asset` (`couponRate`, fraction : `8,50 %` → `0.085`). Coupon = `currentTotal × couponRate`, arrondi à 2 décimales. Faute de colonne fréquence, les coupons sont supposés **annuels**, versés à chaque anniversaire du mois d'échéance ; seuls les coupons **à venir** sont comptés (à partir du mois en cours, `TimeProvider`). Le dernier coupon tombe le mois du remboursement : la même ligne de `bonds` porte alors `amount` (capital) et `coupon`. Les autres mois, la ligne a `amount = 0`
+- Pas de coupon si le taux est vide, nul, ou si `currentTotal ≤ 0` ; un taux **supérieur à 100 %** (cellule saisie en texte, ex. `8,5` au lieu de `8,50 %`) est ignoré avec un avertissement dans le journal
+- `coupons` est la somme de `bonds[].coupon` pour la période
+- Résultats triés par année puis par mois croissants
+
+---
+
+### 2.6 `GET /api/portfolio/metrics`
+
+Retourne les métriques agrégées du portefeuille calculées côté API.
+
+**Réponse** : `PortfolioMetricsDto`
+
+```json
+{
+  "roiOnCapitalEngaged": 11.08,
+  "averageRisk": 2.8
+}
+```
+
+**Formules de calcul :**
+```
+RoiOnCapitalEngaged = TotalReturns / NetCapital × 100
+AverageRisk         = Σ(risk_i × currentTotal_i) / Σ(currentTotal_i)  [actifs avec currentTotal > 0]
+```
+
+> `TotalReturns` = plus-values réalisées et latentes depuis l'origine (cellule F62 du Bilan) — les cours d'actions sont saisis à la main chaque jour, donc la valeur suit aussi les mouvements de marché non réalisés.
+
+**Notes :**
+- `roiOnCapitalEngaged` est `null` si `NetCapital` est nul ou indisponible
+- `averageRisk` est `null` si la valeur totale des actifs actifs est zéro
+
+---
+
+### 2.7 `GET /api/portfolio/metrics/history`
+
+Retourne l'historique de performance du portefeuille, indexé à une base commune 100 à la date T0 (première entrée disponible).
+
+**Réponse** : `PerformancePointDto[]`
+
+```json
+[
+  { "date": "2026-05-01", "roic": 100.00, "lifeStrategy": 100.00, "msciWorld": 100.00 },
+  { "date": "2026-05-08", "roic": 103.20, "lifeStrategy": 101.10, "msciWorld": 104.50 }
+]
+```
+
+**Calcul du ROIC (TWR — rendement pondéré dans le temps) :**
+```
+Value(t)     = NetCapital(t) + TotalReturns(t)
+CashFlow(t)  = NetCapital(t) − NetCapital(t−1)      // versement (+) ou retrait (−) du jour
+Return(t)    = ( Value(t) − Value(t−1) − CashFlow(t) ) / Value(t−1)
+Index(t0)    = 100
+Index(t)     = Index(t−1) × (1 + Return(t))
+```
+
+> Le `CashFlow(t)` neutralise l'effet des versements/retraits sur `NetCapital`, pour que `roic` ne reflète que la performance réelle du portefeuille — pas les mouvements de trésorerie. Sans cette neutralisation, un simple ratio `(NetCapital+TotalReturns)/NetCapital` normalisé base 100 produit des sauts artificiels : un retrait de ~2251 € a par exemple généré un -3,88 % en un jour avec l'ancienne formule, alors que le rendement de marché réel ce jour-là était de -0,28 %.
+
+**Notes :**
+- Source : `SnapshotService.GetHistoryAsync` (`Snapshot.getHistory`)
+- Seuls les snapshots avec `NetCapital > 0`, `LifeStrategy` et `MsciWorld` renseignés sont inclus
+- `lifeStrategy` / `msciWorld` : prix unitaire / prix T0 × 100 ; `null` si absent sur un point (pas de TWR — ce sont des cours purs, sans flux de capital)
+
+---
+
+### 2.8 `GET /api/snapshot`
+
+Retourne le dernier snapshot du portefeuille.
+
+**Réponse** : `SnapshotDto`
+
+```json
+{
+  "date": "2026-05-08",
+  "netCapital": 52984.31,
+  "lifeStrategy": 35.93,
+  "msciWorld": 150.25,
+  "totalPurchases": 66659.86,
+  "totalReturns": 58200.00,
+  "totalSales": 1351.28
+}
+```
+
+**Notes :**
+- `lifeStrategy`, `msciWorld`, `totalPurchases`, `totalReturns` peuvent être `null` si non disponibles
+
+---
+
+### 2.9 `GET /api/snapshot/history`
+
+Retourne l'historique complet des snapshots en ordre chronologique ascendant.
+
+**Réponse** : `SnapshotDto[]`
+
+Même structure que `GET /api/snapshot`.
+
+---
+
+### 2.10 `GET /api/portfolio/geography/{assetClass}`
+
+Retourne la répartition géographique pondérée pour une classe d'actifs.
+
+**Paramètre de route** : `assetClass` — valeurs valides : `Stocks`, `Bonds`
+
+**Réponse** : `DistributionDto[]`
+
+```json
+[
+  {
+    "id": null,
+    "name": "États-Unis",
+    "currentTotal": 18500.00,
+    "weightInPortfolio": 52.84
+  }
+]
+```
+
+**Notes :**
+- Seuls les actifs de la classe demandée, dont l'`AssetType` est marqué `GeoSectorEligible` dans l'onglet `AssetType` et dont `currentTotal` est strictement positif, sont pris en compte (même filtre que §2.10bis)
+- Le champ `geography` de chaque actif est parsé depuis le format `Zone1 : X% - Zone2 : Y%` — la valeur courante de l'actif est ventilée proportionnellement par zone
+- `id` est toujours `null` (les zones géographiques sont des valeurs libres sans table de référence)
+- Résultats triés par `currentTotal` décroissant
+
+---
+
+### 2.10bis `GET /api/portfolio/sector/{assetClass}`
+
+Retourne la répartition sectorielle pour une classe d'actifs. Consommée par le donut « Secteurs » du dashboard et par le workflow d'analyse de l'application MAUI.
+
+**Paramètre de route** : `assetClass` — valeurs valides : `Stocks`, `Bonds` (sinon `400`)
+
+**Réponse** : `DistributionDto[]`
+
+```json
+[
+  {
+    "id": null,
+    "name": "Technology",
+    "currentTotal": 8000.00,
+    "weightInPortfolio": 41.03
+  }
+]
+```
+
+**Notes :**
+- Seuls les actifs de la classe demandée, dont l'`AssetType` est marqué `GeoSectorEligible` dans l'onglet `AssetType` et dont `currentTotal` est strictement positif, sont pris en compte
+- Contrairement à la géographie, il n'y a pas de ventilation : chaque actif compte pour 100 % de sa valeur dans **son** secteur (colonne `Sector`, valeur libre) ; les actifs sans secteur sont ignorés
+- `weightInPortfolio` est rapporté au total des secteurs retenus (pas au total du portefeuille)
+- `id` est toujours `null` (les secteurs sont des valeurs libres sans table de référence)
+- Résultats triés par `currentTotal` décroissant
+- Erreurs : `502` si la lecture du Sheet échoue (`HttpRequestException`), `500` pour toute autre erreur
+
+---
+
+### 2.11 `POST /api/mcp`
+
+Endpoint MCP (Model Context Protocol) — JSON-RPC 2.0. Permet à Claude Code d'interroger le portefeuille en temps réel.
+
+**Corps de la requête** : `JsonRpcRequest`
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_assets_distribution",
+    "arguments": { "dimension": "assetClass" }
+  }
+}
+```
+
+**Réponse** : `JsonRpcResponse`
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [{ "type": "text", "text": "[{\"name\":\"Stocks\",...}]" }]
+  }
+}
+```
+
+**Outils disponibles :**
+
+| Outil | Paramètres | Délègue à |
+|---|---|---|
+| `get_assets` | — | `IAssetsService.GetAllAsync` |
+| `get_assets_distribution` | `dimension` (enum) | `IAssetsService.GetDistributionByDimensionAsync` |
+| `get_etf_stocks` | — | `IAssetsService.GetEtfStocksByInformationAsync` |
+| `get_portfolio_metrics` | — | `IPortfolioMetricsService.GetMetricsAsync` |
+| `get_portfolio_history` | — | `IPortfolioMetricsService.GetIndexedHistoryAsync` |
+| `get_snapshot` | — | `ISnapshotService.GetLastAsync` |
+| `get_snapshot_history` | — | `ISnapshotService.GetHistoryAsync` |
+| `get_geography_distribution` | `assetClass` (`Stocks`\|`Bonds`) | `IGeographyService.GetDistributionAsync` |
+| `get_watchlist` | — | `IWatchlistService.GetAllAsync` — liste `{ name, isin }` de l'onglet `Watchlist` (lignes sans nom ignorées) |
+
+**Codes d'erreur JSON-RPC :**
+
+| Code | Constante | Cas |
+|---|---|---|
+| `-32700` | `ParseError` | Body JSON invalide |
+| `-32600` | `InvalidRequest` | Body null ou vide |
+| `-32601` | `MethodNotFound` | Méthode ou outil inconnu |
+| `-32602` | `InvalidParams` | Paramètre manquant ou invalide |
+| `-32603` | `InternalError` | Erreur de lecture du Sheet ou exception inattendue |
+
+**Authentification :**
+
+La clé est transmise via le header `x-mcp-api-key` **ou** le paramètre de requête `key` (fallback pour les clients qui ne supportent pas les headers personnalisés, comme Claude Web). À défaut de clé, le header `x-dashboard-password` égal à `DASHBOARD_PASSWORD` est accepté : c'est ainsi que s'authentifient les agents de l'application MAUI.
+
+| Cas | Comportement |
+|---|---|
+| `MCP_API_KEY` non configurée | Seul le mot de passe du dashboard est accepté ; sinon HTTP 401 |
+| Ni clé correcte, ni mot de passe du dashboard correct (un `DASHBOARD_PASSWORD` non configuré n'est jamais accepté) | HTTP 401 Unauthorized |
+| Mot de passe du dashboard correct (`x-dashboard-password`) | Traitement normal |
+| Clé correcte (header ou query param) | Traitement normal |
+
+**Configuration client :**
+
+| Client | Fichier de config | Stockage de la clé |
+|---|---|---|
+| Claude Code | `.mcp.json` (git) | Variable d'env `${MCP_API_KEY}` — jamais en clair |
+| Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` (hors git) | En clair — fichier local uniquement |
+| Claude Web | Interface claude.ai Settings → Integrations | Stocké par Anthropic côté profil |
+
+**Claude Code** (`.mcp.json` à la racine du projet) :
+```json
+{
+  "mcpServers": {
+    "investissements": {
+      "type": "http",
+      "url": "https://invest.zapto.fr/api/mcp",
+      "headers": { "x-mcp-api-key": "${MCP_API_KEY}" }
+    }
+  }
+}
+```
+
+**Claude Desktop** (`%APPDATA%\Claude\claude_desktop_config.json`) :
+```json
+{
+  "mcpServers": {
+    "investissements": {
+      "type": "http",
+      "url": "https://invest.zapto.fr/api/mcp",
+      "headers": { "x-mcp-api-key": "<ta-clé>" }
+    }
+  }
+}
+```
+
+**Claude Web** : Settings → Integrations → Add MCP Server → URL `https://invest.zapto.fr/api/mcp?key=<ta-clé>` (query param car Claude Web ne supporte pas les headers personnalisés).
+
+En production : définir `MCP_API_KEY` dans Azure Function App Settings.  
+En local : définir `MCP_API_KEY` dans `local.settings.json` (gitignorée) ou dans l'environnement shell ; sans elle, seul le mot de passe du dashboard ouvre l'accès.
+
+---
+
+### 2.12 `POST /api/sync`
+
+Déclenche la synchronisation manuelle : l'Api appelle le Web App Apps Script (`src/Backend/Scripts/SyncWebApp.gs`) qui exécute `snapshotQuotidien()` — même ETL que le trigger de 06h00, ligne `Snapshot` du jour incluse (le KPI « Capital net engagé » est donc à jour immédiatement). Le compte de service Azure reste lecteur seul ; seul Apps Script écrit. En cas de succès, l'Api vide son cache des actifs et des snapshots : les lectures suivantes renvoient les nouvelles valeurs (limite en cas de plusieurs instances : `src/Backend/Api/Docs/CLAUDE.md` §8).
+
+**Requête :** aucun corps. **Réponse `200`** (toujours, y compris en cas d'échec fonctionnel) :
+```json
+{ "success": true, "addedCount": 0, "errorMessage": null }
+```
+| Cas | `success` | `errorMessage` |
+|---|---|---|
+| Succès | `true` | `null` |
+| `APPS_SCRIPT_SYNC_URL` / `APPS_SCRIPT_SYNC_KEY` absents | `false` | « Synchronisation non configurée. » |
+| Réponse non-JSON d'Apps Script | `false` | « Réponse invalide de Google Apps Script — vérifie le déploiement du Web App. » |
+| Erreur renvoyée par Apps Script (dont clé refusée) | `false` | message d'Apps Script, ou « Erreur inconnue. » |
+| Erreur réseau / timeout (100 s) | `false` | « Impossible de contacter Google Apps Script. » |
+
+`addedCount` vaut 0 aujourd'hui (voir `src/Backend/Scripts/Docs/SPECS.md` §2.2). `500` uniquement sur exception inattendue.
+
+### 2.13 `GET /api/auth/verify`
+
+Sert à l'écran de connexion du Client pour tester un mot de passe candidat (header `x-dashboard-password`). Protégée par `DashboardAuthMiddleware` comme les autres routes : `200` si le mot de passe est correct, `401` sinon.
+
+### 2.14 `POST /api/websearch`
+
+Recherche web pour l'outil `SearchWeb` de l'agent Contexte (application MAUI). L'Api interroge l'API Tavily avec sa propre clé (`WEB_SEARCH_API_KEY`), qui n'est jamais transmise au client. Protégée par `x-dashboard-password` comme les autres routes.
+
+**Requête :**
+```json
+{ "query": "taux de dépôt BCE", "topic": "Finance", "timeRange": "Month" }
+```
+| Champ | Valeurs | Défaut |
+|---|---|---|
+| `query` | texte non vide (obligatoire) | — |
+| `topic` | `General`, `News`, `Finance` | `General` |
+| `timeRange` | `Any`, `Day`, `Week`, `Month`, `Year` | `Any` (pas de filtre) |
+
+**Réponse `200`** — au plus 5 pages, les plus pertinentes d'abord (`[]` si rien ne correspond) :
+```json
+[ { "title": "…", "url": "https://…", "content": "extrait de la page", "publishedDate": "2026-10-16" } ]
+```
+`publishedDate` vaut `null` quand le fournisseur ne la connaît pas.
+
+| Cas | Code |
+|---|---|
+| Corps invalide, `query` vide, valeur de `topic`/`timeRange` inconnue | `400` |
+| Refus du fournisseur (clé refusée, quota mensuel épuisé) ou fournisseur injoignable | `502` |
+| `WEB_SEARCH_API_KEY` non configurée, erreur inattendue | `500` |
+
+Chaque appel consomme 1 crédit du quota gratuit Tavily (1 000 par mois).
+
+### 2.15 `GET /api/agents/config`
+
+Configuration des agents de l'application MAUI, lue à chaque lancement d'agent : plus aucune saisie dans l'application. Valeurs **non secrètes** (l'endpoint Foundry est protégé par Entra ID). Protégée par `x-dashboard-password`.
+
+**Réponse `200`** :
+
+```json
+{ "foundryEndpoint": "https://<ressource>.services.ai.azure.com/api/projects/<projet>", "model": "gpt-5-mini" }
+```
+
+Chaque champ vaut `null` quand l'App Setting correspondante (`AGENT_FOUNDRY_ENDPOINT`, `AGENT_FOUNDRY_MODEL`) est absente ou vide : l'application signale alors un endpoint manquant, ou utilise son modèle par défaut. `500` sur exception inattendue.
+
+---
+
+## 3. Codes de réponse
+
+| Code | Cas |
+|---|---|
+| `200 OK` | Succès |
+| `401 Unauthorized` | Header `x-dashboard-password` absent ou incorrect (toutes les routes sauf `mcp`) ; `DASHBOARD_PASSWORD` non configuré = tout refusé |
+| `400 Bad Request` | Paramètre invalide (ex : dimension inconnue sur `/api/assets/distribution/{dimension}`) |
+| `502 Bad Gateway` | Service externe en échec : recherche web (`POST /api/websearch`, voir §2.14), ou `HttpRequestException` sur les autres routes (voir la note ci-dessous) |
+| `500 Internal Server Error` | Erreur lors de l'appel à l'API Google Sheets, du mapping ou du calcul |
+
+> Les `Functions/*.cs` ont encore un `catch (HttpRequestException)` → 502, hérité de l'ancien `AppsScriptService`. Le SDK `Google.Apis.Sheets.v4` lève plutôt `Google.GoogleApiException`, qui ne correspond pas à ce catch — en pratique toute erreur Sheets tombe donc dans le `catch` générique (500). Ce bloc 502 est inoffensif mais mort ; à nettoyer ou à remplacer par un `catch (GoogleApiException)` dans un futur passage.
+
+---
+
+## 4. DTOs (Shared)
+
+Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
+
+| DTO | Fichier | Champs |
+|---|---|---|
+| `AssetDto` | `src/Common/Shared/Models/AssetDto.cs` | id, name, assetClass, supportType, support, assetType, sector, information, geography, risk, totalPurchases?, totalSales?, dividends?, currentTotal?, unrealizedGain?, yield?, roi?, weightInPortfolio, isin (colonne O de `Asset`, `""` si absent), couponRate? (colonne P, fraction, `null` si vide) |
+| `DistributionDto` | `src/Common/Shared/Models/DistributionDto.cs` | id?, name, currentTotal, weightInPortfolio |
+| `SnapshotDto` | `src/Common/Shared/Models/SnapshotDto.cs` | date, netCapital, lifeStrategy?, msciWorld?, totalPurchases, totalReturns, totalSales? |
+| `PortfolioMetricsDto` | `src/Common/Shared/Models/PortfolioMetricsDto.cs` | roiOnCapitalEngaged?, averageRisk? |
+| `PerformancePointDto` | `src/Common/Shared/Models/PerformancePointDto.cs` | date, roic, lifeStrategy?, msciWorld? |
+| `BondScheduleDto` | `src/Common/Shared/Models/BondScheduleDto.cs` | year, month, amount (capital), bonds (`BondScheduleItemDto[]`), coupons |
+| `BondScheduleItemDto` | `src/Common/Shared/Models/BondScheduleDto.cs` | name, amount (capital), coupon |
+| `AssetTypeReferenceDto` | `src/Common/Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
+| `SyncResultDto` | `src/Common/Shared/Models/SyncResultDto.cs` | success, addedCount, errorMessage? |
+| `AgentConfigDto` | `src/Common/Shared/Models/AgentConfigDto.cs` | foundryEndpoint?, model? |
+| `WebSearchRequestDto` | `src/Common/Shared/Models/WebSearchDto.cs` | query, topic (`WebSearchTopic`), timeRange (`WebSearchTimeRange`) — enums sérialisés en noms |
+| `WebSearchResultDto` | `src/Common/Shared/Models/WebSearchDto.cs` | title, url, content, publishedDate? |
+| `AggregateDto` | `src/Common/Shared/Models/AggregateDto.cs` | agrégat par groupe (name, totalPurchases?, totalSales?, dividends?, currentTotal, hasIncompleteData, unrealizedGain?, yield?, roi?, weightInGroup, weightInPortfolio) |
+
+> Les champs suffixés `?` sont nullable — `null` quand la valeur est indisponible ou non calculable.
+
+**Modèles MCP** (`src/Common/Shared/Models/Mcp/McpModels.cs`) :
+
+| Type | Rôle |
+|---|---|
+| `JsonRpcRequest` | Requête JSON-RPC entrante |
+| `JsonRpcResponse` | Réponse JSON-RPC sortante |
+| `JsonRpcError` | Erreur JSON-RPC (code + message) |
+| `McpInitializeResult` | Réponse à `initialize` |
+| `McpToolsListResult` | Réponse à `tools/list` |
+| `McpToolsCallResult` | Réponse à `tools/call` |
+| `McpContent` | Contenu texte d'un résultat d'outil |
+| `McpJsonOptions` | Options de sérialisation camelCase + WhenWritingNull |

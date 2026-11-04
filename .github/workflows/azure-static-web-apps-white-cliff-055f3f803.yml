@@ -20,10 +20,10 @@ jobs:
         run: dotnet restore Investissements.slnx
 
       - name: Test
-        run: dotnet test Api.Tests/InvestissementsDashboard.Api.Tests.csproj --no-restore
+        run: dotnet test tests/Api.Tests/InvestissementsDashboard.Api.Tests.csproj --no-restore
 
       - name: Publish Client
-        run: dotnet publish Client/InvestissementsDashboard.Client.csproj -c Release -o Client/publish
+        run: dotnet publish src/Frontend/Client/InvestissementsDashboard.Client.csproj -c Release -o src/Frontend/Client/publish
 
       - name: Deploy
         uses: Azure/static-web-apps-deploy@v1
@@ -32,6 +32,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           skip_app_build: true
-          app_location: 'Client/publish/wwwroot'
+          app_location: 'src/Frontend/Client/publish/wwwroot'
           output_location: ''
-          api_location: 'Api'
+          api_location: 'src/Backend/Api'

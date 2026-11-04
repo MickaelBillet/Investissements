@@ -1,0 +1,144 @@
+# Maui — Hôte application Windows (BlazorWebView)
+
+## 1. Rôle
+
+Application **MAUI Windows**, strictement personnelle (PC du propriétaire), qui affiche le dashboard dans un `BlazorWebView`. Elle réutilise **tout** le code Blazor de la bibliothèque `src/Frontend/Client.Shared/` (voir `src/Frontend/Client.Shared/Docs/CLAUDE.md`) et appelle la même Api que le site. Elle ne contient aucun composant ni logique métier : uniquement l'hôte (DI, stockage sécurisé, page d'hébergement, icône).
+
+Elle exécute les agents IA **Stock** et **Actualités** (CLAUDE.md racine §14) dans ce processus, sans la limite de 45 s du proxy SWA : `Services/AgentRunner.cs` implémente `IAgentRunner` (seam de `Client.Shared`, §7.10 de sa doc) et s'appuie sur la bibliothèque `AgentAI.Core` (`src/Agents/AgentAI.Core/Docs/CLAUDE.md`). Le lien Analyse lance le workflow `PortfolioReview` (`Services/PortfolioReviewRunner.cs`, §5ter), qui utilise les agents Allocation, Contexte et Synthèse. Les agents Chat et Météo existent dans la bibliothèque mais ne sont pas exposés dans l'interface.
+
+Diagramme de classes : `maui-class-diagram.drawio` / `.png` (ce dossier).
+
+## 2. Stack
+
+| Élément | Choix |
+|---|---|
+| SDK / cible | `Microsoft.NET.Sdk.Razor`, `net10.0-windows10.0.19041.0` (Windows uniquement), `UseMaui`, `SingleProject` |
+| Paquets | `Microsoft.Maui.Controls`, `Microsoft.AspNetCore.Components.WebView.Maui` (versions `$(MauiVersion)`), `Microsoft.Extensions.Logging.Debug` |
+| Packaging | **Non packagé** par défaut (`WindowsPackageType=None`) pour `dotnet run` et les tests ; **MSIX signé** pour l'installation sur le poste (voir §7). Le comportement d'un MSIX avec l'identité Azure (`az login`) reste à valider |
+| Références | `Client.Shared`, `AgentAI.Core` (agents IA) |
+| Tests | `tests/Maui.Tests/` (xUnit + Moq) |
+
+## 3. Structure
+
+```
+src/Frontend/Maui/
+├── InvestissementsDashboard.Maui.csproj
+├── App.xaml / App.xaml.cs      # fenêtre unique « Suivi des Investissements »
+├── MainPage.xaml(.cs)          # BlazorWebView : #app → App (Client.Shared), head::after → HeadOutlet
+├── MauiProgram.cs              # DI et configuration (voir §4)
+├── Services/SecureStorageKeyValueStore.cs   # IKeyValueStore → ISecureStorage (chiffré par l'OS)
+├── Services/AgentRunner.cs                  # IAgentRunner → AgentAI.Core : une AgentFactory par lancement (voir §5bis)
+├── Services/PortfolioReviewRunner.cs        # IPortfolioReviewRunner → workflow PortfolioReview d'AgentAI.Core (voir §5ter)
+├── Services/AssetDistributionSource.cs      # IAssetDistributionSource → IPortfolioService (répartitions géographique et sectorielle via l'Api)
+├── Services/ApiWebSearchService.cs          # IWebSearchService → POST /api/websearch (la clé Tavily reste dans l'Api ; mot de passe du dashboard ; corps bufferisé : le proxy SWA refuse le chunked)
+├── Services/IAgentConfigSource.cs           # source de la configuration des agents (endpoint Foundry, modèle)
+├── Services/ApiAgentConfigSource.cs         # IAgentConfigSource → GET /api/agents/config (mot de passe du dashboard)
+├── Services/AgentOptionsProvider.cs         # IAgentConfigSource → AgentAIOptions, à chaque lancement (MCP = Api + api/mcp ; historique injecté)
+├── Services/FileLoggerProvider.cs           # ILoggerProvider fichier (logs/maui.log dans AppDataDirectory, 1 Mo max)
+├── Platforms/Windows/          # App.xaml(.cs), app.manifest (boilerplate WinUI), Package.appxmanifest (identité MSIX)
+├── Scripts/                    # Update-App.ps1 (tout-en-un), New-DevCertificate.ps1, Publish-Msix.ps1, Install-Msix.ps1 (packaging, voir §7)
+├── Resources/AppIcon/appicon.svg, Resources/Splash/splash.svg   # même visuel que le favicon du site
+├── wwwroot/index.html          # page d'hébergement du BlazorWebView
+└── Docs/                       # CLAUDE.md, SPECS.md, maui-class-diagram.drawio/.png
+
+tests/Maui.Tests/
+├── SecureStorageKeyValueStoreTests.cs
+├── AgentOptionsProviderTests.cs
+├── AgentRunnerTests.cs          # AgentFactory/agent mockés (Moq.Protected sur AIAgent)
+├── AgentFactoryTests.cs         # seul le builder demandé s'exécute, kind inconnu, doublon refusé, tous les kinds branchés, AddAgentFactoryBuilder
+├── AgentDefinitionBuilderTests.cs # définition de chaque agent (instructions, outils, historique, effort), saisies requises
+├── ModelCallLoggingChatClientTests.cs # trace d'un succès (jetons) et d'un échec
+├── InvestZaptoMcpToolSourceTests.cs # URL absente, connexion refusée puis réessayée, libération sans connexion
+├── FileChatHistoryProviderTests.cs, NewsContextProviderTests.cs, StockContextProviderTests.cs
+├── PortfolioReviewRunnerTests.cs # builder mocké renvoyant un workflow d'une étape de test : sortie, rapport renvoyé, fabrique et source du lancement transmises, échec, 401 MCP, délai, annulation
+├── PortfolioReviewWorkflowBuilderTests.cs # vrai builder, AgentFactory/agents (Allocation, Context, Synthesis)/source mockés : les trois agents demandés, rapport de l'agent en sortie, synthèse produite après l'allocation, le contexte et les répartitions, échec d'une étape et contexte sans facteur sans synthèse, arguments null, annulation
+├── SynthesisExecutorTests.cs     # barrière fan-in réelle, trois sources de test, agent mocké : un seul appel et un seul rapport, attend l'entrée la plus lente, contenu du message
+├── ContextExecutorTests.cs       # agent mocké : date de la requête imposée, facteurs et enums en noms, indicateurs null conservés, événement émis, échec sans aucun facteur
+├── AssetDistributionExecutorTests.cs # source mockée : Stocks puis Bonds, chaque classe avec ses répartitions, jeton transmis, événement émis, erreur propagée
+├── AssetDistributionSourceTests.cs   # IPortfolioService mocké : géographie et secteurs relayés, erreur propagée
+├── AllocationExecutorTests.cs   # étape d'allocation du workflow : désérialisation JSON, watchlist hors des lignes, événement émis
+├── AgentInstructionsTests.cs    # instructions embarquées : règle « tour unique », get_watchlist pour Allocation, aucun plafond pour Synthesis, signaux des scénarios pour Context, rattachement aux drivers et rôle du fil directeur dans InvestorProfile
+├── ApiAgentConfigSourceTests.cs # route, désérialisation, 401 propagé
+├── WebSearch/                   # WebSearchToolTests (plafond de 15, schéma en noms), ApiWebSearchServiceTests (route, corps, Content-Length annoncé, erreurs)
+├── FileLoggerProviderTests.cs   # écriture, plafond de taille, échec d'écriture sans exception
+├── NewsServiceRegistrationTests.cs # bout en bout de AddNewsServices (conteneur réel, filtre de titres Google News, Yahoo via ISIN) avec HttpMessageHandler factice
+└── News/                        # tests unitaires : NewsServiceTests (agrégation), GoogleNews/YahooFinanceFeedSource, YahooTickerResolver, RssFeedParser, CompanyTitleFilter
+```
+
+## 4. `MauiProgram.cs`
+
+1. `AddMauiBlazorWebView()` (+ `AddBlazorWebViewDeveloperTools()` et log debug en `DEBUG`, en fin de configuration).
+2. `ISecureStorage` → `SecureStorage.Default`, `IKeyValueStore` → `SecureStorageKeyValueStore` (mot de passe de session, mode confidentialité). **Aucune page Paramètres** : la configuration des agents vient de l'Api (voir 4).
+3. `AddInvestissementsClient(ApiBaseUri)` — toute la DI du dashboard vient de `Client.Shared`.
+4. `AddAgents` (méthode privée de `MauiProgram`) : `IAgentConfigSource` → `ApiAgentConfigSource` (client typé à l'URL de l'Api avec `DashboardPasswordHandler`, lit `GET /api/agents/config`), `AgentOptionsProvider` (historique dans `FileSystem.AppDataDirectory/agents-history`, dossier inscriptible même packagé), `AddNewsServices()` et `AddInvestZaptoMcp()` (clients typés `IHttpClientFactory` : le mot de passe du dashboard n'est envoyé qu'à l'Api, jamais aux flux RSS ; `ForceContentLengthHandler` est fourni par la bibliothèque ; le client MCP reçoit `DashboardPasswordHandler` : `/api/mcp` accepte le mot de passe du dashboard, aucune clé MCP n'est saisie), avec un `SocketsHttpHandler` à `PooledConnectionLifetime` de 2 min comme handler primaire de ces trois clients, puis `IAgentRunner` → `AgentRunner` et `IPortfolioReviewRunner` → `PortfolioReviewRunner` (fabrique créée par lancement via `AgentFactoryBuilder.Build`, enregistré par `AddAgentFactoryBuilder()` ; plus `IPortfolioReviewWorkflowBuilder` → `PortfolioReviewWorkflowBuilder` en singleton et `IAssetDistributionSource` → `AssetDistributionSource` en transient, comme le client typé `IPortfolioService` qu'elle enveloppe ; le runner en demande une par lancement), et `IWebSearchService` → `ApiWebSearchService`, client typé à l'URL de l'Api avec `DashboardPasswordHandler` (la clé Tavily reste dans l'Api, App Setting `WEB_SEARCH_API_KEY`), injecté dans `AgentFactoryBuilder`. `AddAgentAI` n'est **pas** utilisé (il enregistre la factory en singleton).
+5. Journal fichier (méthode privée `AddLogger`, via `services.AddLogging`) : `FileLoggerProvider` → `FileSystem.AppDataDirectory/logs/maui.log` (filtres `Microsoft` et `System` à Warning). Une application fenêtrée n'a pas de console : c'est le seul moyen de voir à quelle étape un agent s'est bloqué. Le fichier est vidé au démarrage s'il dépasse 1 Mo ; une erreur d'écriture n'est jamais propagée.
+
+**URL de l'Api** : `https://invest.zapto.fr/`, fixée dans `MauiProgram.ApiBaseUri` (l'Api n'est joignable que via le proxy SWA). Aucune surcharge par variable d'environnement : pour développer contre une Api locale, modifier la constante.
+
+## 5. `SecureStorageKeyValueStore`
+
+Stocke le mot de passe de session et le mode confidentialité chiffrés par l'OS (au lieu du clair du `localStorage` WebView2). `GetAsync` traite une entrée illisible (profil déplacé, clé de chiffrement perdue) comme absente : elle est journalisée (avertissement) puis supprimée, pour que l'utilisateur retombe sur l'écran de connexion au lieu d'être bloqué. `SetAsync` laisse remonter les erreurs.
+
+## 5bis. `AgentRunner` — exécution des agents
+
+`IAgentRunner.RunAsync(AgentChoice, assetName, isin, ct)` : lit les options via `AgentOptionsProvider.CreateAsync(token)` — donc dans l'Api, à chaque lancement, sous le délai maximal (lève une `InvalidOperationException` si `AGENT_FOUNDRY_ENDPOINT` n'est pas configurée : l'erreur s'affiche au lancement, pas au démarrage), crée une `AgentFactory` **à chaque lancement** (une modification de la configuration dans l'Api est prise en compte sans redémarrage) via un `Func<AgentAIOptions, IAgentFactory>` injecté (testable sans Foundry), puis `CreateAsync(AgentKind, assetName, isin)` → `CreateSessionAsync` → `RunAsync(message déclencheur)`. `AgentChoice.Stock` → `AgentKind.Stock`, `News` → `AgentKind.News` ; le message déclencheur est le même que celui de la console `AgentAI`. En cas d'échec (hors annulation) l'historique de l'agent est réinitialisé avec sauvegarde (`ResetWithBackup`) puis l'exception est relancée ; une annulation (fermeture du dialogue) laisse l'historique intact. La factory est libérée (`await using`).
+
+**Délai maximal et diagnostic.** Un `CancellationTokenSource` lié borne le lancement à `DefaultTimeout` (3 min, injectable pour les tests) ; `AgentFactory.CreateAsync` ne prenant pas de jeton, l'attente passe par `WaitAsync(token)`. Un dépassement lève une `TimeoutException` qui nomme l'étape (« creating the agent » ou « waiting for the model's answer ») et laisse l'historique réinitialisé comme toute autre erreur ; une annulation de l'utilisateur est relancée telle quelle, historique conservé. Un `401` (lecture de la configuration ou création de l'agent) devient une `InvalidOperationException` « Access refused by the Api: log out and sign in again with the dashboard password. » **sans** réinitialiser l'historique (aucun appel au modèle n'a eu lieu) ; un dépassement pendant la lecture de la configuration nomme l'étape « reading the agents configuration from the Api ». Le lancement, la création de l'agent et la réponse sont journalisés (niveau Information) ; `AgentFactory` ajoute une ligne par appel au modèle (durée, jetons entrée/sortie/raisonnement).
+
+**Accès au serveur MCP (agent Allocation du workflow, §5ter).** `/api/mcp` accepte la clé `MCP_API_KEY` (clients externes : Claude Code) **ou** le mot de passe du dashboard : le client MCP de l'application envoie le mot de passe déjà saisi à la connexion (`DashboardPasswordHandler`), rien n'est à configurer. Une ancienne clé MCP éventuellement restée dans `SecureStorage` (versions précédentes) n'est plus lue.
+
+Les agents répondent en **un seul tour** (pas de boucle conversationnelle) : leurs instructions embarquées contiennent la règle « échange à tour unique » (pas de question finale).
+
+## 5ter. `PortfolioReviewRunner` — exécution du workflow d'analyse
+
+`IPortfolioReviewRunner.RunAsync(date, ct)` : comme `AgentRunner`, lit les options, crée une `AgentFactory` **par lancement** (libérée par `await using`) et borne l'exécution à `DefaultTimeout` (3 min). Il fait construire le workflow par l'`IPortfolioReviewWorkflowBuilder` injecté (`BuildAsync(agentFactory, distributionSource, token)` : le jeton interrompt la connexion MCP ; la source vient d'un `Func<IAssetDistributionSource>` injecté, appelé à chaque lancement pour que ce singleton ne retienne pas le client HTTP du dashboard), le lance en processus (`InProcessExecution.RunStreamingAsync` avec `AnalysisRequest(date)`) et parcourt `WatchStreamAsync` : `AllocationRetrievedEvent`, `ContextRetrievedEvent`, `AssetDistributionRetrievedEvent` et `SynthesisWrittenEvent` sont journalisés, le premier `WorkflowOutputEvent` portant un `SynthesisReport` (seule sortie du workflow) marque la fin et le rapport est renvoyé à la page, `ExecutorFailedEvent`/`WorkflowErrorEvent` deviennent une `InvalidOperationException` (le framework signale l'échec d'une étape par un événement, pas par une exception). Un `401` (configuration ou MCP) donne le même message qu'`AgentRunner` ; un dépassement de délai, une `TimeoutException`.
+
+**Répartitions (`AssetDistributionSource`).** L'étape `AssetDistributionExecutor` d'AgentAI.Core lit les répartitions géographique et sectorielle via `IAssetDistributionSource` ; son implémentation MAUI relaie `IPortfolioService.GetGeographyDistributionAsync`/`GetSectorDistributionAsync` (Client.Shared), donc le même client que le dashboard, qui ajoute déjà le mot de passe (`DashboardPasswordHandler`). Une erreur de l'Api (dont un `401` sur mauvais mot de passe) fait échouer cette étape (`ExecutorFailedEvent`) et donc l'analyse.
+
+**Piège — annulation silencieuse.** Un run annulé termine le flux d'événements **sans lever d'exception** : après la boucle, `token.ThrowIfCancellationRequested()` transforme ce cas en annulation (ou en délai dépassé) au lieu d'un faux « workflow sans sortie ». Dans les tests, un faux agent doit honorer son jeton (`Task.Delay(Infinite, ct)`) : un délai qui l'ignore garde la tâche de fond du workflow en vie et fait planter l'hôte de test.
+
+## 6. `wwwroot/index.html`
+
+Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/InvestissementsDashboard.Client.Shared/css/app.css`, `InvestissementsDashboard.Maui.styles.css` (qui importe le CSS isolé de la RCL), puis `_framework/blazor.webview.js` (`autostart="false"`) et `_content/MudBlazor/MudBlazor.min.js`. Pas d'`importmap`, pas de favicon (`data:,`).
+
+## 7. Exécution, build et tests
+
+- Les projets MAUI **ne figurent pas dans `Investissements.slnx`** (restauration impossible sur le runner Ubuntu de la CI). Ils sont dans **`Investissements.Maui.slnx`** (AgentAI.Core, Api, Client.Shared, GoogleSheets, Maui, Maui.Tests, Shared) — Windows uniquement, workload `maui-windows` requis.
+- Build : `dotnet build Investissements.Maui.slnx`
+- Lancer : `dotnet run --project Maui -f net10.0-windows10.0.19041.0` (ou exécuter `src/Frontend/Maui/bin/Debug/net10.0-windows10.0.19041.0/win-x64/InvestissementsDashboard.Maui.exe`)
+- Tests : `dotnet test "tests/Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (210 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
+- La CI ne construit ni ne teste ce projet.
+- Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `src/Frontend/Maui/obj` (cache de génération des icônes).
+
+### Installer l'application (MSIX signé, auto-signé)
+
+**En une commande** (PowerShell normal, depuis la racine du dépôt) : `.\src\Frontend\Maui\Scripts\Update-App.ps1`. Le script crée le certificat s'il n'existe pas, construit et signe le MSIX, n'élève les droits **que** pour approuver le certificat (une seule invite UAC, la première fois ou après un renouvellement), puis installe ou met à jour l'application en fermant l'instance en cours. Si la version est déjà installée (même numéro de build), il s'arrête : committer pour obtenir une nouvelle version, ou `-Reinstall` pour réinstaller la même (**efface les données de l'application**, dont le mot de passe du dashboard mémorisé). `-WhatIf` déroule les étapes sans rien modifier.
+
+Les trois étapes ci-dessous restent utilisables séparément (diagnostic, ou installation depuis un PowerShell administrateur) :
+
+À faire dans l'ordre, depuis la racine du dépôt :
+
+1. **Une seule fois** — créer le certificat de signature (PowerShell normal) : `.\src\Frontend\Maui\Scripts\New-DevCertificate.ps1`. Le certificat vit dans le magasin utilisateur (`CN=Mickael Billet`, 3 ans) ; la signature se fait par empreinte, donc **aucun `.pfx` ni mot de passe** n'existe sur disque ou dans le dépôt. Seul le `.cer` public est exporté dans `%USERPROFILE%\.certs\`. Le `Publisher` du `Package.appxmanifest` doit rester égal au sujet du certificat.
+2. **À chaque version** — construire le package : `.\src\Frontend\Maui\Scripts\Publish-Msix.ps1` (le numéro de build `ApplicationVersion` est le nombre de commits du dépôt : Windows refuse d'installer un contenu différent sous la même version `1.0.0.N`, erreur `0x80073CFB` ; si l'on republie le même commit avec des modifications locales, désinstaller d'abord l'ancien package) → `src/Frontend/Maui/artifacts/…/InvestissementsDashboard.Maui_<version>_x64.msix` (dossier ignoré par git).
+3. **Dans un PowerShell administrateur** — `.\src\Frontend\Maui\Scripts\Install-Msix.ps1` : fait confiance au `.cer` (`LocalMachine\TrustedPeople`, nécessite l'élévation) puis installe le `.msix` avec `Add-AppxPackage -ForceUpdateFromAnyVersion` (une mise à jour remplace la version installée en conservant ses données, à condition que le numéro de version ait augmenté).
+4. L'application apparaît dans le menu Démarrer (« Suivi des Investissements ») avec l'icône du site. Désinstallation : Paramètres → Applications, ou `Get-AppxPackage fr.zapto.invest.maui | Remove-AppxPackage`.
+
+Une application packagée est isolée : les données de `SecureStorage` et du profil WebView2 sont propres au package (une désinstallation les efface, le mot de passe est à ressaisir) et les variables d'environnement d'un terminal ne sont pas visibles.
+
+## 8. Limites connues / à valider
+
+- Le rendu de MudBlazor et d'ApexCharts dans le `BlazorWebView` n'est pas vérifié visuellement (l'application démarre et crée sa fenêtre).
+- Le lien « Documentation » (`ClientOptions.DocumentationUri`, URL absolue du site) doit s'ouvrir dans le navigateur — non testé.
+- Le certificat auto-signé expire au bout de 3 ans : en recréer un (`New-DevCertificate.ps1`), republier et réinstaller. Changer son sujet impose de changer le `Publisher` du manifeste, et donc de désinstaller l'ancien package.
+- L'installation du MSIX n'est pas automatisée en CI (poste du propriétaire uniquement).
+- Plus de page Paramètres : l'endpoint Foundry et le modèle sont des App Settings de l'Api (`AGENT_FOUNDRY_ENDPOINT`, `AGENT_FOUNDRY_MODEL`) ; l'URL de l'Api reste fixe (`MauiProgram.ApiBaseUri`). Sans Api joignable, aucun agent ne peut être lancé.
+- Les agents utilisent l'identité Azure du poste (`DefaultAzureCredential`, `az login`) : non vérifié avec un MSIX packagé (voir CLAUDE.md racine §14.5). Ils consomment des tokens Foundry facturés à l'usage.
+- Agents Chat et Météo non exposés dans l'interface (l'ancien agent Portefeuille a été supprimé : l'agent Allocation couvre la lecture du portefeuille).
+- Agent Allocation : validé en application **non packagée** (`dotnet run`, ≈ 52 s de bout en bout avec un effort de raisonnement `Low`, mesure antérieure à la sortie JSON et à `get_watchlist`) ; non testé en MSIX (identité Azure, `SecureStorage` du package). La durée croît avec le nombre de positions.
+- Workflow d'analyse : deux exécutions complètes contre le vrai modèle le 2026-11-03, avec les recherches web fonctionnelles (schémas JSON acceptés, 111 s et 133 s pour un délai de 3 min). Restent à valider `get_watchlist` (le journal ne nomme pas les outils) et la qualité du rapport, désormais affiché.
+
+## 9. Git — Règle absolue
+
+**Ne jamais faire de commit, push ou créer une PR sans que l'utilisateur le demande explicitement.**
+
+Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter que si l'utilisateur dit explicitement "commit" ou "commit et PR". Ne jamais commiter de sa propre initiative pour "sauvegarder" ou "tester le CI". Le merge des PRs est toujours de la responsabilité de l'utilisateur.
