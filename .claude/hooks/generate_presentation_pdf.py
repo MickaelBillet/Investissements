@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenere Client/wwwroot/docs/presentation.pdf a partir de Docs/Presentation.md."""
+"""Regenere src/Frontend/Client/wwwroot/docs/presentation.pdf a partir de Docs/Presentation.md."""
 import base64
 import json
 import mimetypes
@@ -12,7 +12,7 @@ import markdown
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_MD = REPO_ROOT / "Docs" / "Presentation.md"
-OUTPUT_PDF = REPO_ROOT / "Client" / "wwwroot" / "docs" / "presentation.pdf"
+OUTPUT_PDF = REPO_ROOT / "src" / "Frontend" / "Client" / "wwwroot" / "docs" / "presentation.pdf"
 TMP_HTML = REPO_ROOT / ".claude" / "hooks" / "_presentation_tmp.html"
 
 CSS = """

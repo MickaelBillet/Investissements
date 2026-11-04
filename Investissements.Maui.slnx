@@ -1,23 +1,23 @@
 <Solution>
-  <Folder Name="/AgentAI.Core/">
-    <Project Path="AgentAI.Core/AgentAI.Core.csproj" />
+  <Folder Name="/src/Agents/AgentAI.Core/">
+    <Project Path="src/Agents/AgentAI.Core/AgentAI.Core.csproj" />
   </Folder>
-  <Folder Name="/Api/">
-    <Project Path="Api/InvestissementsDashboard.Api.csproj" />
+  <Folder Name="/src/Backend/Api/">
+    <Project Path="src/Backend/Api/InvestissementsDashboard.Api.csproj" />
   </Folder>
-  <Folder Name="/Client.Shared/">
-    <Project Path="Client.Shared/InvestissementsDashboard.Client.Shared.csproj" />
+  <Folder Name="/src/Frontend/Client.Shared/">
+    <Project Path="src/Frontend/Client.Shared/InvestissementsDashboard.Client.Shared.csproj" />
   </Folder>
-  <Folder Name="/GoogleSheets/">
-    <Project Path="GoogleSheets/InvestissementsDashboard.GoogleSheets.csproj" />
+  <Folder Name="/src/Backend/GoogleSheets/">
+    <Project Path="src/Backend/GoogleSheets/InvestissementsDashboard.GoogleSheets.csproj" />
   </Folder>
-  <Folder Name="/Maui.Tests/">
-    <Project Path="Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj" />
+  <Folder Name="/tests/Maui.Tests/">
+    <Project Path="tests/Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj" />
   </Folder>
-  <Folder Name="/Maui/">
-    <Project Path="Maui/InvestissementsDashboard.Maui.csproj" />
+  <Folder Name="/src/Frontend/Maui/">
+    <Project Path="src/Frontend/Maui/InvestissementsDashboard.Maui.csproj" />
   </Folder>
-  <Folder Name="/Shared/">
-    <Project Path="Shared/InvestissementsDashboard.Shared.csproj" />
+  <Folder Name="/src/Common/Shared/">
+    <Project Path="src/Common/Shared/InvestissementsDashboard.Shared.csproj" />
   </Folder>
 </Solution>

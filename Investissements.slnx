@@ -1,20 +1,20 @@
 <Solution>
-  <Folder Name="/Api.Tests/">
-    <Project Path="Api.Tests/InvestissementsDashboard.Api.Tests.csproj" />
+  <Folder Name="/tests/Api.Tests/">
+    <Project Path="tests/Api.Tests/InvestissementsDashboard.Api.Tests.csproj" />
   </Folder>
-  <Folder Name="/Api/">
-    <Project Path="Api/InvestissementsDashboard.Api.csproj" />
+  <Folder Name="/src/Backend/Api/">
+    <Project Path="src/Backend/Api/InvestissementsDashboard.Api.csproj" />
   </Folder>
-  <Folder Name="/Client.Tests/">
-    <Project Path="Client.Tests/InvestissementsDashboard.Client.Tests.csproj" />
+  <Folder Name="/tests/Client.Tests/">
+    <Project Path="tests/Client.Tests/InvestissementsDashboard.Client.Tests.csproj" />
   </Folder>
-  <Folder Name="/Client.Shared/">
-    <Project Path="Client.Shared/InvestissementsDashboard.Client.Shared.csproj" />
+  <Folder Name="/src/Frontend/Client.Shared/">
+    <Project Path="src/Frontend/Client.Shared/InvestissementsDashboard.Client.Shared.csproj" />
   </Folder>
-  <Folder Name="/Client/">
-    <Project Path="Client/InvestissementsDashboard.Client.csproj" />
+  <Folder Name="/src/Frontend/Client/">
+    <Project Path="src/Frontend/Client/InvestissementsDashboard.Client.csproj" />
   </Folder>
-  <Folder Name="/Shared/">
-    <Project Path="Shared/InvestissementsDashboard.Shared.csproj" />
+  <Folder Name="/src/Common/Shared/">
+    <Project Path="src/Common/Shared/InvestissementsDashboard.Shared.csproj" />
   </Folder>
 </Solution>

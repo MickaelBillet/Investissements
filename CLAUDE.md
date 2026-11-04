@@ -59,7 +59,7 @@ Google Sheets (multi-onglets, style BDD)
                               Azure Static Web Apps + nom de domaine custom
 ```
 
-S'y ajoutent l'application Windows MAUI, qui reprend le dashboard et exécute les agents IA sur le poste (§14), et les clients MCP externes, qui passent par `/api/mcp`. Apps Script ne fait qu'écrire (ETL quotidien + rapport hebdomadaire par email) ; son seul point d'entrée HTTP est un Web App minimal dédié à la synchronisation manuelle (§5.2.5). L'Api lit le Sheet directement via l'API Google Sheets officielle (`Google.Apis.Sheets.v4`, compte de service), dans un projet dédié `GoogleSheets/`.
+S'y ajoutent l'application Windows MAUI, qui reprend le dashboard et exécute les agents IA sur le poste (§14), et les clients MCP externes, qui passent par `/api/mcp`. Apps Script ne fait qu'écrire (ETL quotidien + rapport hebdomadaire par email) ; son seul point d'entrée HTTP est un Web App minimal dédié à la synchronisation manuelle (§5.2.5). L'Api lit le Sheet directement via l'API Google Sheets officielle (`Google.Apis.Sheets.v4`, compte de service), dans un projet dédié `src/Backend/GoogleSheets/`.
 
 ### Stack technique
 
@@ -68,7 +68,7 @@ S'y ajoutent l'application Windows MAUI, qui reprend le dashboard et exécute le
 | **Données** | Google Sheets | Ecosystème déjà en place, gratuit |
 | **Lecture données** | API Google Sheets (compte de service) | Lecture directe, rapide, sans cold start — remplace l'ancien Web App Apps Script |
 | **ETL** | Google Apps Script (triggers temporels) | Écrit dans le Sheet chaque jour à 06h00, gratuit |
-| **Backend** | Azure Functions (C#) | Serverless, gratuit, lit le Sheet via `GoogleSheets/` (projet dédié) |
+| **Backend** | Azure Functions (C#) | Serverless, gratuit, lit le Sheet via `src/Backend/GoogleSheets/` (projet dédié) |
 | **Frontend** | Blazor WASM (C#) | Langage maîtrisé par le développeur |
 | **UI Components** | MudBlazor | Riche, bien maintenu |
 | **Graphiques** | ApexCharts for Blazor | Couvre tous les types de graphiques requis |
@@ -92,21 +92,21 @@ S'y ajoutent l'application Windows MAUI, qui reprend le dashboard et exécute le
 - Calcule les agrégats (valeur totale, % par catégorie, etc.)
 - Appende une ligne dans les onglets historiques
 - Crée automatiquement dans l'onglet `Asset` toute nouvelle ligne trouvée dans le `Bilan` mais absente du sheet DEST (dès que sa valeur actuelle est strictement positive) — les colonnes de classification (AssetClass, SupportType, Support, AssetType, Sector, Geography) sont posées à `"Not Defined"` et un email d'alerte est envoyé pour rappeler de les compléter manuellement
-- Expose un unique Web App HTTP minimal et protégé par clé secrète (`Scripts/SyncWebApp.gs`), dédié au déclenchement manuel de `snapshotQuotidien()` depuis le bouton "Synchroniser" du dashboard — voir §5.2.5. Aucun autre point d'entrée HTTP.
-- Détails : `Scripts/Docs/CLAUDE.md`
+- Expose un unique Web App HTTP minimal et protégé par clé secrète (`src/Backend/Scripts/SyncWebApp.gs`), dédié au déclenchement manuel de `snapshotQuotidien()` depuis le bouton "Synchroniser" du dashboard — voir §5.2.5. Aucun autre point d'entrée HTTP.
+- Détails : `src/Backend/Scripts/Docs/CLAUDE.md`
 
 ### 4.3 Azure Functions (backend C#)
 - Détient les identifiants du compte de service Google (email + clé privée, stockés dans App Settings)
 - Expose des endpoints REST consommés par le Blazor WASM
-- Lit le Google Sheet directement via l'API Sheets officielle (projet `GoogleSheets/`) et construit les DTOs C#
+- Lit le Google Sheet directement via l'API Sheets officielle (projet `src/Backend/GoogleSheets/`) et construit les DTOs C#
 - Liées à Azure Static Web Apps (sécurité interne, pas d'exposition publique)
 
 ### 4.4 Frontend Blazor (C#) — code partagé `Client.Shared`, deux hôtes
-- Tout le code Blazor (App, vues, composants, ViewModels, services) est dans la bibliothèque Razor `Client.Shared/`
-- Deux hôtes minces la consomment : `Client/` (Blazor WebAssembly, site sur Azure Static Web Apps) et `Maui/` (application Windows, `BlazorWebView`)
+- Tout le code Blazor (App, vues, composants, ViewModels, services) est dans la bibliothèque Razor `src/Frontend/Client.Shared/`
+- Deux hôtes minces la consomment : `src/Frontend/Client/` (Blazor WebAssembly, site sur Azure Static Web Apps) et `src/Frontend/Maui/` (application Windows, `BlazorWebView`)
 - Consomme les endpoints de l'Azure Function, affiche les graphiques et visualisations
 - Ne détient aucune clé API ni donnée sensible
-- Détails : `Client.Shared/Docs/CLAUDE.md`, `Client/Docs/CLAUDE.md`, `Maui/Docs/CLAUDE.md`
+- Détails : `src/Frontend/Client.Shared/Docs/CLAUDE.md`, `src/Frontend/Client/Docs/CLAUDE.md`, `src/Frontend/Maui/Docs/CLAUDE.md`
 
 ### 4.5 GitHub Actions (CI/CD)
 - Déclenché automatiquement sur chaque push sur la branche `main`
@@ -142,22 +142,22 @@ Voir SECURITY.MD
 
 #### 5.2.5 Synchronisation manuelle (bouton dashboard)
 
-Le bouton "Synchroniser" du Client déclenche `snapshotQuotidien()` (le même ETL complet que le trigger quotidien de 06h00 — sync des actifs *et* recalcul de la ligne `Snapshot` du jour) sans attendre ce trigger. Comme l'Api ne peut pas écrire (§5.2.3), l'écriture reste effectuée par Apps Script, exposé cette fois via un Web App HTTP minimal et dédié à cette seule action (`Scripts/SyncWebApp.gs`, `doGet`) — réintroduction ciblée du mécanisme retiré en §4.2, motivée par ce nouveau besoin.
+Le bouton "Synchroniser" du Client déclenche `snapshotQuotidien()` (le même ETL complet que le trigger quotidien de 06h00 — sync des actifs *et* recalcul de la ligne `Snapshot` du jour) sans attendre ce trigger. Comme l'Api ne peut pas écrire (§5.2.3), l'écriture reste effectuée par Apps Script, exposé cette fois via un Web App HTTP minimal et dédié à cette seule action (`src/Backend/Scripts/SyncWebApp.gs`, `doGet`) — réintroduction ciblée du mécanisme retiré en §4.2, motivée par ce nouveau besoin.
 
-- Protection par clé partagée : `doGet` compare `?key=` à la Script Property `SYNC_SECRET_KEY` (jamais commitée dans `Scripts/`, contrairement à `Config.gs`) — pas de protection Google (déploiement "Anyone")
+- Protection par clé partagée : `doGet` compare `?key=` à la Script Property `SYNC_SECRET_KEY` (jamais commitée dans `src/Backend/Scripts/`, contrairement à `Config.gs`) — pas de protection Google (déploiement "Anyone")
 - Flux : `Client` → `POST /api/sync` (protégé par `DashboardAuthMiddleware`, mot de passe dashboard) → `SyncFunction`/`SyncService` (Api) → `GET .../exec?key=...` (Apps Script) → `snapshotQuotidien()`
 - Le recalcul immédiat de la ligne `Snapshot` du jour met à jour le KPI "Capital net engagé" sans attendre le lendemain 06h00
 - Après un succès, l'Api vide son cache (actifs, snapshots) et le Client recharge les pages déjà ouvertes, sans recharger le navigateur
 - Le compte de service Azure reste lecteur uniquement — aucun changement de son périmètre ; seul Apps Script écrit, comme avant
-- Config Api (App Settings, jamais commitées) : `APPS_SCRIPT_SYNC_URL`, `APPS_SCRIPT_SYNC_KEY` — voir `Api/Docs/CLAUDE.md` §5
+- Config Api (App Settings, jamais commitées) : `APPS_SCRIPT_SYNC_URL`, `APPS_SCRIPT_SYNC_KEY` — voir `src/Backend/Api/Docs/CLAUDE.md` §5
 
 #### 5.2.4 Authentification du dashboard (accès restreint au propriétaire)
 
 Le dashboard entier est protégé par un **mot de passe unique géré par notre propre code** — pas par l'authentification d'Azure Static Web Apps (voir historique ci-dessous).
 
-- `DashboardAuthMiddleware` (`Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP de l'Api, comparé à l'App Setting `DASHBOARD_PASSWORD` — sauf `/api/mcp` (vérification propre : clé `MCP_API_KEY` pour les clients externes, ou mot de passe du dashboard pour les agents de l'application MAUI ; une clé non configurée n'ouvre jamais l'accès). L'écran de connexion teste un mot de passe avec `GET /api/auth/verify`, protégée comme les autres routes
+- `DashboardAuthMiddleware` (`src/Backend/Api/Middleware/`) vérifie le header `x-dashboard-password` sur toutes les requêtes HTTP de l'Api, comparé à l'App Setting `DASHBOARD_PASSWORD` — sauf `/api/mcp` (vérification propre : clé `MCP_API_KEY` pour les clients externes, ou mot de passe du dashboard pour les agents de l'application MAUI ; une clé non configurée n'ouvre jamais l'accès). L'écran de connexion teste un mot de passe avec `GET /api/auth/verify`, protégée comme les autres routes
 - Fail-safe : si `DASHBOARD_PASSWORD` n'est pas configuré, l'accès est refusé par défaut (jamais d'accès ouvert par omission)
-- Côté Client, `App.razor` affiche un écran de connexion (`Client.Shared/Shared/LoginGate.razor`) tant que `ISessionService.IsAuthenticated` est faux — le mot de passe saisi est mémorisé via `IKeyValueStore` (`localStorage` du navigateur côté site WASM, `SecureStorage` chiffré côté application MAUI) et renvoyé automatiquement sur chaque appel Api (`DashboardPasswordHandler`)
+- Côté Client, `App.razor` affiche un écran de connexion (`src/Frontend/Client.Shared/Shared/LoginGate.razor`) tant que `ISessionService.IsAuthenticated` est faux — le mot de passe saisi est mémorisé via `IKeyValueStore` (`localStorage` du navigateur côté site WASM, `SecureStorage` chiffré côté application MAUI) et renvoyé automatiquement sur chaque appel Api (`DashboardPasswordHandler`)
 - Le bouton de masquage des montants (barre de menu) reste un confort indépendant (ex. partage d'écran par le propriétaire une fois connecté), pas une frontière de sécurité
 
 **Historique — pourquoi pas l'authentification native Azure Static Web Apps.** Une première version utilisait les rôles personnalisés d'Azure Static Web Apps (Microsoft Entra ID + rôle `owner`, via `rolesSource` puis via Invitations). Les deux mécanismes se sont révélés peu fiables en pratique sur le plan **Free** (contrainte budget zéro, §2) : `rolesSource` nécessite l'authentification personnalisée, réservée au plan Standard, et le mécanisme d'Invitations a montré un comportement incohérent (rôle attribué puis perdu entre sessions, 403 sur des ressources statiques). Le mot de passe interne ci-dessus, entièrement sous notre contrôle, remplace ces deux approches.
@@ -215,7 +215,7 @@ Une ligne par jour. Colonnes (index 0-based) :
 | 5 | F | `COL_SNAP_TOTAL_RETURNS` | Plus-values réalisées et latentes depuis l'origine (EUR), lu depuis le Bilan — les cours d'actions sont saisis à la main chaque jour |
 | 6 | G | `COL_SNAP_TOTAL_SALES` | Total des ventes depuis l'origine (EUR), lu depuis le Bilan |
 
-Les cellules du Bilan lues par l'ETL sont des constantes de `Scripts/Config.gs` : `NET_PURCHASES` = C49, `TOTAL_PURCHASES` = F70, `TOTAL_SALES` = F72, `TOTAL_RETURNS` = F62, `CASH_PEA` = B70, `SMART_CASH_MINTOS` = B72 (ces deux dernières sont lues mais non exploitées). Toute insertion ou suppression de ligne dans le Bilan les décale : les mettre à jour dans le même geste.
+Les cellules du Bilan lues par l'ETL sont des constantes de `src/Backend/Scripts/Config.gs` : `NET_PURCHASES` = C49, `TOTAL_PURCHASES` = F70, `TOTAL_SALES` = F72, `TOTAL_RETURNS` = F62, `CASH_PEA` = B70, `SMART_CASH_MINTOS` = B72 (ces deux dernières sont lues mais non exploitées). Toute insertion ou suppression de ligne dans le Bilan les décale : les mettre à jour dans le même geste.
 
 ### 6.3bis Onglet `Watchlist` (DEST_ID)
 
@@ -274,7 +274,7 @@ Quand une valeur financière n'est pas disponible, la feuille contient la chaîn
 - Un seul repository contenant le projet Blazor WASM et les Azure Functions
 - Branche principale : `main`
 - Tout push sur `main` déclenche automatiquement le pipeline de déploiement
-- Le dépôt est **public** : aucun secret ni donnée personnelle n'y entre, ce qui vaut aussi pour les instructions des agents (`AgentAI.Core/Agents/Synthesis/InvestorProfile.md`)
+- Le dépôt est **public** : aucun secret ni donnée personnelle n'y entre, ce qui vaut aussi pour les instructions des agents (`src/Agents/AgentAI.Core/Agents/Synthesis/InvestorProfile.md`)
 
 ### 8.2 Structure du repository
 
@@ -285,40 +285,31 @@ investment-dashboard/
 ├── .mcp.json                        # Déclaration du serveur MCP du projet
 ├── Investissements.slnx             # Solution du CI : Api, Api.Tests, Client, Client.Shared, Client.Tests, Shared
 ├── Investissements.Maui.slnx        # Solution MAUI (Windows uniquement) : AgentAI.Core, Api, Client.Shared, GoogleSheets, Maui, Maui.Tests, Shared
-├── Client/                          # Hôte Blazor WASM mince (Program.cs, index.html, staticwebapp.config.json)
-│   └── Docs/
-│       ├── CLAUDE.md                # Architecture technique de l'hôte WASM
-│       └── SPECS.md                 # Spécifications propres au site
-├── Client.Shared/                   # Bibliothèque Razor partagée (App, Views, composants, ViewModels, Services) — WASM + MAUI
-│   └── Docs/
-│       ├── CLAUDE.md                # Architecture technique du dashboard
-│       ├── SPECS.md                 # Spécifications fonctionnelles du dashboard
-│       └── client-shared-class-diagram.drawio / .png   # Diagramme de classes
-├── Client.Tests/                    # Tests xUnit + bUnit de Client.Shared
-├── Maui/                            # Hôte MAUI Windows (BlazorWebView) + exécution des agents IA
-│   └── Docs/
-│       ├── CLAUDE.md                # Architecture technique de l'application Windows
-│       ├── SPECS.md                 # Spécifications de l'application Windows
-│       └── maui-class-diagram.drawio / .png            # Diagramme de classes
-├── Maui.Tests/                      # Tests xUnit du projet MAUI (et d'AgentAI.Core : AgentRunner, instructions)
-├── AgentAI.Core/                    # Bibliothèque des agents IA (Microsoft Agent Framework + Azure AI Foundry), net10.0
-│   └── Docs/
-│       ├── CLAUDE.md                # Architecture technique de la bibliothèque des agents
-│       └── agentai-class-diagram.drawio / .png         # Diagramme de classes
-├── Api/                             # Azure Functions (C#)
-│   └── Docs/
-│       ├── CLAUDE.md                # Architecture technique de l'Api
-│       ├── SPECS.md                 # Spécifications fonctionnelles de l'Api
-│       └── api-class-diagram.drawio / .png             # Diagramme de classes
-├── Api.Tests/                       # Tests xUnit + Moq de l'Api
-├── Scripts/                         # Google Apps Script (référence versionnée) — ETL, rapport hebdo, synchro manuelle
-│   └── Docs/
-│       ├── CLAUDE.md                # Architecture technique des Scripts
-│       └── SPECS.md                 # Spécifications fonctionnelles des Scripts
-├── GoogleSheets/                    # Client API Google Sheets (C#, utilisé par l'Api)
-│   └── Docs/CLAUDE.md
-├── Shared/                          # Modèles et constantes partagés Client + Api
-│   └── Docs/CLAUDE.md
+├── src/
+│   ├── Backend/
+│   │   ├── Api/                     # Azure Functions (C#)
+│   │   │   └── Docs/                # CLAUDE.md, SPECS.md, api-class-diagram.drawio / .png
+│   │   ├── GoogleSheets/            # Client API Google Sheets (C#, utilisé par l'Api)
+│   │   │   └── Docs/                # CLAUDE.md
+│   │   └── Scripts/                 # Google Apps Script (référence versionnée) — ETL, rapport hebdo, synchro manuelle
+│   │       └── Docs/                # CLAUDE.md, SPECS.md
+│   ├── Frontend/
+│   │   ├── Client/                  # Hôte Blazor WASM mince (Program.cs, index.html, staticwebapp.config.json)
+│   │   │   └── Docs/                # CLAUDE.md, SPECS.md
+│   │   ├── Client.Shared/           # Bibliothèque Razor partagée (App, Views, composants, ViewModels, Services) — WASM + MAUI
+│   │   │   └── Docs/                # CLAUDE.md, SPECS.md, client-shared-class-diagram.drawio / .png
+│   │   └── Maui/                    # Hôte MAUI Windows (BlazorWebView) + exécution des agents IA
+│   │       └── Docs/                # CLAUDE.md, SPECS.md, maui-class-diagram.drawio / .png
+│   ├── Agents/
+│   │   └── AgentAI.Core/            # Bibliothèque des agents IA (Microsoft Agent Framework + Azure AI Foundry), net10.0
+│   │       └── Docs/                # CLAUDE.md, agentai-class-diagram.drawio / .png
+│   └── Common/
+│       └── Shared/                  # Modèles et constantes partagés Client + Api
+│           └── Docs/                # CLAUDE.md
+├── tests/
+│   ├── Api.Tests/                   # Tests xUnit + Moq de l'Api
+│   ├── Client.Tests/                # Tests xUnit + bUnit de Client.Shared
+│   └── Maui.Tests/                  # Tests xUnit du projet MAUI (et d'AgentAI.Core : AgentRunner, instructions)
 ├── Docs/                            # Documentation globale du projet
 │   ├── SPECS.md                     # Spécifications globales
 │   ├── Presentation.md / .pdf       # Présentation du projet
@@ -338,7 +329,7 @@ Les dossiers `Docs/` portent les fichiers `CLAUDE.md` (casse exacte : la CI tour
 > - `CLAUDE.md` et `Docs/SPECS.md` (contexte global)
 > - `<sous-projet>/Docs/CLAUDE.md` et `<sous-projet>/Docs/SPECS.md` (contexte spécifique)
 >
-> Tu ne lis pas les fichiers `Docs/` des autres sous-projets. Sous-projets : `Client` (hôte WASM), `Client.Shared` (dashboard partagé), `Maui`, `AgentAI.Core` (agents IA), `Api`, `Scripts`, `GoogleSheets`, `Shared`. Un travail sur le dashboard lit `Client.Shared/Docs/` ; sur l'hôte WASM ou MAUI, le `Docs/` de l'hôte **et** celui de `Client.Shared` ; sur les agents, `AgentAI.Core/Docs/` **et** `Maui/Docs/`.
+> Tu ne lis pas les fichiers `Docs/` des autres sous-projets. Sous-projets : `Client` (hôte WASM), `Client.Shared` (dashboard partagé), `Maui` dans `src/Frontend/` ; `AgentAI.Core` (agents IA) dans `src/Agents/` ; `Api`, `Scripts`, `GoogleSheets` dans `src/Backend/` ; `Shared` dans `src/Common/`. Un travail sur le dashboard lit `src/Frontend/Client.Shared/Docs/` ; sur l'hôte WASM ou MAUI, le `Docs/` de l'hôte **et** celui de `Client.Shared` ; sur les agents, `src/Agents/AgentAI.Core/Docs/` **et** `src/Frontend/Maui/Docs/`.
 
 ### 8.4 Pipeline GitHub Actions
 
@@ -359,9 +350,9 @@ jobs:
       - name: Restore
         run: dotnet restore Investissements.slnx
       - name: Test
-        run: dotnet test Api.Tests/InvestissementsDashboard.Api.Tests.csproj --no-restore
+        run: dotnet test tests/Api.Tests/InvestissementsDashboard.Api.Tests.csproj --no-restore
       - name: Publish Client
-        run: dotnet publish Client/InvestissementsDashboard.Client.csproj -c Release -o Client/publish
+        run: dotnet publish src/Frontend/Client/InvestissementsDashboard.Client.csproj -c Release -o src/Frontend/Client/publish
       - name: Deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -369,9 +360,9 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           skip_app_build: true
-          app_location: 'Client/publish/wwwroot'
+          app_location: 'src/Frontend/Client/publish/wwwroot'
           output_location: ''
-          api_location: 'Api'
+          api_location: 'src/Backend/Api'
 ```
 
 > Le Client (net10.0) est pré-compilé par le runner CI car .NET 10 n'est pas disponible dans Oryx.
@@ -434,7 +425,7 @@ jobs:
 |---|---|---|
 | 1 | ~~Structure détaillée des onglets du Google Sheets~~ — résolu, voir section 6 | — |
 | 2 | Nombre d'actifs à afficher dans le top holdings (10, 15, 20 ?) | Fonctionnalité dashboard |
-| 3 | ~~Palette de couleurs souhaitée pour les graphiques~~ — définie dans `Client.Shared/Docs/CLAUDE.md` section 6 | — |
+| 3 | ~~Palette de couleurs souhaitée pour les graphiques~~ — définie dans `src/Frontend/Client.Shared/Docs/CLAUDE.md` section 6 | — |
 | 4 | ~~Heure d'exécution quotidienne de l'Apps Script~~ — 06h00 (après clôture des marchés européens) | — |
 | 5 | ~~Sous-domaine ou racine du domaine custom ?~~ — résolu : `invest.zapto.fr` (sous-domaine, Ionos) | — |
 
@@ -443,9 +434,9 @@ jobs:
 Les composants sont à développer dans cet ordre :
 
 1. **Google Sheets** — ✅ Structure définie (section 6)
-2. **Google Apps Script** — ✅ ETL quotidien + rapport hebdomadaire implémentés (`Scripts/`) — plus d'API REST, voir point 3
-3. **Azure Functions** — ✅ Endpoints REST implémentés (`Api/`) — lecture directe du Sheet via l'API Google Sheets (`GoogleSheets/`)
-4. **Blazor WASM** — ✅ Dashboard implémenté (`Client/`)
+2. **Google Apps Script** — ✅ ETL quotidien + rapport hebdomadaire implémentés (`src/Backend/Scripts/`) — plus d'API REST, voir point 3
+3. **Azure Functions** — ✅ Endpoints REST implémentés (`src/Backend/Api/`) — lecture directe du Sheet via l'API Google Sheets (`src/Backend/GoogleSheets/`)
+4. **Blazor WASM** — ✅ Dashboard implémenté (`src/Frontend/Client/`)
 5. **CI/CD** — ✅ Pipeline opérationnel
 6. **Domaine custom** — ✅ Fait : `invest.zapto.fr` (CNAME chez Ionos, validé dans Azure Portal)
 
@@ -455,7 +446,7 @@ Les composants sont à développer dans cet ordre :
 
 ### 11.1 Exécution et tests
 
-Les fichiers `.gs` s'exécutent exclusivement dans l'**éditeur Google Apps Script** (script.google.com). Il n'y a pas de commande de build ou de test locale. Hormis le Web App de synchro manuelle (`SyncWebApp.gs`, voir §5.2.5), ces scripts ne sont jamais appelés depuis l'extérieur : l'Api lit le Sheet directement via l'API Google Sheets (voir `Api/Docs/CLAUDE.md`).
+Les fichiers `.gs` s'exécutent exclusivement dans l'**éditeur Google Apps Script** (script.google.com). Il n'y a pas de commande de build ou de test locale. Hormis le Web App de synchro manuelle (`SyncWebApp.gs`, voir §5.2.5), ces scripts ne sont jamais appelés depuis l'extérieur : l'Api lit le Sheet directement via l'API Google Sheets (voir `src/Backend/Api/Docs/CLAUDE.md`).
 
 - **Exécuter une fonction** : sélectionner la fonction dans le menu déroulant, cliquer Run.
 - **Exécuter un test** : sélectionner une fonction `test*` dans `Test.gs`, cliquer Run — résultats dans les Logs (`Ctrl+Entrée`).
@@ -503,8 +494,8 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.1 Api / Azure Functions
 
 - Framework : **xUnit** + **Moq**
-- Projet : `Api.Tests/`
-- Commande : `dotnet test "Api.Tests/InvestissementsDashboard.Api.Tests.csproj"`
+- Projet : `tests/Api.Tests/`
+- Commande : `dotnet test "tests/Api.Tests/InvestissementsDashboard.Api.Tests.csproj"`
 - Pattern de nommage : `[MethodName]_[Scenario]_[ExpectedResult]`
 - Chaque nouveau service ou endpoint → tests unitaires (`AssetsService`, `SnapshotService`, `SyncService`, `McpService`, etc.)
 - Seule suite exécutée par le CI
@@ -512,8 +503,8 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.2 Client.Shared / Blazor (WASM + MAUI)
 
 - Framework : **bunit** + **Moq**
-- Projet : `Client.Tests/` (référence `Client.Shared` ; inclus dans `Investissements.slnx` mais **non exécuté par le CI** — lancer avant toute PR touchant `Client.Shared`)
-- Commande : `dotnet test "Client.Tests/InvestissementsDashboard.Client.Tests.csproj"`
+- Projet : `tests/Client.Tests/` (référence `Client.Shared` ; inclus dans `Investissements.slnx` mais **non exécuté par le CI** — lancer avant toute PR touchant `Client.Shared`)
+- Commande : `dotnet test "tests/Client.Tests/InvestissementsDashboard.Client.Tests.csproj"`
 - `DashboardViewModel` → tests dans `ViewModels/DashboardViewModelTests.cs`
 - Composants Razor → tests dans `Components/`
 - Helpers de test centralisés dans `Helpers/TestData.cs`
@@ -521,8 +512,8 @@ Cette règle s'applique sans exception, quelle que soit la taille de la modifica
 ### 12.2bis Maui
 
 - Framework : **xUnit** + **Moq**
-- Projet : `Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` et `PortfolioReviewRunner` (fabrique et agent mockés ; le second exécute le workflow `PortfolioReview` en processus ; son builder `PortfolioReviewWorkflowBuilder` et les executors du workflow — barrière fan-in de `SynthesisExecutor` comprise — ont leurs propres tests), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News), `AgentFactory` et `AgentFactoryBuilder` (aiguillage, branchement des agents), une classe de test pour les définitions d'agents, `ModelCallLoggingChatClient`, `InvestZaptoMcpToolSource` et le contenu des instructions embarquées (règle « tour unique », `get_watchlist`, absence de plafonds)
-- Commande : `dotnet test "Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (Windows)
+- Projet : `tests/Maui.Tests/` (`net10.0-windows`, dans `Investissements.Maui.slnx` uniquement ; **lie** `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` au lieu de référencer le projet MAUI, et référence `AgentAI.Core`) — couvre aussi les agents : `AgentRunner` et `PortfolioReviewRunner` (fabrique et agent mockés ; le second exécute le workflow `PortfolioReview` en processus ; son builder `PortfolioReviewWorkflowBuilder` et les executors du workflow — barrière fan-in de `SynthesisExecutor` comprise — ont leurs propres tests), `NewsService` et ses sources (`GoogleNewsFeedSource`, `YahooFinanceFeedSource`, `YahooTickerResolver`, parseur RSS et filtre de titres Google News), `AgentFactory` et `AgentFactoryBuilder` (aiguillage, branchement des agents), une classe de test pour les définitions d'agents, `ModelCallLoggingChatClient`, `InvestZaptoMcpToolSource` et le contenu des instructions embarquées (règle « tour unique », `get_watchlist`, absence de plafonds)
+- Commande : `dotnet test "tests/Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (Windows)
 
 ### 12.3 Scripts / Apps Script
 
@@ -542,7 +533,7 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ## 14. Agents IA et application MAUI Windows (décisions — première version livrée)
 
-> **État d'avancement (2026-11-02)** : les étapes 1, 3, 4, 5 et 6 du §14.4 sont faites. La bibliothèque `AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `Client.Shared/` est extraite, `Client/` est un hôte WASM mince et `Maui/` reprend le dashboard (voir `Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par l'Api (`GET /api/agents/config`, App Settings `AGENT_FOUNDRY_ENDPOINT`/`AGENT_FOUNDRY_MODEL` — la page Paramètres a été supprimée) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IPortfolioReviewRunner` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. L'agent **Allocation** lit les positions et la watchlist via le MCP et répond en JSON pour le workflow d'analyse (son entrée du menu « ⋮ » a été retirée) ; il s'authentifie avec le mot de passe du dashboard (aucune clé saisie dans l'application). Le lien **Analyse** lance le workflow `PortfolioReview` : Allocation, Contexte (recherche web) et répartitions en parallèle, puis agent **Synthèse**, qui produit un rapport structuré à partir de ces entrées et du profil de l'investisseur (`InvestorProfile.md`), affiché dans la page après un clic sur **Lancer l'analyse**. **Reste à faire** : juger une analyse complète contre le vrai modèle (la première, le 2026-11-03, a abouti en 76 s avec des schémas JSON acceptés, mais toutes ses recherches web avaient échoué : les deux suivantes ont abouti en 133 s et 111 s ; la qualité du rapport reste à évaluer et `get_watchlist` à confirmer) ; valider l'identité Azure (`az login`) avec un MSIX packagé ; vérifier visuellement le rendu de MudBlazor/ApexCharts dans le `BlazorWebView`.
+> **État d'avancement (2026-11-02)** : les étapes 1, 3, 4, 5 et 6 du §14.4 sont faites. La bibliothèque `src/Agents/AgentAI.Core/` (extraite de la console `AgentAI`) est dans cette solution (`Investissements.Maui.slnx`, voir `src/Agents/AgentAI.Core/Docs/CLAUDE.md`) ; la bibliothèque Razor partagée `src/Frontend/Client.Shared/` est extraite, `src/Frontend/Client/` est un hôte WASM mince et `src/Frontend/Maui/` reprend le dashboard (voir `src/Frontend/Maui/Docs/CLAUDE.md`, désormais packagé en MSIX signé). Les agents **Stock** et **Actualités** sont lançables depuis les lignes `Stock` du tableau des actifs (`AgentRunner`, dialogues `AgentPickerDialog`/`AgentResultDialog`) et configurés par l'Api (`GET /api/agents/config`, App Settings `AGENT_FOUNDRY_ENDPOINT`/`AGENT_FOUNDRY_MODEL` — la page Paramètres a été supprimée) ; ils répondent en un seul tour (règle « tour unique » dans leurs instructions). Seams : `IKeyValueStore`, `IAgentRunner`, `IPortfolioReviewRunner` (non enregistrés côté WASM) et `AddInvestissementsClient(apiBaseUri)`. Deux solutions : `Investissements.slnx` (CI, sans MAUI) et `Investissements.Maui.slnx`. L'agent **Allocation** lit les positions et la watchlist via le MCP et répond en JSON pour le workflow d'analyse (son entrée du menu « ⋮ » a été retirée) ; il s'authentifie avec le mot de passe du dashboard (aucune clé saisie dans l'application). Le lien **Analyse** lance le workflow `PortfolioReview` : Allocation, Contexte (recherche web) et répartitions en parallèle, puis agent **Synthèse**, qui produit un rapport structuré à partir de ces entrées et du profil de l'investisseur (`InvestorProfile.md`), affiché dans la page après un clic sur **Lancer l'analyse**. **Reste à faire** : juger une analyse complète contre le vrai modèle (la première, le 2026-11-03, a abouti en 76 s avec des schémas JSON acceptés, mais toutes ses recherches web avaient échoué : les deux suivantes ont abouti en 133 s et 111 s ; la qualité du rapport reste à évaluer et `get_watchlist` à confirmer) ; valider l'identité Azure (`az login`) avec un MSIX packagé ; vérifier visuellement le rendu de MudBlazor/ApexCharts dans le `BlazorWebView`.
 
 > La console de développement `C:\Users\mbillet.NOVACATH\source\AgentAI` (net10.0, Microsoft Agent Framework + Azure AI Foundry) est conservée hors de ce dépôt ; son `CLAUDE.md` détaille les agents (Chat, Weather, Stock, Portfolio, News). **Elle garde sa propre copie de `AgentAI.Core`** : les modifications faites ici (instructions, `AgentFactory`) ne s'y répercutent pas automatiquement. Constats sur la doc Microsoft consultés le 2026-10-01.
 
@@ -560,8 +551,8 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ### 14.2 Architecture retenue
 
-- **Bibliothèque `AgentAI.Core`** (extraite de `AgentAI`, net10.0), organisée par agent (`Agents/<Agent>/`), avec `Runtime/` et `Integrations/` pour le partagé et un namespace par dossier : voir `AgentAI.Core/Docs/CLAUDE.md`. La console `AgentAI` est conservée comme outil de développement.
-- **Bibliothèque Razor partagée** extraite de `Client/` (composants, ViewModels) pour réutiliser le dashboard dans MAUI via `BlazorWebView` (Blazor Hybrid) ; le projet WASM devient un hôte mince. Compatibilité de MudBlazor et d'ApexCharts dans un `BlazorWebView` : **non vérifiée visuellement**.
+- **Bibliothèque `AgentAI.Core`** (extraite de `AgentAI`, net10.0), organisée par agent (`Agents/<Agent>/`), avec `Runtime/` et `Integrations/` pour le partagé et un namespace par dossier : voir `src/Agents/AgentAI.Core/Docs/CLAUDE.md`. La console `AgentAI` est conservée comme outil de développement.
+- **Bibliothèque Razor partagée** extraite de `src/Frontend/Client/` (composants, ViewModels) pour réutiliser le dashboard dans MAUI via `BlazorWebView` (Blazor Hybrid) ; le projet WASM devient un hôte mince. Compatibilité de MudBlazor et d'ApexCharts dans un `BlazorWebView` : **non vérifiée visuellement**.
 - **Projet MAUI Windows** : `BlazorWebView`, agents lancés depuis les lignes `Stock`, page Analyse pour le workflow.
 - **Allocation** : l'agent appelle le MCP existant (`POST /api/mcp`, avec le mot de passe du dashboard ; `MCP_API_KEY` reste pour les clients externes) via le `HttpClient` injecté. `ForceContentLengthHandler` est à conserver : le proxy SWA répond « 500 Backend call failure » à tout POST en chunked, avant d'atteindre l'Api (vérifié le 2026-11-03 sur `/api/websearch` : même requête sans mot de passe, 401 avec `Content-Length`, 500 en chunked). `PostAsJsonAsync` envoie en chunked : tout POST de l'application MAUI vers l'Api doit annoncer sa taille (`ApiWebSearchService` bufferise son corps).
 
@@ -576,17 +567,17 @@ Après avoir appliqué des modifications, s'arrêter et attendre. Ne commiter qu
 
 ### 14.4 Plan par étapes (une validation avant chaque suivante)
 
-1. ✅ Fait — bibliothèque `AgentAI.Core/` extraite de la console `AgentAI` et ajoutée à `Investissements.Maui.slnx` (tests dans `Maui.Tests/`, §12.2bis).
+1. ✅ Fait — bibliothèque `src/Agents/AgentAI.Core/` extraite de la console `AgentAI` et ajoutée à `Investissements.Maui.slnx` (tests dans `tests/Maui.Tests/`, §12.2bis).
 2. ✅ Remplacé — pas de spike séparé sans Blazor : l'identité Azure (`az login`), les chemins de fichiers et les durées ont été validés directement dans l'application MAUI **non packagée** avec les agents Stock et Actualités. Reste à valider avec un MSIX packagé (§14.5).
-3. ✅ Fait — bibliothèque Razor partagée `Client.Shared/` extraite de `Client/` (étape la plus risquée : elle a touché le site en production).
-4. ✅ Fait — projet `Maui/` : `BlazorWebView`, injection de dépendances, page Paramètres des agents, packaging MSIX.
+3. ✅ Fait — bibliothèque Razor partagée `src/Frontend/Client.Shared/` extraite de `src/Frontend/Client/` (étape la plus risquée : elle a touché le site en production).
+4. ✅ Fait — projet `src/Frontend/Maui/` : `BlazorWebView`, injection de dépendances, page Paramètres des agents, packaging MSIX.
 5. ✅ Fait — lancement des agents depuis l'interface : choix de l'agent (`AgentPickerDialog`), réponse en un tour (`AgentResultDialog`), `AgentRunner`. Seuls Stock et Actualités sont exposés.
 6. ✅ Fait — agent `Allocation` branché sur le MCP (authentifié par le mot de passe du dashboard ; à l'origine par une clé `MCP_API_KEY` saisie dans une page Paramètres, supprimée depuis). L'ancien agent `Portfolio` a été supprimé de la bibliothèque.
 
 ### 14.5 Pièges à ne pas oublier
 
 - **CI :** `Investissements.slnx` est restauré sur le runner **Ubuntu** : ne jamais y ajouter un projet MAUI Windows (la restauration casserait). Les projets MAUI et leurs tests vivent dans `Investissements.Maui.slnx`, et le workflow cible explicitement `Investissements.slnx` (deux `.slnx` à la racine rendraient un `restore` sans argument ambigu). `AgentAI.Core` reste dans la solution MAUI : le CI ne le construit donc pas et ne le teste pas. Lancer `Maui.Tests` en local avant toute PR.
-- **Incohérence de version .NET :** l'ancienne note du pipeline (§8.4) disait « Api net8.0 » (build Oryx des managed functions), mais `Api/InvestissementsDashboard.Api.csproj` cible actuellement **net9.0**. La liste officielle des runtimes des fonctions managées s'arrête à .NET 8 (peut être obsolète). Vérifier que le déploiement actuel est cohérent avant d'y toucher.
+- **Incohérence de version .NET :** l'ancienne note du pipeline (§8.4) disait « Api net8.0 » (build Oryx des managed functions), mais `src/Backend/Api/InvestissementsDashboard.Api.csproj` cible actuellement **net9.0**. La liste officielle des runtimes des fonctions managées s'arrête à .NET 8 (peut être obsolète). Vérifier que le déploiement actuel est cohérent avant d'y toucher.
 - **PR empilées :** ne pousser sur une PR qu'après avoir vérifié qu'elle est encore ouverte, et ne fusionner une PR empilée qu'une fois reciblée sur `main`. Un commit a déjà manqué `main` ainsi, d'où un 404 en production sur `/api/agents/config`.
 - **Ordre de déploiement :** ce que MAUI attend de l'Api doit être fusionné et déployé avant d'utiliser la nouvelle version de MAUI.
 - **Tests (§12) :** la bibliothèque `AgentAI.Core` et le projet MAUI sont soumis à la règle (xUnit + Moq ; bunit pour les composants). La décision « pas de projet de test » prise pour la console `AgentAI` ne s'applique pas ici.
