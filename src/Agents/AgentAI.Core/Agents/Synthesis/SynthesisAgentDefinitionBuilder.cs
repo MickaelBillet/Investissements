@@ -16,7 +16,7 @@ internal sealed class SynthesisAgentDefinitionBuilder : IAgentDefinitionBuilder
             Instructions: $"{InstructionLoader.Load("Synthesis.md")}\n\n{InstructionLoader.Load("InvestorProfile.md")}",
             Tools: null,                                       // its inputs arrive in the message and the instructions
             HistoryFileName: "chat-history-synthesis.json",
-            ReasoningEffort: ResponseReasoningEffortLevel.Low,  // to be tuned once durations are measured
+            ReasoningEffort: ResponseReasoningEffortLevel.Medium,  // to be tuned once durations are measured
             KeepHistory: false));                              // machine-read JSON answer
     }
 }

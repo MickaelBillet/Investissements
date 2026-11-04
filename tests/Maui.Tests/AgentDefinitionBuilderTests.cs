@@ -106,7 +106,7 @@ public class AgentDefinitionBuilderTests
     }
 
     [Fact]
-    public async Task SynthesisBuildAsync_Always_LoadsInstructionsWithoutToolsWithLowEffortAndNoHistory()
+    public async Task SynthesisBuildAsync_Always_LoadsInstructionsWithoutToolsWithMediumEffortAndNoHistory()
     {
         var definition = await new SynthesisAgentDefinitionBuilder().BuildAsync(null, null);
 
@@ -114,7 +114,7 @@ public class AgentDefinitionBuilderTests
         Assert.EndsWith(InstructionLoader.Load("InvestorProfile.md"), definition.Instructions);
         Assert.Null(definition.Tools);
         Assert.Null(definition.AIContextProviders);
-        Assert.Equal(ResponseReasoningEffortLevel.Low, definition.ReasoningEffort);
+        Assert.Equal(ResponseReasoningEffortLevel.Medium, definition.ReasoningEffort);
         Assert.False(definition.KeepHistory);
         Assert.Equal("chat-history-synthesis.json", definition.HistoryFileName);
     }
