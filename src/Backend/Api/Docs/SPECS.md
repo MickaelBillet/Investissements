@@ -8,7 +8,7 @@
 
 ## 1. Vue d'ensemble
 
-L'Api expose 17 routes HTTP : 12 endpoints REST de lecture, `GET /api/agents/config` (configuration des agents MAUI), `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle), `POST /api/websearch` (recherche web pour les agents de l'application MAUI) et 1 endpoint MCP. Toutes, sauf `mcp`, exigent le header `x-dashboard-password` (voir `src/Backend/Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `src/Backend/GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints sont joignables par le proxy d'Azure Static Web Apps : les endpoints REST sont consommés par le dashboard (site et application MAUI), l'endpoint MCP par les assistants IA (Claude Code, Claude Desktop, Claude Web) et les agents MAUI.
+L'Api expose 18 routes HTTP : 13 endpoints REST de lecture, `GET /api/agents/config` (configuration des agents MAUI), `GET /api/auth/verify` (test du mot de passe), `POST /api/sync` (synchronisation manuelle), `POST /api/websearch` (recherche web pour les agents de l'application MAUI) et 1 endpoint MCP. Toutes, sauf `mcp`, exigent le header `x-dashboard-password` (voir `src/Backend/Api/Docs/CLAUDE.md` §6) et répondent `401` sinon. Les endpoints REST lisent le Google Sheet directement via `IGoogleSheetsClient` (projet `src/Backend/GoogleSheets/`) — `AssetsService` et `SnapshotService` lisent les onglets `Asset`/`Snapshot`/`AssetType` puis mappent via `SheetMappers` (sauf `PortfolioMetricsFunction` et `BondScheduleFunction` qui composent/agrègent depuis ces mêmes services). Les endpoints sont joignables par le proxy d'Azure Static Web Apps : les endpoints REST sont consommés par le dashboard (site et application MAUI), l'endpoint MCP par les assistants IA (Claude Code, Claude Desktop, Claude Web) et les agents MAUI.
 
 `AssetsService.GetAllAsync` et `SnapshotService.GetLastAsync` sont mis en cache (single-flight, TTL 30s) — voir `src/Backend/Api/Docs/CLAUDE.md` §8.
 
@@ -485,6 +485,14 @@ Chaque champ vaut `null` quand l'App Setting correspondante (`AGENT_FOUNDRY_ENDP
 
 ---
 
+### 2.16 `GET /api/watchlist`
+
+Valeurs suivies sans être détenues (onglet `Watchlist`, cache de 5 min), lues par l'étape d'allocation du workflow d'analyse de l'application MAUI. Protégée par le mot de passe du dashboard.
+
+**Réponse :** `WatchlistItemDto[]` — `[{ "name": "...", "isin": "..." }]`. `500` sur exception inattendue.
+
+---
+
 ## 3. Codes de réponse
 
 | Code | Cas |
@@ -515,6 +523,7 @@ Les DTOs sont définis dans le projet `Shared` et partagés avec le Blazor WASM.
 | `AssetTypeReferenceDto` | `src/Common/Shared/Models/AssetTypeReferenceDto.cs` | id?, name, labelFr?, geoSectorEligible |
 | `SyncResultDto` | `src/Common/Shared/Models/SyncResultDto.cs` | success, addedCount, errorMessage? |
 | `AgentConfigDto` | `src/Common/Shared/Models/AgentConfigDto.cs` | foundryEndpoint?, model? |
+| `WatchlistItemDto` | `src/Common/Shared/Models/WatchlistItemDto.cs` | name, isin |
 | `WebSearchRequestDto` | `src/Common/Shared/Models/WebSearchDto.cs` | query, topic (`WebSearchTopic`), timeRange (`WebSearchTimeRange`) — enums sérialisés en noms |
 | `WebSearchResultDto` | `src/Common/Shared/Models/WebSearchDto.cs` | title, url, content, publishedDate? |
 | `AggregateDto` | `src/Common/Shared/Models/AggregateDto.cs` | agrégat par groupe (name, totalPurchases?, totalSales?, dividends?, currentTotal, hasIncompleteData, unrealizedGain?, yield?, roi?, weightInGroup, weightInPortfolio) |

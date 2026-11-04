@@ -31,6 +31,7 @@ src/Backend/Api/
 ├── local.settings.json         # Variables locales (gitignorées)
 ├── Functions/                  # Un fichier par endpoint
 │   ├── AgentConfigFunction.cs     # GET /api/agents/config — configuration des agents MAUI (endpoint Foundry, modèle)
+│   ├── WatchlistFunction.cs       # GET /api/watchlist — valeurs suivies, lues par le workflow d'analyse MAUI
 │   ├── AssetsFunction.cs
 │   ├── AuthFunction.cs            # GET /api/auth/verify — teste le mot de passe du dashboard
 │   ├── BondScheduleFunction.cs
@@ -174,6 +175,7 @@ Ne jamais lire ces valeurs autrement que via `IConfiguration` injecté.
 | GET | `/api/auth/verify` | Teste le mot de passe du dashboard — `AuthFunction` |
 | POST | `/api/sync` | Déclenche `snapshotQuotidien()` via le Web App Apps Script protégé — `SyncFunction` / `SyncService` |
 | GET | `/api/agents/config` | Configuration des agents de l'application MAUI (`AgentConfigDto` : endpoint Foundry, modèle) — `AgentConfigFunction` / `AgentConfigService` |
+| GET | `/api/watchlist` | Valeurs suivies, non détenues (`WatchlistItemDto[]`), lues par le workflow d'analyse MAUI — `WatchlistFunction` |
 | POST | `/api/websearch` | Recherche web pour les agents de l'application MAUI (API Tavily) — `WebSearchFunction` / `WebSearchService` |
 
 Dimensions valides pour `/api/assets/distribution/{dimension}` : `assetClass`, `assetType`, `support`, `supportType`.
@@ -263,8 +265,8 @@ Sert l'outil `SearchWeb` de l'agent Contexte (application MAUI, voir `src/Agents
 
 ## 11. Tests (`tests/Api.Tests/`)
 
-xUnit + Moq, 185 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
-- `Functions/` — `AgentConfigFunction`, `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`, `WebSearchFunction`
+xUnit + Moq, 187 tests, nommage `[Méthode]_[Scénario]_[RésultatAttendu]` :
+- `Functions/` — `AgentConfigFunction`, `AssetsFunction`, `AuthFunction`, `McpFunction`, `SectorFunction`, `WatchlistFunction`, `WebSearchFunction`
 - `Mcp/` — `McpHandlerTests`
 - `Middleware/` — `DashboardAuthMiddleware`
 - `Services/` — `AgentConfigService`, `AssetsService`, `BondScheduleService`, `GeographyService`, `PortfolioMetricsService`, `SectorService`, `SnapshotService`, `SyncService`, `WatchlistService`, `WebSearchService`

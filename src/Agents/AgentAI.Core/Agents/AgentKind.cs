@@ -12,7 +12,6 @@ public enum AgentKind
     Weather,
     Stock,
     News,
-    Allocation,
     Context,
     Synthesis
 }

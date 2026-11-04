@@ -34,6 +34,7 @@
     <Compile Include="..\..\src\Frontend\Maui\Services\AgentOptionsProvider.cs" Link="Linked\AgentOptionsProvider.cs" />
     <Compile Include="..\..\src\Frontend\Maui\Services\AgentRunner.cs" Link="Linked\AgentRunner.cs" />
     <Compile Include="..\..\src\Frontend\Maui\Services\PortfolioReviewRunner.cs" Link="Linked\PortfolioReviewRunner.cs" />
+    <Compile Include="..\..\src\Frontend\Maui\Services\AllocationSource.cs" Link="Linked\AllocationSource.cs" />
     <Compile Include="..\..\src\Frontend\Maui\Services\AssetDistributionSource.cs" Link="Linked\AssetDistributionSource.cs" />
     <Compile Include="..\..\src\Frontend\Maui\Services\ApiWebSearchService.cs" Link="Linked\ApiWebSearchService.cs" />
     <Compile Include="..\..\src\Frontend\Maui\Services\FileLoggerProvider.cs" Link="Linked\FileLoggerProvider.cs" />

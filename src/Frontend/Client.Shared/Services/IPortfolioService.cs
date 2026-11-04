@@ -13,4 +13,5 @@ public interface IPortfolioService
     Task<PortfolioMetricsDto?>       GetMetricsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<BondScheduleDto>>     GetBondScheduleAsync(CancellationToken ct = default);
     Task<IReadOnlyList<AssetTypeReferenceDto>> GetAssetTypeReferenceAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<WatchlistItemDto>>      GetWatchlistAsync(CancellationToken ct = default);
 }

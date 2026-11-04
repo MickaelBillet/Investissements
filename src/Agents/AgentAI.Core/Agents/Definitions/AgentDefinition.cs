@@ -17,7 +17,7 @@ namespace AgentAI.Core.Agents.Definitions;
 /// <param name="AIContextProviders">Context providers run before each invocation, or <see langword="null"/> if none.</param>
 /// <param name="ReasoningEffort">
 /// Reasoning effort requested from the model, or <see langword="null"/> for the deployment's default. Lowered for
-/// reports that only restate tool data: at the default effort the Allocation report spent ~14,000 reasoning tokens
+/// reports that only restate tool data: at the default effort such a report spent ~14,000 reasoning tokens
 /// (158 s), past the 100 s network timeout of the Foundry client, which then retried the call.
 /// </param>
 /// <param name="KeepHistory">
