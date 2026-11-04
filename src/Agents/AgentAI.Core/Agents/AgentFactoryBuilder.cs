@@ -1,4 +1,3 @@
-using AgentAI.Core.Agents.Allocation;
 using AgentAI.Core.Agents.Chat;
 using AgentAI.Core.Agents.Context;
 using AgentAI.Core.Agents.Definitions;
@@ -42,7 +41,6 @@ public sealed class AgentFactoryBuilder(
             new ChatAgentDefinitionBuilder(),
             new WeatherAgentDefinitionBuilder(weatherService),
             new StockAgentDefinitionBuilder(timeProvider),
-            new AllocationAgentDefinitionBuilder(mcpTools, timeProvider),
             new NewsAgentDefinitionBuilder(newsService, timeProvider),
             new ContextAgentDefinitionBuilder(webSearchService),
             new SynthesisAgentDefinitionBuilder(),

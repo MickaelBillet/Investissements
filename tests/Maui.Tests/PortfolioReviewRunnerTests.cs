@@ -23,6 +23,7 @@ public class PortfolioReviewRunnerTests
     private readonly Mock<IAgentConfigSource> _config = new();
     private readonly Mock<IAgentFactory> _factory = new();
     private readonly Mock<IPortfolioReviewWorkflowBuilder> _builder = new();
+    private readonly Mock<IAllocationSource> _allocationSource = new();
     private readonly Mock<IAssetDistributionSource> _distributionSource = new();
 
     public PortfolioReviewRunnerTests()
@@ -33,6 +34,7 @@ public class PortfolioReviewRunnerTests
     private PortfolioReviewRunner CreateRunner(TimeSpan? timeout = null) => new(
         new AgentOptionsProvider(_config.Object, new Uri("https://invest.test/"), @"C:\history"),
         _ => _factory.Object,
+        () => _allocationSource.Object,
         () => _distributionSource.Object,
         _builder.Object,
         NullLogger<PortfolioReviewRunner>.Instance,
@@ -42,7 +44,7 @@ public class PortfolioReviewRunnerTests
     {
         var step = new TestStep(handle);
         _builder
-            .Setup(b => b.BuildAsync(It.IsAny<IAgentFactory>(), It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.BuildAsync(It.IsAny<IAgentFactory>(), It.IsAny<IAllocationSource>(), It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => new WorkflowBuilder(step).WithOutputFrom(step).Build());
     }
 
@@ -88,7 +90,17 @@ public class PortfolioReviewRunnerTests
 
         await CreateRunner().RunAsync(Date);
 
-        _builder.Verify(b => b.BuildAsync(_factory.Object, It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()), Times.Once);
+        _builder.Verify(b => b.BuildAsync(_factory.Object, It.IsAny<IAllocationSource>(), It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunAsync_Always_PassesTheRunAllocationSourceToTheBuilder()
+    {
+        SetupStep((_, _) => ValueTask.FromResult(EmptyReport()));
+
+        await CreateRunner().RunAsync(Date);
+
+        _builder.Verify(b => b.BuildAsync(It.IsAny<IAgentFactory>(), _allocationSource.Object, It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -98,7 +110,7 @@ public class PortfolioReviewRunnerTests
 
         await CreateRunner().RunAsync(Date);
 
-        _builder.Verify(b => b.BuildAsync(It.IsAny<IAgentFactory>(), _distributionSource.Object, It.IsAny<CancellationToken>()), Times.Once);
+        _builder.Verify(b => b.BuildAsync(It.IsAny<IAgentFactory>(), It.IsAny<IAllocationSource>(), _distributionSource.Object, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -116,7 +128,7 @@ public class PortfolioReviewRunnerTests
     public async Task RunAsync_McpUnauthorized_ThrowsPasswordHint()
     {
         _builder
-            .Setup(b => b.BuildAsync(It.IsAny<IAgentFactory>(), It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.BuildAsync(It.IsAny<IAgentFactory>(), It.IsAny<IAllocationSource>(), It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("401", null, HttpStatusCode.Unauthorized));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(Date));

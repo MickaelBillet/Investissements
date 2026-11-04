@@ -24,7 +24,7 @@ public class ModelCallLoggingChatClientTests
             .Setup(c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
             .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => forwarded = m)
             .ReturnsAsync(response);
-        var client = new ModelCallLoggingChatClient(_inner.Object, AgentKind.Allocation, _logger);
+        var client = new ModelCallLoggingChatClient(_inner.Object, AgentKind.Context, _logger);
 
         var result = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "a"), new ChatMessage(ChatRole.User, "b")]);
 
@@ -32,7 +32,7 @@ public class ModelCallLoggingChatClientTests
         Assert.Equal(2, forwarded!.Count());
         Assert.Collection(
             _logger.Entries,
-            e => Assert.Equal((LogLevel.Information, "Agent Allocation: model call with 2 messages"), (e.Level, e.Message)),
+            e => Assert.Equal((LogLevel.Information, "Agent Context: model call with 2 messages"), (e.Level, e.Message)),
             e =>
             {
                 Assert.Equal(LogLevel.Information, e.Level);

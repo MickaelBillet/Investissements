@@ -1,4 +1,3 @@
-using AgentAI.Core.Agents.Allocation;
 using AgentAI.Core.Agents.Chat;
 using AgentAI.Core.Agents.Context;
 using AgentAI.Core.Agents.Definitions;
@@ -6,7 +5,6 @@ using AgentAI.Core.Agents.News;
 using AgentAI.Core.Agents.Stock;
 using AgentAI.Core.Agents.Synthesis;
 using AgentAI.Core.Agents.Weather;
-using AgentAI.Core.Integrations.Mcp;
 using AgentAI.Core.Integrations.News;
 using AgentAI.Core.Integrations.WebSearch;
 using Microsoft.Extensions.AI;
@@ -119,15 +117,6 @@ public class AgentDefinitionBuilderTests
         Assert.Equal(ResponseReasoningEffortLevel.Low, definition.ReasoningEffort);
         Assert.False(definition.KeepHistory);
         Assert.Equal("chat-history-synthesis.json", definition.HistoryFileName);
-    }
-
-    [Fact]
-    public async Task AllocationBuildAsync_NoMcpUrl_ThrowsInvalidOperation()
-    {
-        var connector = new InvestZaptoMcpConnector(new HttpClient(), NullLoggerFactory.Instance);
-        await using var tools = new InvestZaptoMcpToolSource(connector, endpoint: null);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => new AllocationAgentDefinitionBuilder(tools, TimeProvider.System).BuildAsync(null, null));
     }
 
     [Theory]

@@ -48,15 +48,15 @@ public class AgentFactoryTests
     public async Task CreateAsync_Kind_RunsOnlyTheMatchingBuilder()
     {
         var chat = new FakeBuilder(AgentKind.Chat);
-        var allocation = new FakeBuilder(AgentKind.Allocation);
-        await using var factory = CreateFactory(chat, allocation);
+        var stock = new FakeBuilder(AgentKind.Stock);
+        await using var factory = CreateFactory(chat, stock);
 
         var (agent, history) = await factory.CreateAsync(AgentKind.Chat, "contexte", "isin");
 
         Assert.NotNull(agent);
         Assert.NotNull(history);
         Assert.Equal(("contexte", "isin"), Assert.Single(chat.Calls));
-        Assert.Empty(allocation.Calls);
+        Assert.Empty(stock.Calls);
     }
 
     [Fact]
@@ -77,7 +77,6 @@ public class AgentFactoryTests
     [InlineData(AgentKind.Chat)]
     [InlineData(AgentKind.Weather)]
     [InlineData(AgentKind.Stock)]
-    [InlineData(AgentKind.Allocation)]
     [InlineData(AgentKind.News)]
     [InlineData(AgentKind.Context)]
     [InlineData(AgentKind.Synthesis)]
@@ -85,19 +84,10 @@ public class AgentFactoryTests
     {
         await using var factory = CreateBuilder().Build(Options());
 
-        // Any outcome but "unknown kind" proves a builder is wired: Allocation fails on the missing MCP URL,
-        // Weather, Stock and News on the missing input.
+        // Any outcome but "unknown kind" proves a builder is wired: Weather, Stock and News fail on the missing input.
         var ex = await Record.ExceptionAsync(() => factory.CreateAsync(kind));
 
         Assert.IsNotType<ArgumentOutOfRangeException>(ex);
-    }
-
-    [Fact]
-    public async Task Build_AllocationWithoutMcpUrl_ThrowsInvalidOperation()
-    {
-        await using var factory = CreateBuilder().Build(Options());
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => factory.CreateAsync(AgentKind.Allocation));
     }
 
     [Fact]

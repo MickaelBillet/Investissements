@@ -15,17 +15,6 @@ namespace InvestissementsDashboard.Maui.Tests;
 
 public class PortfolioReviewWorkflowBuilderTests
 {
-    private const string AllocationJson = """
-        {
-          "date": "2026-10-19",
-          "totalValue": 1500.0,
-          "lines": [
-            { "name": "MSCI World", "isin": "IE00B4L5Y983", "assetClass": "Stocks", "sector": "Diversified", "region": "World", "value": 1500.0, "weight": 100.0, "unrealizedGain": 200.0, "roi": 25.0 }
-          ],
-          "watchlist": []
-        }
-        """;
-
     private const string ContextJson = """
         {
           "date": "2026-10-19",
@@ -50,32 +39,36 @@ public class PortfolioReviewWorkflowBuilderTests
 
     private readonly Mock<IAgentFactory> _factory = new();
     private readonly Mock<IFileChatHistoryProvider> _history = new();
-    private readonly Mock<AIAgent> _agent = new();
     private readonly Mock<AIAgent> _contextAgent = new();
     private readonly Mock<AIAgent> _synthesisAgent = new();
+    private readonly Mock<IAllocationSource> _allocationSource = new();
     private readonly Mock<IAssetDistributionSource> _distributionSource = new();
     private readonly PortfolioReviewWorkflowBuilder _builder = new();
 
     public PortfolioReviewWorkflowBuilderTests()
     {
         _factory
-            .Setup(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((_agent.Object, _history.Object));
-        // Declared after the catch-all above, so it takes precedence for the Context agent.
-        _factory
             .Setup(f => f.CreateAsync(AgentKind.Context, It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync((_contextAgent.Object, _history.Object));
         _factory
             .Setup(f => f.CreateAsync(AgentKind.Synthesis, It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync((_synthesisAgent.Object, _history.Object));
-        foreach (var agent in new[] { _agent, _contextAgent, _synthesisAgent })
+        foreach (var agent in new[] { _contextAgent, _synthesisAgent })
         {
             agent
                 .Protected()
                 .Setup<ValueTask<AgentSession>>("CreateSessionCoreAsync", ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(new Mock<AgentSession>().Object);
         }
-        SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, AllocationJson))));
+        _allocationSource
+            .Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new AssetDto(1, "MSCI World", "Stocks", "PEA", "PEA TR", "ETF_Stocks", "Diversified", "", "World", 2, 100m, 0m, 0m, 1_500m, 50m, null, 5m, 100m)]);
+        _allocationSource
+            .Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SnapshotDto?)null);
+        _allocationSource
+            .Setup(s => s.GetWatchlistAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, ContextJson))), _contextAgent);
         SetupAgent(() => Task.FromResult(new AgentResponse(new ChatMessage(ChatRole.Assistant, SynthesisJson))), _synthesisAgent);
         _distributionSource
@@ -86,8 +79,8 @@ public class PortfolioReviewWorkflowBuilderTests
             .ReturnsAsync([new DistributionDto("Technology", 1_500m, 100m)]);
     }
 
-    private void SetupAgent(Func<Task<AgentResponse>> run, Mock<AIAgent>? agent = null) =>
-        (agent ?? _agent)
+    private void SetupAgent(Func<Task<AgentResponse>> run, Mock<AIAgent> agent) =>
+        agent
             .Protected()
             .Setup<Task<AgentResponse>>(
                 "RunCoreAsync",
@@ -100,7 +93,7 @@ public class PortfolioReviewWorkflowBuilderTests
     // Runs the built workflow to its end (or to its first failure) and returns every event it published.
     private async Task<List<WorkflowEvent>> RunAsync()
     {
-        var workflow = await _builder.BuildAsync(_factory.Object, _distributionSource.Object);
+        var workflow = await _builder.BuildAsync(_factory.Object, _allocationSource.Object, _distributionSource.Object);
         await using var run = await InProcessExecution.RunStreamingAsync(workflow, new AnalysisRequest(new DateOnly(2026, 10, 19)));
 
         var events = new List<WorkflowEvent>();
@@ -117,17 +110,9 @@ public class PortfolioReviewWorkflowBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_Always_CreatesTheAllocationAgent()
-    {
-        await _builder.BuildAsync(_factory.Object, _distributionSource.Object);
-
-        _factory.Verify(f => f.CreateAsync(AgentKind.Allocation, null, null), Times.Once);
-    }
-
-    [Fact]
     public async Task BuildAsync_Always_CreatesTheContextAgent()
     {
-        await _builder.BuildAsync(_factory.Object, _distributionSource.Object);
+        await _builder.BuildAsync(_factory.Object, _allocationSource.Object, _distributionSource.Object);
 
         _factory.Verify(f => f.CreateAsync(AgentKind.Context, null, null), Times.Once);
     }
@@ -135,7 +120,7 @@ public class PortfolioReviewWorkflowBuilderTests
     [Fact]
     public async Task BuildAsync_Always_CreatesTheSynthesisAgent()
     {
-        await _builder.BuildAsync(_factory.Object, _distributionSource.Object);
+        await _builder.BuildAsync(_factory.Object, _allocationSource.Object, _distributionSource.Object);
 
         _factory.Verify(f => f.CreateAsync(AgentKind.Synthesis, null, null), Times.Once);
     }
@@ -210,7 +195,9 @@ public class PortfolioReviewWorkflowBuilderTests
     [Fact]
     public async Task BuildAsync_AllocationFails_ProducesNoSynthesis()
     {
-        SetupAgent(() => throw new InvalidOperationException("model unavailable"));
+        _allocationSource
+            .Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Api unreachable"));
 
         var events = await RunAsync();
 
@@ -245,13 +232,27 @@ public class PortfolioReviewWorkflowBuilderTests
     [Fact]
     public async Task BuildAsync_NullFactory_Throws()
     {
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _builder.BuildAsync(null!, _distributionSource.Object));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _builder.BuildAsync(null!, _allocationSource.Object, _distributionSource.Object));
+    }
+
+    [Fact]
+    public async Task BuildAsync_NullAllocationSource_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _builder.BuildAsync(_factory.Object, null!, _distributionSource.Object));
+    }
+
+    [Fact]
+    public async Task BuildAsync_Always_NeverCreatesAnAgentForTheAllocation()
+    {
+        await RunAsync();
+
+        _factory.Verify(f => f.CreateAsync(It.IsAny<AgentKind>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Exactly(2));
     }
 
     [Fact]
     public async Task BuildAsync_NullDistributionSource_Throws()
     {
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _builder.BuildAsync(_factory.Object, null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _builder.BuildAsync(_factory.Object, _allocationSource.Object, null!));
     }
 
     [Fact]
@@ -264,6 +265,6 @@ public class PortfolioReviewWorkflowBuilderTests
             .Returns(never.Task);
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _builder.BuildAsync(_factory.Object, _distributionSource.Object, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _builder.BuildAsync(_factory.Object, _allocationSource.Object, _distributionSource.Object, cts.Token));
     }
 }

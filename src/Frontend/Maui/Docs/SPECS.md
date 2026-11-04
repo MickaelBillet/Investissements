@@ -28,7 +28,7 @@ Offrir sur le PC du propriétaire une application native affichant le **même da
 | 12 | Les agents répondent en un seul tour : pas de question finale, pas de conversation. Fermer la boîte de dialogue annule l'exécution |
 | 13 | Si l'endpoint Foundry n'est pas configuré dans l'Api, ou si l'agent échoue, un message d'erreur est affiché dans la boîte de dialogue (l'application démarre normalement sans configuration) |
 | 14 | Les agents s'exécutent dans le processus de l'application avec l'identité Azure du poste (`az login`) ; aucun secret Azure n'est embarqué. Leur usage consomme des tokens Azure AI Foundry facturés à l'usage |
-| 15 | *(retiré le 2026-11-02)* Entrée de menu **Allocation du portefeuille** : l'agent Allocation sert désormais le workflow d'analyse (n° 19) et répond en JSON |
+| 15 | *(retiré le 2026-11-02)* Entrée de menu **Allocation du portefeuille** : l'étape d'allocation sert désormais le workflow d'analyse (n° 19), sans modèle depuis le 2026-11-04 |
 | 16 | Le serveur MCP est appelé avec le mot de passe du dashboard déjà saisi à la connexion : aucune clé MCP n'est saisie ni stockée dans l'application. Si l'Api refuse le mot de passe, un message invite à se déconnecter puis à se reconnecter |
 | 17 | Un agent qui ne répond pas au bout de 3 minutes est interrompu avec un message nommant l'étape bloquée (création de l'agent ou réponse du modèle) |
 | 18 | L'application journalise son activité dans un fichier texte local (`logs/maui.log`, dossier de données de l'application, 1 Mo maximum) pour diagnostiquer un agent bloqué |

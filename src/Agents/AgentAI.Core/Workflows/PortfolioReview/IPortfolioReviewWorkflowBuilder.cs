@@ -14,7 +14,8 @@ namespace AgentAI.Core.Workflows.PortfolioReview;
 public interface IPortfolioReviewWorkflowBuilder
 {
     /// <param name="agentFactory">The factory of the current run; it must outlive the workflow's execution.</param>
+    /// <param name="allocationSource">Supplies the positions and the watchlist read by the allocation step.</param>
     /// <param name="distributionSource">Supplies the geographic and sector distributions read by the distribution step.</param>
     /// <param name="cancellationToken">Interrupts the agents' creation (MCP connection), which takes no token itself.</param>
-    Task<Workflow> BuildAsync(IAgentFactory agentFactory, IAssetDistributionSource distributionSource, CancellationToken cancellationToken = default);
+    Task<Workflow> BuildAsync(IAgentFactory agentFactory, IAllocationSource allocationSource, IAssetDistributionSource distributionSource, CancellationToken cancellationToken = default);
 }

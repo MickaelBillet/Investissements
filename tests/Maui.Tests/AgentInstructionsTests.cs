@@ -8,7 +8,6 @@ public class AgentInstructionsTests
     [Theory]
     [InlineData("News.md")]
     [InlineData("Stock.md")]
-    [InlineData("Allocation.md")]
     [InlineData("Context.md")]
     [InlineData("Synthesis.md")]
     public void Instructions_SingleTurnRule_IsPresent(string fileName)
@@ -40,16 +39,6 @@ public class AgentInstructionsTests
         using var reader = new StreamReader(stream);
 
         Assert.Contains("seule source autorisée pour une recommandation de type « Initier »", reader.ReadToEnd());
-    }
-
-    [Fact]
-    public void Instructions_Allocation_RequiresTheWatchlistTool()
-    {
-        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.Allocation.md");
-        Assert.NotNull(stream);
-        using var reader = new StreamReader(stream);
-
-        Assert.Contains("`get_watchlist`", reader.ReadToEnd());
     }
 
     // The scenarios are watched through these signals, while the Context agent must not know the scenarios themselves.

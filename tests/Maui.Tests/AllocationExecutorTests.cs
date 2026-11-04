@@ -1,89 +1,124 @@
+using AgentAI.Core.Workflows.PortfolioReview;
 using AgentAI.Core.Workflows.PortfolioReview.Events;
 using AgentAI.Core.Workflows.PortfolioReview.Executors;
 using AgentAI.Core.Workflows.PortfolioReview.Messages;
-using Microsoft.Agents.AI;
+using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI.Workflows;
-using Microsoft.Extensions.AI;
 using Moq;
-using Moq.Protected;
 using Xunit;
 
 namespace InvestissementsDashboard.Maui.Tests;
 
 public class AllocationExecutorTests
 {
-    private const string AllocationJson = """
-        {
-          "date": "2026-10-19",
-          "totalValue": 1500.0,
-          "lines": [
-            { "name": "MSCI World", "isin": "IE00B4L5Y983", "assetClass": "Stocks", "sector": "Diversified", "region": "World", "value": 1000.0, "weight": 66.67, "unrealizedGain": 200.0, "roi": 25.0 },
-            { "name": "Livret A", "isin": null, "assetClass": "Cash", "sector": "Not Defined", "region": "France", "value": 500.0, "weight": 33.33, "unrealizedGain": null, "roi": null }
-          ],
-          "watchlist": [
-            { "name": "ASML", "isin": "NL0010273215" }
-          ]
-        }
-        """;
+    private static readonly DateOnly RequestDate = new(2026, 10, 19);
 
-    private readonly Mock<AIAgent> _agent = new();
+    private readonly Mock<IAllocationSource> _source = new();
     private readonly Mock<IWorkflowContext> _context = new();
-    private IEnumerable<ChatMessage>? _sentMessages;
 
     public AllocationExecutorTests()
     {
-        _agent
-            .Protected()
-            .Setup<Task<AgentResponse>>(
-                "RunCoreAsync",
-                ItExpr.IsAny<IEnumerable<ChatMessage>>(),
-                ItExpr.IsAny<AgentSession?>(),
-                ItExpr.IsAny<AgentRunOptions?>(),
-                ItExpr.IsAny<CancellationToken>())
-            .Callback<IEnumerable<ChatMessage>, AgentSession?, AgentRunOptions?, CancellationToken>((messages, _, _, _) => _sentMessages = messages.ToList())
-            .ReturnsAsync(new AgentResponse(new ChatMessage(ChatRole.Assistant, AllocationJson)));
+        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync([Asset("Livret A", 500m, 25m), Asset("MSCI World", 1_500m, 75m, isin: "IE00B4L5Y983", gain: 100m, roi: 7m)]);
+        _source.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Snapshot(new DateOnly(2026, 10, 18)));
+        _source.Setup(s => s.GetWatchlistAsync(It.IsAny<CancellationToken>())).ReturnsAsync([new WatchlistItemDto("ASML", "NL0010273215")]);
     }
+
+    private static AssetDto Asset(string name, decimal? total, decimal weight, string isin = "", decimal? gain = null, decimal? roi = null) =>
+        new(1, name, "Stocks", "PEA", "PEA TR", "ETF_Stocks", "Diversified", "", "World", 2, 100m, 0m, 0m, total, gain, null, roi, weight, isin);
+
+    private static SnapshotDto Snapshot(DateOnly date) => new(date, 82_000m, 31m, 161m, 118_000m, 3_000m, 35_000m);
 
     private ValueTask<AllocationResult> HandleAsync() =>
-        new AllocationExecutor(_agent.Object).HandleAsync(new AnalysisRequest(new DateOnly(2026, 10, 19)), _context.Object);
+        new AllocationExecutor(_source.Object).HandleAsync(new AnalysisRequest(RequestDate), _context.Object);
 
     [Fact]
-    public async Task HandleAsync_AgentReturnsJson_ReturnsDeserializedAllocation()
+    public async Task HandleAsync_AssetsRead_MapsEveryFieldOfTheLine()
     {
         var result = await HandleAsync();
 
-        Assert.Equal(new DateOnly(2026, 10, 19), result.Date);
-        Assert.Equal(1500m, result.TotalValue);
-        Assert.Equal(2, result.Lines.Count);
-        Assert.Equal("MSCI World", result.Lines[0].Name);
-        Assert.Equal("World", result.Lines[0].Region);
-        Assert.Null(result.Lines[1].Isin);
+        Assert.Equal(new AllocationLine("MSCI World", "IE00B4L5Y983", "Stocks", "Diversified", "World", 1_500m, 75m, 100m, 7m), result.Lines[0]);
     }
 
     [Fact]
-    public async Task HandleAsync_AgentReturnsWatchlist_KeepsItApartFromTheLines()
+    public async Task HandleAsync_AssetsRead_SortsByDescendingValue()
     {
         var result = await HandleAsync();
 
-        var item = Assert.Single(result.Watchlist);
-        Assert.Equal("ASML", item.Name);
-        Assert.Equal("NL0010273215", item.Isin);
-        Assert.DoesNotContain(result.Lines, line => line.Name == "ASML");
+        Assert.Equal(["MSCI World", "Livret A"], result.Lines.Select(l => l.Name));
     }
 
     [Fact]
-    public async Task HandleAsync_GainAndRoi_KeepsValuesAndNulls()
+    public async Task HandleAsync_AssetsRead_TotalIsTheSumOfThePositionsNotTheNetCapital()
     {
         var result = await HandleAsync();
 
-        Assert.Equal(200m, result.Lines[0].UnrealizedGain);
-        Assert.Equal(25m, result.Lines[0].Roi);
-        Assert.Null(result.Lines[1].UnrealizedGain);
-        Assert.Null(result.Lines[1].Roi);
+        Assert.Equal(2_000m, result.TotalValue);
     }
 
     [Fact]
-    public async Task HandleAsync_AgentReturnsJson_EmitsAllocationRetrievedEvent()
+    public async Task HandleAsync_EveryPosition_IsKeptExactlyOnce()
+    {
+        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(Enumerable.Range(1, 200).Select(i => Asset($"Ligne {i}", i, 1m)).ToList());
+
+        var result = await HandleAsync();
+
+        Assert.Equal(200, result.Lines.Count);
+        Assert.Equal(200, result.Lines.Select(l => l.Name).Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData("Not defined")]
+    [InlineData("Not Defined")]
+    public async Task HandleAsync_PlaceholderRow_IsIgnored(string name)
+    {
+        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([Asset(name, null, 0m), Asset("MSCI World", 1_500m, 100m)]);
+
+        var result = await HandleAsync();
+
+        Assert.Equal("MSCI World", Assert.Single(result.Lines).Name);
+    }
+
+    [Fact]
+    public async Task HandleAsync_UnknownValuesAndEmptyIsin_StayDistinctFromZero()
+    {
+        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([Asset("Sans cours", null, 0m)]);
+
+        var line = Assert.Single((await HandleAsync()).Lines);
+
+        Assert.Equal(0m, line.Value);
+        Assert.Null(line.Isin);
+        Assert.Null(line.UnrealizedGain);
+        Assert.Null(line.Roi);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WatchlistRead_StaysOutOfTheLinesAndOfTheTotal()
+    {
+        var result = await HandleAsync();
+
+        Assert.Equal(new WatchlistItemDto("ASML", "NL0010273215"), Assert.Single(result.Watchlist));
+        Assert.DoesNotContain(result.Lines, l => l.Name == "ASML");
+        Assert.Equal(2_000m, result.TotalValue);
+    }
+
+    [Fact]
+    public async Task HandleAsync_SnapshotRead_UsesTheDateOfTheData()
+    {
+        Assert.Equal(new DateOnly(2026, 10, 18), (await HandleAsync()).Date);
+    }
+
+    [Fact]
+    public async Task HandleAsync_NoSnapshot_FallsBackOnTheRequestedDate()
+    {
+        _source.Setup(s => s.GetLastSnapshotAsync(It.IsAny<CancellationToken>())).ReturnsAsync((SnapshotDto?)null);
+
+        Assert.Equal(RequestDate, (await HandleAsync()).Date);
+    }
+
+    [Fact]
+    public async Task HandleAsync_DataRead_EmitsAllocationRetrievedEvent()
     {
         await HandleAsync();
 
@@ -91,11 +126,10 @@ public class AllocationExecutorTests
     }
 
     [Fact]
-    public async Task HandleAsync_Request_SendsRequestedDateToAgent()
+    public async Task HandleAsync_WatchlistUnavailable_Propagates()
     {
-        await HandleAsync();
+        _source.Setup(s => s.GetWatchlistAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException("Api unreachable"));
 
-        Assert.NotNull(_sentMessages);
-        Assert.Contains(_sentMessages, m => m.Text.Contains("2026-10-19"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => HandleAsync().AsTask());
     }
 }

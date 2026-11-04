@@ -14,15 +14,16 @@ public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBui
     /// The fan-in barrier holds the results until each parallel step has produced one, then delivers them all to
     /// the synthesis in the following step.
     /// </remarks>
-    public async Task<Workflow> BuildAsync(IAgentFactory agentFactory, IAssetDistributionSource distributionSource, CancellationToken cancellationToken = default)
+    public async Task<Workflow> BuildAsync(IAgentFactory agentFactory, IAllocationSource allocationSource, IAssetDistributionSource distributionSource, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(agentFactory);
+        ArgumentNullException.ThrowIfNull(allocationSource);
         ArgumentNullException.ThrowIfNull(distributionSource);
 
         var start = new StartExecutor();
-        var allocation = await CreateAllocationExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
+        var allocation = new AllocationExecutor(allocationSource);
         var context = await CreateContextExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
-        var distribution = new AssetDistributionExecutor(distributionSource);
+        var distribution = CreateAssetDistributionExecutor(distributionSource);
         var synthesis = await CreateSynthesisExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
 
         return new WorkflowBuilder(start)
@@ -32,23 +33,20 @@ public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBui
             .Build();
     }
 
-    // Built on the existing Allocation agent, whose instructions already produce an AllocationResult JSON.
-    private static async Task<AllocationExecutor> CreateAllocationExecutorAsync(IAgentFactory agentFactory, CancellationToken cancellationToken)
-    {
-        // The history provider is not needed here: the Allocation agent does not replay its history.
-        var (agent, _) = await agentFactory.CreateAsync(AgentKind.Allocation).WaitAsync(cancellationToken).ConfigureAwait(false);
-        return new AllocationExecutor(agent);
-    }
-
-    private static async Task<ContextExecutor> CreateContextExecutorAsync(IAgentFactory agentFactory, CancellationToken cancellationToken)
+    private async Task<ContextExecutor> CreateContextExecutorAsync(IAgentFactory agentFactory, CancellationToken cancellationToken)
     {
         var (agent, _) = await agentFactory.CreateAsync(AgentKind.Context).WaitAsync(cancellationToken).ConfigureAwait(false);
         return new ContextExecutor(agent);
     }
 
-    private static async Task<SynthesisExecutor> CreateSynthesisExecutorAsync(IAgentFactory agentFactory, CancellationToken cancellationToken)
+    private async Task<SynthesisExecutor> CreateSynthesisExecutorAsync(IAgentFactory agentFactory, CancellationToken cancellationToken)
     {
         var (agent, _) = await agentFactory.CreateAsync(AgentKind.Synthesis).WaitAsync(cancellationToken).ConfigureAwait(false);
         return new SynthesisExecutor(agent);
+    }
+
+    private AssetDistributionExecutor CreateAssetDistributionExecutor(IAssetDistributionSource distributionSource)
+    {
+        return new AssetDistributionExecutor(distributionSource);
     }
 }

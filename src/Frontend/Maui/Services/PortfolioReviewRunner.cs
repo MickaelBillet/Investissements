@@ -15,18 +15,19 @@ namespace InvestissementsDashboard.Maui.Services;
 /// </summary>
 /// <remarks>
 /// Like <see cref="AgentRunner"/>, the options are read from the Api and a factory is built for every run, so that a
-/// change of configuration is picked up without restarting the application; the distribution source is created per run as well, so this
-/// singleton never holds the Api client it wraps.
+/// change of configuration is picked up without restarting the application; the allocation and distribution sources are created per run as well, so
+/// this singleton never holds the Api client they wrap.
 /// </remarks>
 public sealed class PortfolioReviewRunner(
     AgentOptionsProvider optionsProvider,
     Func<AgentAIOptions, IAgentFactory> factoryCreator,
+    Func<IAllocationSource> allocationSourceCreator,
     Func<IAssetDistributionSource> distributionSourceCreator,
     IPortfolioReviewWorkflowBuilder workflowBuilder,
     ILogger<PortfolioReviewRunner> logger,
     TimeSpan? timeout = null) : IPortfolioReviewRunner
 {
-    // Same bound as AgentRunner: the allocation step alone takes about a minute (several MCP tool calls).
+    // Same bound as AgentRunner: the context and the synthesis steps each take from one to two minutes.
     internal static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(3);
 
     public async Task<SynthesisReport> RunAsync(DateOnly date, CancellationToken cancellationToken = default)
@@ -42,7 +43,7 @@ public sealed class PortfolioReviewRunner(
             await using var agentFactory = factoryCreator(options);
             logger.LogInformation("Portfolio review: starting for {Date} (model: {Model})", date, options.Model);
 
-            var workflow = await workflowBuilder.BuildAsync(agentFactory, distributionSourceCreator(), token);
+            var workflow = await workflowBuilder.BuildAsync(agentFactory, allocationSourceCreator(), distributionSourceCreator(), token);
 
             await using var run = await InProcessExecution.RunStreamingAsync(workflow, new AnalysisRequest(date), cancellationToken: token);
 
@@ -73,7 +74,7 @@ public sealed class PortfolioReviewRunner(
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
-            // The configuration and the MCP server are both behind the dashboard password.
+            // The configuration and the portfolio data are both behind the dashboard password.
             logger.LogError(ex, "The Api refused the dashboard password");
             throw new InvalidOperationException("Access refused by the Api: log out and sign in again with the dashboard password.", ex);
         }

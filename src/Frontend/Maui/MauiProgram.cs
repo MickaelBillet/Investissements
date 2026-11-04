@@ -85,12 +85,14 @@ public static class MauiProgram
             sp.GetRequiredService<AgentFactoryBuilder>().Build,
             sp.GetRequiredService<ILogger<AgentRunner>>()));
 
-        // Transient like the IPortfolioService typed client it wraps: the runner asks for a new one per run.
+        // Transient like the IPortfolioService typed client they wrap: the runner asks for new ones per run.
+        services.AddTransient<IAllocationSource, AllocationSource>();
         services.AddTransient<IAssetDistributionSource, AssetDistributionSource>();
         services.AddSingleton<IPortfolioReviewWorkflowBuilder, PortfolioReviewWorkflowBuilder>();
         services.AddSingleton<IPortfolioReviewRunner>(sp => new PortfolioReviewRunner(
             sp.GetRequiredService<AgentOptionsProvider>(),
             sp.GetRequiredService<AgentFactoryBuilder>().Build,
+            sp.GetRequiredService<IAllocationSource>,
             sp.GetRequiredService<IAssetDistributionSource>,
             sp.GetRequiredService<IPortfolioReviewWorkflowBuilder>(),
             sp.GetRequiredService<ILogger<PortfolioReviewRunner>>()));

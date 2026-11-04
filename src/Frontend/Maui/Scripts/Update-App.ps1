@@ -19,10 +19,10 @@
     Subject of the signing certificate; must match the Publisher of Package.appxmanifest.
 
 .EXAMPLE
-    .\Maui\Scripts\Update-App.ps1
+    .\src\Frontend\Maui\Scripts\Update-App.ps1
 
 .EXAMPLE
-    .\Maui\Scripts\Update-App.ps1 -WhatIf
+    .\src\Frontend\Maui\Scripts\Update-App.ps1 -WhatIf
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
