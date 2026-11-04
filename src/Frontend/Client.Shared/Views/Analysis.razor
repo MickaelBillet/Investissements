@@ -9,16 +9,25 @@
 {
     <MudStack Spacing="3">
         @* An explicit button rather than a start on opening: each run costs model tokens. *@
-        <div>
+        @* Side by side rather than swapped in place: a double click on Launch must not cancel the run it has just started. *@
+        <MudStack Row="true" Spacing="2">
             <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Disabled="@ViewModel.IsRunning" OnClick="ViewModel.LaunchAsync">
                 @L.Translate("Analysis_Launch")
             </MudButton>
-        </div>
+            @if (ViewModel.IsRunning)
+            {
+                <MudButton Variant="Variant.Outlined" OnClick="ViewModel.Cancel">@L.Translate("Analysis_Cancel")</MudButton>
+            }
+        </MudStack>
 
         @if (ViewModel.IsRunning)
         {
             <MudText Typo="Typo.body2">@L.Translate("Analysis_Running")</MudText>
             <MudProgressLinear Indeterminate="true" />
+        }
+        else if (ViewModel.IsCancelled)
+        {
+            <MudText Typo="Typo.body2">@L.Translate("Analysis_Cancelled")</MudText>
         }
         else if (ViewModel.Error is not null)
         {

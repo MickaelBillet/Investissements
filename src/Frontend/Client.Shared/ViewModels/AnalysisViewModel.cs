@@ -16,6 +16,7 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
     public bool IsAvailable => runner is not null;
 
     public bool IsRunning { get; private set; }
+    public bool IsCancelled { get; private set; }
     public SynthesisReport? Report { get; private set; }
     public DateOnly? ReportDate { get; private set; }
     public string? Error { get; private set; }
@@ -32,6 +33,7 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
         _cts = new CancellationTokenSource();
 
         IsRunning = true;
+        IsCancelled = false;
         Report = null;
         ReportDate = null;
         Error = null;
@@ -43,7 +45,9 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
         }
         catch (OperationCanceledException)
         {
-            // The user left the page while the workflow was running: nothing to display.
+            // The user pressed Cancel or left the page: not a failure. Logged because the file log is the only trace of a run.
+            logger.LogInformation("Portfolio review workflow cancelled");
+            IsCancelled = true;
         }
         catch (Exception ex)
         {

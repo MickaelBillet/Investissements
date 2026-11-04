@@ -79,9 +79,39 @@ public class AnalysisViewModelTests
         vm.Cancel();
         await launch;
 
+        Assert.True(vm.IsCancelled);
         Assert.Null(vm.Error);
         Assert.Null(vm.Report);
         Assert.False(vm.IsRunning);
+    }
+
+    [Fact]
+    public async Task LaunchAsync_AfterACancelledRun_ClearsIsCancelled()
+    {
+        _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+               .ThrowsAsync(new OperationCanceledException())
+               .ReturnsAsync(Report);
+        var vm = Create();
+
+        await vm.LaunchAsync();
+        Assert.True(vm.IsCancelled);
+        await vm.LaunchAsync();
+
+        Assert.False(vm.IsCancelled);
+        Assert.Same(Report, vm.Report);
+    }
+
+    [Fact]
+    public async Task Cancel_AfterACompletedRun_DoesNotMarkItCancelled()
+    {
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
+        var vm = Create();
+        await vm.LaunchAsync();
+
+        vm.Cancel();
+
+        Assert.False(vm.IsCancelled);
+        Assert.Same(Report, vm.Report);
     }
 
     [Fact]
