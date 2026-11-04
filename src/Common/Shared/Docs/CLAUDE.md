@@ -15,7 +15,7 @@ Shared/
 │   ├── SyncResultDto.cs
 │   ├── AgentConfigDto.cs       # GET /api/agents/config : endpoint Foundry et modèle des agents MAUI (null = non configuré)
 │   ├── WatchlistItemDto.cs     # Name, ISIN : GET /api/watchlist, outil MCP get_watchlist et AllocationResult.Watchlist d'AgentAI.Core
-│   ├── SynthesisReport.cs, Recommendation.cs, RecommendationLevel.cs, RecommendationDirection.cs, RecommendationConfidence.cs   # rapport du workflow PortfolioReview : sortie structurée de l'agent Synthèse (enums en noms dans le schéma JSON), affiché par la page Analyse
+│   ├── SynthesisReport.cs, ScenarioAssessment.cs, ScenarioVerdict.cs, Recommendation.cs, RecommendationLevel.cs, RecommendationDirection.cs, RecommendationConfidence.cs   # rapport du workflow PortfolioReview : sortie structurée de l'agent Synthèse (enums en noms dans le schéma JSON), affiché par la page Analyse
 │   ├── WebSearchDto.cs         # WebSearchRequestDto, WebSearchResultDto, enums WebSearchTopic / WebSearchTimeRange (sérialisés en noms) — POST /api/websearch et outil SearchWeb d'AgentAI.Core
 │   └── Mcp/McpModels.cs        # JSON-RPC : JsonRpcRequest/Response/Error, McpInitializeResult, McpToolsListResult, McpToolsCallResult, McpContent, McpJsonOptions
 ├── Constants/

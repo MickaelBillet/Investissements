@@ -21,6 +21,9 @@ public class SynthesisExecutorTests
 
     private const string ReportJson = """
         {
+          "scenarios": [
+            { "scenario": "S3 — Stagflation", "verdict": "Weakened", "facts": "Brent en repli", "portfolioImpact": "Moins de pression sur la duration" }
+          ],
           "warnings": ["Concentration"],
           "strengths": [],
           "weaknesses": [],
@@ -137,9 +140,9 @@ public class SynthesisExecutorTests
     [Fact]
     public void SynthesisWrittenEvent_ToString_CountsWarningsAndRecommendations()
     {
-        var report = new SynthesisReport(["a", "b"], [], [], [new Recommendation(RecommendationLevel.Line, "x", RecommendationDirection.Reduce, "d", "r", RecommendationConfidence.High)]);
+        var report = new SynthesisReport([new ScenarioAssessment("S1", ScenarioVerdict.Neutral, "f", "p")], ["a", "b"], [], [], [new Recommendation(RecommendationLevel.Line, "x", RecommendationDirection.Reduce, "d", "r", RecommendationConfidence.High)]);
 
-        Assert.Equal("Synthèse : 2 avertissement(s), 1 recommandation(s)", new SynthesisWrittenEvent(report).ToString());
+        Assert.Equal("Synthèse : 1 scénario(s), 2 avertissement(s), 1 recommandation(s)", new SynthesisWrittenEvent(report).ToString());
     }
 
     [Fact]

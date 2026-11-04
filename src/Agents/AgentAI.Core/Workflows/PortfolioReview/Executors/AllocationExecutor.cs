@@ -11,9 +11,6 @@ namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 /// </summary>
 internal sealed class AllocationExecutor(IAllocationSource source) : Executor<AnalysisRequest, AllocationResult>("allocation")
 {
-    // Placeholder rows of the sheet, without a value: the case differs from the "Not Defined" the Api filters out.
-    private const string PlaceholderName = "Not Defined";
-
     public override async ValueTask<AllocationResult> HandleAsync(AnalysisRequest message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {
         var assetsTask = source.GetAssetsAsync(cancellationToken);
@@ -22,7 +19,8 @@ internal sealed class AllocationExecutor(IAllocationSource source) : Executor<An
         await Task.WhenAll(assetsTask, snapshotTask, watchlistTask);
 
         var lines = (await assetsTask)
-            .Where(asset => !string.Equals(asset.Name, PlaceholderName, StringComparison.OrdinalIgnoreCase))
+            // Sold positions and the sheet's placeholder rows say nothing about the portfolio; a lost position does.
+            .Where(asset => asset.CurrentTotal is > 0m || asset.Roi is < 0m)
             .Select(ToLine)
             .OrderByDescending(line => line.Value)
             .ToList();

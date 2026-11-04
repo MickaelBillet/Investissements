@@ -9,7 +9,7 @@ namespace InvestissementsDashboard.Client.Tests.ViewModels;
 public class AnalysisViewModelTests
 {
     private static readonly DateOnly Today = new(2026, 10, 20);
-    private static readonly SynthesisReport Report = new(["Avertissement"], [], [], []);
+    private static readonly SynthesisReport Report = new([], ["Avertissement"], [], [], []);
 
     private readonly Mock<IPortfolioReviewRunner> _runner = new();
 

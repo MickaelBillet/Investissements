@@ -69,25 +69,43 @@ public class AllocationExecutorTests
     }
 
     [Theory]
-    [InlineData("Not defined")]
-    [InlineData("Not Defined")]
-    public async Task HandleAsync_PlaceholderRow_IsIgnored(string name)
+    [InlineData(null, null)]
+    [InlineData(0, null)]
+    [InlineData(0, 0)]
+    [InlineData(0, 12)]
+    public async Task HandleAsync_NoValueAndNoLoss_IsIgnored(int? total, int? roi)
     {
-        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([Asset(name, null, 0m), Asset("MSCI World", 1_500m, 100m)]);
+        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([Asset("Soldée", total, 0m, roi: roi), Asset("MSCI World", 1_500m, 100m)]);
 
         var result = await HandleAsync();
 
         Assert.Equal("MSCI World", Assert.Single(result.Lines).Name);
+        Assert.Equal(1_500m, result.TotalValue);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    public async Task HandleAsync_LostPosition_IsKeptWithoutAddingToTheTotal(int? total)
+    {
+        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([Asset("Projet en défaut", total, 0m, gain: -70m, roi: -100m), Asset("MSCI World", 1_500m, 100m)]);
+
+        var result = await HandleAsync();
+
+        var lost = result.Lines.Single(l => l.Name == "Projet en défaut");
+        Assert.Equal(0m, lost.Value);
+        Assert.Equal(-70m, lost.UnrealizedGain);
+        Assert.Equal(-100m, lost.Roi);
+        Assert.Equal(1_500m, result.TotalValue);
     }
 
     [Fact]
-    public async Task HandleAsync_UnknownValuesAndEmptyIsin_StayDistinctFromZero()
+    public async Task HandleAsync_UnknownGainAndEmptyIsin_StayDistinctFromZero()
     {
-        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([Asset("Sans cours", null, 0m)]);
+        _source.Setup(s => s.GetAssetsAsync(It.IsAny<CancellationToken>())).ReturnsAsync([Asset("Sans plus-value", 100m, 100m)]);
 
         var line = Assert.Single((await HandleAsync()).Lines);
 
-        Assert.Equal(0m, line.Value);
         Assert.Null(line.Isin);
         Assert.Null(line.UnrealizedGain);
         Assert.Null(line.Roi);
