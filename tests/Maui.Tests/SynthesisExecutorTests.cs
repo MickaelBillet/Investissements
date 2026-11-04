@@ -115,13 +115,12 @@ public class SynthesisExecutorTests
     }
 
     [Fact]
-    public async Task Synthesis_AllInputsArrive_SendsWatchlistAsOnlySourceForInitiate()
+    public async Task Synthesis_AllInputsArrive_SendsWatchlist()
     {
         await RunAsync(TimeSpan.Zero);
 
         var prompt = Assert.Single(_prompts);
         Assert.Contains("NL0010273215", prompt);
-        Assert.Contains("seule source autorisée pour une recommandation de type Initiate", prompt);
     }
 
     [Fact]

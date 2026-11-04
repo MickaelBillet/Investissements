@@ -31,6 +31,17 @@ public class AgentInstructionsTests
         Assert.DoesNotContain("plafond", reader.ReadToEnd(), StringComparison.OrdinalIgnoreCase);
     }
 
+    // The only place stating this rule: the executor's message no longer repeats it.
+    [Fact]
+    public void Instructions_Synthesis_RestrictInitiateToTheWatchlist()
+    {
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.Synthesis.md");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+
+        Assert.Contains("seule source autorisée pour une recommandation de type « Initier »", reader.ReadToEnd());
+    }
+
     [Fact]
     public void Instructions_Allocation_RequiresTheWatchlistTool()
     {

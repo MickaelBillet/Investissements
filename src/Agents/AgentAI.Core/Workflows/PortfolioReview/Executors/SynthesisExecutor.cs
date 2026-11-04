@@ -85,7 +85,5 @@ internal sealed class SynthesisExecutor(AIAgent agent) : Executor("synthesis")
 
         Expositions calculées (actions et obligations uniquement) :
         {JsonSerializer.Serialize(distribution, PromptJsonOptions)}
-
-        Watchlist : le champ watchlist de l'allocation liste les valeurs suivies sans être détenues. C'est la seule source autorisée pour une recommandation de type Initiate.
         """;
 }
