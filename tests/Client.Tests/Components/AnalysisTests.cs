@@ -18,7 +18,7 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
 
     Task IAsyncLifetime.DisposeAsync() => base.DisposeAsync().AsTask();
 
-    private static readonly SynthesisReport Report = new(["Concentration sur la technologie"], [], [], []);
+    private static readonly SynthesisReport Report = new([], ["Concentration sur la technologie"], [], [], []);
 
     private readonly Mock<IPortfolioReviewRunner> _runner = new();
 

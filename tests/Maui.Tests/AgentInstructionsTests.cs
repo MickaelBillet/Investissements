@@ -41,6 +41,32 @@ public class AgentInstructionsTests
         Assert.Contains("seule source autorisée pour une recommandation de type « Initier »", reader.ReadToEnd());
     }
 
+    // Rules the first real reports broke: each one is checked so that it cannot silently disappear.
+    [Theory]
+    [InlineData("Une conviction, le fil directeur ou la présence dans la watchlist ne sont pas des moteurs")]
+    [InlineData("le nombre ou la petite taille des lignes de crowdlending et de dette privée")]
+    [InlineData("une part des seules lignes éligibles de la classe d'actifs")]
+    [InlineData("une entrée pour chaque scénario du profil")]
+    [InlineData("Une ligne de valeur nulle avec un `roi` négatif est une perte constatée")]
+    public void Instructions_Synthesis_StateTheReportRules(string rule)
+    {
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.Synthesis.md");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+
+        Assert.Contains(rule, reader.ReadToEnd());
+    }
+
+    [Fact]
+    public void Instructions_InvestorProfile_NamesTheCurrentRegime()
+    {
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.InvestorProfile.md");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+
+        Assert.Contains("Le régime en cours est S3", reader.ReadToEnd());
+    }
+
     // The scenarios are watched through these signals, while the Context agent must not know the scenarios themselves.
     [Theory]
     [InlineData("Ormuz")]

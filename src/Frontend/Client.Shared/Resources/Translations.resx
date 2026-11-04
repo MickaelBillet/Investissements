@@ -166,6 +166,12 @@
   <data name="Analysis_Cancelled" xml:space="preserve"><value>Analyse annulée.</value></data>
   <data name="Analysis_Error"     xml:space="preserve"><value>L'analyse a échoué</value></data>
   <data name="Analysis_ReportDate" xml:space="preserve"><value>Analyse du</value></data>
+  <data name="Analysis_Scenarios" xml:space="preserve"><value>Scénarios</value></data>
+  <data name="Analysis_Verdict_Confirmed" xml:space="preserve"><value>Conforté</value></data>
+  <data name="Analysis_Verdict_Weakened" xml:space="preserve"><value>Fragilisé</value></data>
+  <data name="Analysis_Verdict_Neutral" xml:space="preserve"><value>Neutre</value></data>
+  <data name="Analysis_Facts"     xml:space="preserve"><value>Faits</value></data>
+  <data name="Analysis_PortfolioImpact" xml:space="preserve"><value>Portefeuille</value></data>
   <data name="Analysis_Warnings"  xml:space="preserve"><value>Avertissements</value></data>
   <data name="Analysis_Recommendations" xml:space="preserve"><value>Recommandations</value></data>
   <data name="Analysis_Strengths" xml:space="preserve"><value>Forces</value></data>

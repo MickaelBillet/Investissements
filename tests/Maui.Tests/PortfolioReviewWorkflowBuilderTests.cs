@@ -28,6 +28,9 @@ public class PortfolioReviewWorkflowBuilderTests
 
     private const string SynthesisJson = """
         {
+          "scenarios": [
+            { "scenario": "S3 — Stagflation", "verdict": "Weakened", "facts": "Brent en repli", "portfolioImpact": "Moins de pression sur la duration" }
+          ],
           "warnings": ["Concentration sur la technologie"],
           "strengths": ["Exposition mondiale"],
           "weaknesses": ["Peu d'obligations"],
@@ -166,6 +169,7 @@ public class PortfolioReviewWorkflowBuilderTests
 
         var report = events.OfType<WorkflowOutputEvent>().Select(e => e.As<SynthesisReport>()).Single();
         Assert.NotNull(report);
+        Assert.Equal(new ScenarioAssessment("S3 — Stagflation", ScenarioVerdict.Weakened, "Brent en repli", "Moins de pression sur la duration"), Assert.Single(report.Scenarios));
         Assert.Equal(["Concentration sur la technologie"], report.Warnings);
         Assert.Equal(new Recommendation(RecommendationLevel.AssetClass, "Bonds", RecommendationDirection.Reinforce, "BCE en pause", "Les taux se stabilisent.", RecommendationConfidence.Medium), Assert.Single(report.Recommendations));
     }

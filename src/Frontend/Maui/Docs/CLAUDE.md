@@ -58,7 +58,7 @@ tests/Maui.Tests/
 ├── AssetDistributionExecutorTests.cs # source mockée : Stocks puis Bonds, chaque classe avec ses répartitions, jeton transmis, événement émis, erreur propagée
 ├── AllocationSourceTests.cs      # IPortfolioService mocké : positions, snapshot et watchlist relayés, erreur propagée
 ├── AssetDistributionSourceTests.cs   # IPortfolioService mocké : géographie et secteurs relayés, erreur propagée
-├── AllocationExecutorTests.cs   # étape d'allocation du workflow : source mockée, correspondance des champs, tri, total, chaque position une seule fois, lignes de remplissage écartées, watchlist hors des lignes, événement émis
+├── AllocationExecutorTests.cs   # étape d'allocation du workflow : source mockée, correspondance des champs, tri, total, chaque position une seule fois, lignes sans valeur écartées sauf les pertes, watchlist hors des lignes, événement émis
 ├── AgentInstructionsTests.cs    # instructions embarquées : règle « tour unique », get_watchlist pour Allocation, aucun plafond pour Synthesis, signaux des scénarios pour Context, rattachement aux drivers et rôle du fil directeur dans InvestorProfile
 ├── ApiAgentConfigSourceTests.cs # route, désérialisation, 401 propagé
 ├── WebSearch/                   # WebSearchToolTests (plafond de 15, schéma en noms), ApiWebSearchServiceTests (route, corps, Content-Length annoncé, erreurs)
@@ -110,7 +110,7 @@ Charge, dans l'ordre : `_content/MudBlazor/MudBlazor.min.css`, `_content/Investi
 - Les projets MAUI **ne figurent pas dans `Investissements.slnx`** (restauration impossible sur le runner Ubuntu de la CI). Ils sont dans **`Investissements.Maui.slnx`** (AgentAI.Core, Api, Client.Shared, GoogleSheets, Maui, Maui.Tests, Shared) — Windows uniquement, workload `maui-windows` requis.
 - Build : `dotnet build Investissements.Maui.slnx`
 - Lancer : `dotnet run --project Maui -f net10.0-windows10.0.19041.0` (ou exécuter `src/Frontend/Maui/bin/Debug/net10.0-windows10.0.19041.0/win-x64/InvestissementsDashboard.Maui.exe`)
-- Tests : `dotnet test "tests/Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (219 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AllocationSource.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
+- Tests : `dotnet test "tests/Maui.Tests/InvestissementsDashboard.Maui.Tests.csproj"` (229 tests). `Maui.Tests` cible aussi `net10.0-windows…` avec `UseMaui` (pour `ISecureStorage`) et **lie** les fichiers `SecureStorageKeyValueStore.cs`, `IAgentConfigSource.cs`, `ApiAgentConfigSource.cs`, `AgentOptionsProvider.cs`, `AgentRunner.cs`, `PortfolioReviewRunner.cs`, `AllocationSource.cs`, `AssetDistributionSource.cs`, `ApiWebSearchService.cs` et `FileLoggerProvider.cs` (et référence `AgentAI.Core`) au lieu de référencer le projet (une application `Exe` MAUI ne se référence pas depuis un projet de test).
 - La CI ne construit ni ne teste ce projet.
 - Si l'icône de l'application ne change pas après modification de `appicon.svg`, supprimer `src/Frontend/Maui/obj` (cache de génération des icônes).
 

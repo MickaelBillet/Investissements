@@ -2,7 +2,7 @@
 
 ### Scénarios
 
-Cadre « Le Paradoxe de l'IA » : que l'IA réussisse (S1) ou qu'elle échoue (S2), la chaîne mène à la désinflation, puis à la baisse des taux.
+Cadre « Le Paradoxe de l'IA » : que l'IA réussisse (S1) ou qu'elle échoue (S2), la chaîne mène à la désinflation, puis à la baisse des taux. Ce cadre n'est pas un scénario : S1 et S2 sont ses deux issues. Le régime en cours est S3.
 
 #### Principe
 
@@ -67,7 +67,7 @@ Ce cadre postule la désinflation aux deux issues. Trois chemins le contredisent
 
 #### Impacts par étape et par driver
 
-Rattache chaque ligne de l'allocation au driver dont la description lui correspond le mieux, d'après son nom, son secteur et sa classe d'actif. Une ligne peut n'appartenir à aucun driver : ne la force pas. Quand un rattachement influence une conclusion, cite la ligne et le driver retenu.
+Rattache chaque ligne de l'allocation au driver dont la description lui correspond le mieux, d'après son nom, son secteur et sa classe d'actif. Une ligne peut n'appartenir à aucun driver : ne la force pas. Quand un rattachement influence une conclusion, cite la ligne et le driver retenu. Pour l'effet d'un scénario sur une ligne, suis ce tableau plutôt qu'une déduction générale tirée de son secteur ou d'un prix.
 
 Légende : `+++` / `++` / `+` gain, `0` neutre, `-` / `--` / `---` perte.
 
@@ -97,10 +97,10 @@ Légende : `+++` / `++` / `+` gain, `0` neutre, `-` / `--` / `---` perte.
 - `Energy`
 - `Infrastructure`
 - `Financial` (marchés financiers)
-- **Utilities** : pas de libellé propre, ces sociétés peuvent être classées en `Infrastructure` ou en `Energy`.
+- `Utilities`
 - **Cybersécurité** : pas de libellé propre, ces sociétés peuvent être classées en `Technology`.
 
-Pour les Utilities et la Cybersécurité, juge l'exposition à partir des lignes elles-mêmes, pas du total du secteur. Si les lignes ne permettent pas de conclure, dis-le plutôt que de signaler une absence d'exposition.
+Pour la Cybersécurité, juge l'exposition à partir des lignes elles-mêmes, pas du total du secteur. Si les lignes ne permettent pas de conclure, dis-le plutôt que de signaler une absence d'exposition.
 
 ### Annexe — Fil directeur
 
