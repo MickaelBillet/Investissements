@@ -1,8 +1,11 @@
+using System.Net;
 using System.Text.Json;
+using InvestissementsDashboard.Client.Model;
+using Microsoft.Extensions.Logging;
 
 namespace InvestissementsDashboard.Client.Services;
 
-public class SessionService(HttpClient httpClient, IKeyValueStore store) : ISessionService
+public class SessionService(HttpClient httpClient, IKeyValueStore store, ILogger<SessionService> logger) : ISessionService
 {
     private static readonly TimeSpan SessionDuration = TimeSpan.FromHours(1);
 
@@ -29,15 +32,16 @@ public class SessionService(HttpClient httpClient, IKeyValueStore store) : ISess
         }
 
         _expiresAt = session.Value.ExpiresAt;
-        IsAuthenticated = await VerifyAsync(session.Value.Password);
+        // The stored session is kept whatever the result: after an outage, the next start verifies it again.
+        IsAuthenticated = await VerifyAsync(session.Value.Password) == LoginResult.Success;
         Password = IsAuthenticated ? session.Value.Password : null;
         OnChange?.Invoke();
     }
 
-    public async Task<bool> LoginAsync(string password)
+    public async Task<LoginResult> LoginAsync(string password)
     {
-        var isValid = await VerifyAsync(password);
-        if (isValid)
+        var result = await VerifyAsync(password);
+        if (result == LoginResult.Success)
         {
             Password = password;
             IsAuthenticated = true;
@@ -45,7 +49,7 @@ public class SessionService(HttpClient httpClient, IKeyValueStore store) : ISess
             await PersistAsync();
             OnChange?.Invoke();
         }
-        return isValid;
+        return result;
     }
 
     public async Task LogoutAsync()
@@ -63,12 +67,33 @@ public class SessionService(HttpClient httpClient, IKeyValueStore store) : ISess
         await PersistAsync();
     }
 
-    private async Task<bool> VerifyAsync(string password)
+    private async Task<LoginResult> VerifyAsync(string password)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "api/auth/verify");
         request.Headers.Add(PasswordHeader, password);
-        using var response = await httpClient.SendAsync(request);
-        return response.IsSuccessStatusCode;
+        try
+        {
+            using var response = await httpClient.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                return LoginResult.Success;
+            }
+
+            // Only a 401 is a verdict on the password: during an outage the proxy answers 500 or 503 without asking the Api.
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                return LoginResult.InvalidPassword;
+            }
+
+            logger.LogError("The Api answered {StatusCode} while verifying the password", (int)response.StatusCode);
+            return LoginResult.ServiceUnavailable;
+        }
+        // TaskCanceledException: no caller can cancel this request, so it can only be the HttpClient's timeout.
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            logger.LogError(ex, "The Api could not be reached while verifying the password");
+            return LoginResult.ServiceUnavailable;
+        }
     }
 
     private Task PersistAsync() =>

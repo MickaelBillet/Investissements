@@ -23,8 +23,8 @@ public class AnalysisStepListTests : BunitContext, IAsyncLifetime
     private IRenderedComponent<AnalysisStepList> RenderSteps(bool isRunning, params AnalysisStepState[] steps) =>
         Render<AnalysisStepList>(p => p.Add(c => c.Steps, steps).Add(c => c.IsRunning, isRunning));
 
-    private IRenderedComponent<AnalysisStepList> RenderStep(AnalysisStep step, AnalysisStepStatus status, TimeSpan? duration = null) =>
-        RenderSteps(true, new AnalysisStepState(step, status, duration));
+    private IRenderedComponent<AnalysisStepList> RenderStep(AnalysisStep step, AnalysisStepStatus status) =>
+        RenderSteps(true, new AnalysisStepState(step, status));
 
     [Theory]
     [InlineData(AnalysisStep.Allocation)]
@@ -42,32 +42,36 @@ public class AnalysisStepListTests : BunitContext, IAsyncLifetime
     }
 
     [Fact]
-    public void AnalysisStepList_RunningStep_ShowsASpinnerAndItsStatus()
+    public void AnalysisStepList_Always_BoundsItsWidth()
+    {
+        var cut = RenderStep(AnalysisStep.Context, AnalysisStepStatus.Pending);
+
+        Assert.Contains("max-width:480px", cut.Find(".mud-paper").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void AnalysisStepList_RunningStep_ShowsANamedSpinnerAndNoStatusText()
     {
         var cut = RenderStep(AnalysisStep.Context, AnalysisStepStatus.Running);
 
-        Assert.Single(cut.FindAll(".mud-progress-circular"));
-        Assert.Contains(TestData.Translate("Analysis_StepStatus_Running"), cut.Markup);
+        var spinner = cut.Find(".mud-progress-circular");
+        Assert.Equal(TestData.Translate("Analysis_StepStatus_Running"), spinner.GetAttribute("aria-label"));
+        Assert.Empty(cut.FindAll(".mud-typography-body2"));
     }
 
     [Theory]
     [InlineData(AnalysisStepStatus.Pending, "Analysis_StepStatus_Pending")]
     [InlineData(AnalysisStepStatus.Done, "Analysis_StepStatus_Done")]
     [InlineData(AnalysisStepStatus.Failed, "Analysis_StepStatus_Failed")]
-    public void AnalysisStepList_FinishedOrWaitingStep_NamesItsStatusWithoutSpinner(AnalysisStepStatus status, string key)
+    public void AnalysisStepList_FinishedOrWaitingStep_ShowsANamedIconAndNoStatusText(AnalysisStepStatus status, string key)
     {
         var cut = RenderStep(AnalysisStep.Context, status);
 
-        Assert.Contains(TestData.Translate(key), cut.Markup);
+        Assert.Single(cut.FindAll(".mud-typography-body1"));
+        Assert.Empty(cut.FindAll(".mud-typography-body2"));
         Assert.Empty(cut.FindAll(".mud-progress-circular"));
-    }
-
-    [Fact]
-    public void AnalysisStepList_StepWithADuration_ShowsIt()
-    {
-        var cut = RenderStep(AnalysisStep.Context, AnalysisStepStatus.Done, TimeSpan.FromSeconds(78));
-
-        Assert.Contains("1 min 18 s", cut.Markup);
+        // The icon's title is the only text alternative for the status.
+        Assert.Equal(TestData.Translate(key), cut.Find("svg title").TextContent);
     }
 
     [Fact]

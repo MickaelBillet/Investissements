@@ -1,7 +1,8 @@
 @using InvestissementsDashboard.Client.Model
 @inject ILocalizationService L
 
-<MudPaper Outlined="true" Class="pa-6">
+@* A bounded width: the lines are short, and on a wide window most of a full-width panel would stay empty. *@
+<MudPaper Outlined="true" Class="pa-6" Style="width:100%;max-width:480px;">
     <MudStack Spacing="5">
         <MudText Typo="Typo.h6">@L.Translate(IsRunning ? "Analysis_Steps_Running" : "Analysis_Steps_Stopped")</MudText>
 
@@ -11,27 +12,25 @@
                 <MudText Typo="Typo.subtitle1" Style="color:#787774;">@L.Translate($"Analysis_Phase_{phase.Key}")</MudText>
                 @foreach (var step in phase)
                 {
+                    @* The status is carried by the icon alone; its title or label is the text alternative for screen readers. *@
                     <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
                         @switch (step.Status)
                         {
                             case AnalysisStepStatus.Running:
                                 @* Same size as the icons: a wider spinner would shift this step's label out of line with the others. *@
-                                <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" Style="width:24px;height:24px;" />
+                                <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" Style="width:24px;height:24px;" aria-label="@L.Translate("Analysis_StepStatus_Running")" />
                                 break;
                             case AnalysisStepStatus.Done:
-                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Success" />
+                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Success" Title="@L.Translate("Analysis_StepStatus_Done")" />
                                 break;
                             case AnalysisStepStatus.Failed:
-                                <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Error" />
+                                <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Error" Title="@L.Translate("Analysis_StepStatus_Failed")" />
                                 break;
                             default:
-                                <MudIcon Icon="@Icons.Material.Outlined.RadioButtonUnchecked" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Default" />
+                                <MudIcon Icon="@Icons.Material.Outlined.RadioButtonUnchecked" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Default" Title="@L.Translate("Analysis_StepStatus_Pending")" />
                                 break;
                         }
-                        <MudText Typo="Typo.body1" Style="flex:1;">@L.Translate($"Analysis_Step_{step.Step}")</MudText>
-                        <MudText Typo="Typo.body2" Color="@(step.Status == AnalysisStepStatus.Failed ? MudBlazor.Color.Error : MudBlazor.Color.Default)">
-                            @L.Translate($"Analysis_StepStatus_{step.Status}")@(step.Duration is { } duration ? $" · {duration.ToShortDuration()}" : "")
-                        </MudText>
+                        <MudText Typo="Typo.body1">@L.Translate($"Analysis_Step_{step.Step}")</MudText>
                     </MudStack>
                 }
             </MudStack>

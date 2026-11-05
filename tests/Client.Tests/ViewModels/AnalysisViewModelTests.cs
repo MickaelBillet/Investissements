@@ -256,89 +256,10 @@ public class AnalysisViewModelTests
         await launch;
     }
 
-    [Fact]
-    public async Task LaunchAsync_StepEnds_ExposesItsDuration()
-    {
-        var clock = new SteppingTimeProvider();
-        var pending = new TaskCompletionSource<SynthesisReport>();
-        IProgress<AnalysisStepUpdate>? progress = null;
-        SetupRunner(pending, p => progress = p);
-        var vm = new AnalysisViewModel(NullLogger<AnalysisViewModel>.Instance, clock, _runner.Object);
-
-        var launch = vm.LaunchAsync();
-        progress!.Report(new AnalysisStepUpdate(AnalysisStep.Synthesis, AnalysisStepStatus.Running));
-        clock.Advance(TimeSpan.FromSeconds(10));
-        // The synthesis is announced again for each input it receives: this must not restart its duration.
-        progress.Report(new AnalysisStepUpdate(AnalysisStep.Synthesis, AnalysisStepStatus.Running));
-        Assert.Null(vm.Steps.Single(s => s.Step == AnalysisStep.Synthesis).Duration);
-        clock.Advance(TimeSpan.FromSeconds(50));
-        progress.Report(new AnalysisStepUpdate(AnalysisStep.Synthesis, AnalysisStepStatus.Done));
-
-        Assert.Equal(TimeSpan.FromSeconds(60), vm.Steps.Single(s => s.Step == AnalysisStep.Synthesis).Duration);
-
-        pending.SetResult(Report);
-        await launch;
-    }
-
-    [Fact]
-    public async Task LaunchAsync_StepEndsWithoutHavingStarted_HasNoDuration()
-    {
-        var pending = new TaskCompletionSource<SynthesisReport>();
-        IProgress<AnalysisStepUpdate>? progress = null;
-        SetupRunner(pending, p => progress = p);
-        var vm = Create();
-
-        var launch = vm.LaunchAsync();
-        progress!.Report(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Done));
-
-        Assert.Null(vm.Steps.Single(s => s.Step == AnalysisStep.Context).Duration);
-
-        pending.SetResult(Report);
-        await launch;
-    }
-
-    [Fact]
-    public async Task LaunchAsync_SecondLaunch_MeasuresDurationsAfresh()
-    {
-        var clock = new SteppingTimeProvider();
-        var first = new TaskCompletionSource<SynthesisReport>();
-        IProgress<AnalysisStepUpdate>? progress = null;
-        SetupRunner(first, p => progress = p);
-        var vm = new AnalysisViewModel(NullLogger<AnalysisViewModel>.Instance, clock, _runner.Object);
-        var launch = vm.LaunchAsync();
-        progress!.Report(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Running));
-        first.SetResult(Report);
-        await launch;
-        clock.Advance(TimeSpan.FromMinutes(5));
-
-        var second = new TaskCompletionSource<SynthesisReport>();
-        SetupRunner(second, p => progress = p);
-        launch = vm.LaunchAsync();
-        progress!.Report(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Running));
-        clock.Advance(TimeSpan.FromSeconds(3));
-        progress.Report(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Done));
-
-        Assert.Equal(TimeSpan.FromSeconds(3), vm.Steps.Single(s => s.Step == AnalysisStep.Context).Duration);
-
-        second.SetResult(Report);
-        await launch;
-    }
-
     private void SetupRunner(TaskCompletionSource<SynthesisReport> result, Action<IProgress<AnalysisStepUpdate>?> onProgress) =>
         _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
                .Callback<DateOnly, IProgress<AnalysisStepUpdate>?, CancellationToken>((_, p, _) => onProgress(p))
                .Returns(result.Task);
-
-    private sealed class SteppingTimeProvider : TimeProvider
-    {
-        private long _ticks;
-
-        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
-
-        public override long GetTimestamp() => _ticks;
-
-        public void Advance(TimeSpan duration) => _ticks += duration.Ticks;
-    }
 
     private sealed class FixedTimeProvider(DateOnly date) : TimeProvider
     {

@@ -150,6 +150,7 @@
   <data name="Login_PasswordLabel"  xml:space="preserve"><value>Mot de passe</value></data>
   <data name="Login_SubmitButton"   xml:space="preserve"><value>Se connecter</value></data>
   <data name="Login_InvalidPassword" xml:space="preserve"><value>Mot de passe incorrect</value></data>
+  <data name="Login_ServiceUnavailable" xml:space="preserve"><value>Service indisponible : votre mot de passe n'a pas pu être vérifié. Réessayez dans quelques minutes.</value></data>
   <data name="Col_Agent"          xml:space="preserve"><value>Agent IA</value></data>
   <data name="Agent_Button"       xml:space="preserve"><value>Lancer un agent</value></data>
   <data name="Agent_PickerTitle"  xml:space="preserve"><value>Quel agent lancer ?</value></data>

@@ -1,4 +1,5 @@
 using Bunit;
+using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.Shared;
 using InvestissementsDashboard.Client.Tests.Helpers;
@@ -22,7 +23,7 @@ public class LoginGateTests : BunitContext
     public void LoginGate_WhenPasswordIsInvalid_ShowsErrorMessage()
     {
         var session = new Mock<ISessionService>();
-        session.Setup(s => s.LoginAsync(It.IsAny<string>())).ReturnsAsync(false);
+        session.Setup(s => s.LoginAsync(It.IsAny<string>())).ReturnsAsync(LoginResult.InvalidPassword);
         Services.AddSingleton(session.Object);
         Services.AddScoped<LoginGateViewModel>();
 
@@ -34,10 +35,26 @@ public class LoginGateTests : BunitContext
     }
 
     [Fact]
+    public void LoginGate_WhenServiceIsUnavailable_DoesNotBlameThePassword()
+    {
+        var session = new Mock<ISessionService>();
+        session.Setup(s => s.LoginAsync(It.IsAny<string>())).ReturnsAsync(LoginResult.ServiceUnavailable);
+        Services.AddSingleton(session.Object);
+        Services.AddScoped<LoginGateViewModel>();
+
+        var cut = Render<LoginGate>();
+        cut.Find("input").Change("correct");
+        cut.Find("button").Click();
+
+        Assert.Contains("Service indisponible", cut.Markup);
+        Assert.DoesNotContain("Mot de passe incorrect", cut.Markup);
+    }
+
+    [Fact]
     public void LoginGate_WhenPasswordIsValid_InvokesLoginAsync()
     {
         var session = new Mock<ISessionService>();
-        session.Setup(s => s.LoginAsync("correct")).ReturnsAsync(true);
+        session.Setup(s => s.LoginAsync("correct")).ReturnsAsync(LoginResult.Success);
         Services.AddSingleton(session.Object);
         Services.AddScoped<LoginGateViewModel>();
 
@@ -52,7 +69,7 @@ public class LoginGateTests : BunitContext
     [Fact]
     public void LoginGate_WhileSubmitting_ShowsLoadingSpinner()
     {
-        var tcs = new TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<LoginResult>();
         var session = new Mock<ISessionService>();
         session.Setup(s => s.LoginAsync(It.IsAny<string>())).Returns(tcs.Task);
         Services.AddSingleton(session.Object);
@@ -65,7 +82,7 @@ public class LoginGateTests : BunitContext
         cut.Find(".mud-progress-circular");
         Assert.DoesNotContain("Se connecter", cut.Markup);
 
-        tcs.SetResult(true);
+        tcs.SetResult(LoginResult.Success);
 
         cut.WaitForState(() => !cut.Markup.Contains("mud-progress-circular"));
     }

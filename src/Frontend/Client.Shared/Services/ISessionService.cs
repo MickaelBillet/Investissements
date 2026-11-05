@@ -1,3 +1,5 @@
+using InvestissementsDashboard.Client.Model;
+
 namespace InvestissementsDashboard.Client.Services;
 
 public interface ISessionService
@@ -7,7 +9,7 @@ public interface ISessionService
     string? Password { get; }
     event Action? OnChange;
     Task InitializeAsync();
-    Task<bool> LoginAsync(string password);
+    Task<LoginResult> LoginAsync(string password);
     Task LogoutAsync();
     Task ExtendSessionAsync();
 }
