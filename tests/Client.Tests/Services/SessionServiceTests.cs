@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
+using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -19,7 +21,7 @@ public class SessionServiceTests
     private static SessionService CreateService(Func<HttpRequestMessage, HttpStatusCode> respond, Mock<IKeyValueStore>? store = null)
     {
         var client = new HttpClient(new FakeHandler(respond)) { BaseAddress = new Uri("https://example.test/") };
-        return new SessionService(client, (store ?? new Mock<IKeyValueStore>()).Object);
+        return new SessionService(client, (store ?? new Mock<IKeyValueStore>()).Object, NullLogger<SessionService>.Instance);
     }
 
     private static string StoredSessionJson(string password, DateTimeOffset expiresAt) =>
@@ -33,7 +35,7 @@ public class SessionServiceTests
 
         var result = await service.LoginAsync("correct");
 
-        Assert.True(result);
+        Assert.Equal(LoginResult.Success, result);
         Assert.True(service.IsAuthenticated);
         Assert.False(service.IsSessionExpired);
         Assert.Equal("correct", service.Password);
@@ -47,9 +49,54 @@ public class SessionServiceTests
 
         var result = await service.LoginAsync("wrong");
 
-        Assert.False(result);
+        Assert.Equal(LoginResult.InvalidPassword, result);
         Assert.False(service.IsAuthenticated);
         Assert.Null(service.Password);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.NotFound)]
+    public async Task LoginAsync_WhenApiFails_ReportsServiceUnavailableWithoutAuthenticating(HttpStatusCode status)
+    {
+        var store = new Mock<IKeyValueStore>();
+        var service = CreateService(_ => status, store);
+
+        var result = await service.LoginAsync("correct");
+
+        Assert.Equal(LoginResult.ServiceUnavailable, result);
+        Assert.False(service.IsAuthenticated);
+        Assert.Null(service.Password);
+        store.Verify(s => s.SetAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task LoginAsync_WhenApiCannotBeReached_ReportsServiceUnavailable(Type exceptionType)
+    {
+        var service = CreateService(_ => throw (Exception)Activator.CreateInstance(exceptionType)!);
+
+        var result = await service.LoginAsync("correct");
+
+        Assert.Equal(LoginResult.ServiceUnavailable, result);
+        Assert.False(service.IsAuthenticated);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenApiCannotBeReached_IsNotAuthenticatedAndKeepsTheSession()
+    {
+        var store = new Mock<IKeyValueStore>();
+        store.Setup(s => s.GetAsync(StorageKey))
+            .ReturnsAsync(StoredSessionJson("stored-password", DateTimeOffset.UtcNow.AddMinutes(30)));
+        var service = CreateService(_ => throw new HttpRequestException("unreachable"), store);
+
+        await service.InitializeAsync();
+
+        Assert.False(service.IsAuthenticated);
+        Assert.Null(service.Password);
+        store.Verify(s => s.RemoveAsync(StorageKey), Times.Never);
     }
 
     [Fact]

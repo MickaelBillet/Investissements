@@ -22,10 +22,10 @@
                           FullWidth="true"
                           Margin="Margin.Dense"
                           Required="true" />
-            @if (ViewModel.ShowError)
+            @if (ViewModel.ErrorKey is { } errorKey)
             {
                 <MudText Typo="Typo.body2" Style="font-size:13px;color:#E06D6D;margin-top:8px;">
-                    @L.Translate("Login_InvalidPassword")
+                    @L.Translate(errorKey)
                 </MudText>
             }
 

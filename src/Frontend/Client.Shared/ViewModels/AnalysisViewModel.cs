@@ -11,7 +11,6 @@ namespace InvestissementsDashboard.Client.ViewModels;
 /// </summary>
 public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider timeProvider, IPortfolioReviewRunner? runner = null)
 {
-    private readonly Dictionary<AnalysisStep, long> _stepStarts = [];
     private CancellationTokenSource? _cts;
 
     /// <summary>Whether the analysis can run: only the MAUI host registers an <see cref="IPortfolioReviewRunner"/>.</summary>
@@ -49,7 +48,6 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
         ReportDate = null;
         Error = null;
         Steps = PendingSteps();
-        _stepStarts.Clear();
         try
         {
             var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
@@ -82,21 +80,9 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
 
     private void Apply(AnalysisStepUpdate update)
     {
-        var state = new AnalysisStepState(update.Step, update.Status, MeasureDuration(update));
+        var state = new AnalysisStepState(update.Step, update.Status);
         Steps = [.. Steps.Select(step => step.Step == update.Step ? state : step)];
         StepsChanged?.Invoke();
-    }
-
-    private TimeSpan? MeasureDuration(AnalysisStepUpdate update)
-    {
-        if (update.Status == AnalysisStepStatus.Running)
-        {
-            // TryAdd: the synthesis is announced once per input received, and its duration starts at the first one.
-            _stepStarts.TryAdd(update.Step, timeProvider.GetTimestamp());
-            return null;
-        }
-
-        return _stepStarts.TryGetValue(update.Step, out var start) ? timeProvider.GetElapsedTime(start) : null;
     }
 
     // Not Progress<T>: it posts each update for later, so one could land after the run's end and undo its last state.

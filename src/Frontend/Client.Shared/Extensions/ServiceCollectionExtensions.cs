@@ -3,6 +3,7 @@ using ApexCharts;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MudBlazor.Services;
 
@@ -29,7 +30,7 @@ public static class ServiceCollectionExtensions
 
         // Dedicated client without the password handler: the handler depends on ISessionService.
         services.AddSingleton<ISessionService>(sp =>
-            new SessionService(new HttpClient { BaseAddress = apiBaseUri }, sp.GetRequiredService<IKeyValueStore>()));
+            new SessionService(new HttpClient { BaseAddress = apiBaseUri }, sp.GetRequiredService<IKeyValueStore>(), sp.GetRequiredService<ILogger<SessionService>>()));
         services.AddTransient<DashboardPasswordHandler>();
 
         services.AddHttpClient<IPortfolioService, PortfolioService>(client => client.BaseAddress = apiBaseUri)
