@@ -22,7 +22,7 @@
 
         @if (ViewModel.ShowSteps)
         {
-            <AnalysisStepList Steps="ViewModel.Steps" />
+            <AnalysisStepList Steps="ViewModel.Steps" IsRunning="ViewModel.IsRunning" />
         }
 
         @if (ViewModel.IsCancelled)

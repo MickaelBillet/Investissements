@@ -1,30 +1,46 @@
 @using InvestissementsDashboard.Client.Model
 @inject ILocalizationService L
 
-<MudStack Spacing="1">
-    @foreach (var step in Steps)
-    {
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-            @switch (step.Status)
-            {
-                case AnalysisStepStatus.Running:
-                    <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" />
-                    break;
-                case AnalysisStepStatus.Done:
-                    <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Title="@L.Translate("Analysis_StepStatus_Done")" />
-                    break;
-                case AnalysisStepStatus.Failed:
-                    <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" Title="@L.Translate("Analysis_StepStatus_Failed")" />
-                    break;
-                default:
-                    <MudIcon Icon="@Icons.Material.Outlined.RadioButtonUnchecked" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Title="@L.Translate("Analysis_StepStatus_Pending")" />
-                    break;
-            }
-            <MudText Typo="Typo.body2">@L.Translate($"Analysis_Step_{step.Step}")</MudText>
-        </MudStack>
-    }
-</MudStack>
+<MudPaper Outlined="true" Class="pa-6">
+    <MudStack Spacing="5">
+        <MudText Typo="Typo.h6">@L.Translate(IsRunning ? "Analysis_Steps_Running" : "Analysis_Steps_Stopped")</MudText>
+
+        @foreach (var phase in Steps.GroupBy(step => step.Phase))
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.subtitle1" Style="color:#787774;">@L.Translate($"Analysis_Phase_{phase.Key}")</MudText>
+                @foreach (var step in phase)
+                {
+                    <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+                        @switch (step.Status)
+                        {
+                            case AnalysisStepStatus.Running:
+                                @* Same size as the icons: a wider spinner would shift this step's label out of line with the others. *@
+                                <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" Style="width:24px;height:24px;" />
+                                break;
+                            case AnalysisStepStatus.Done:
+                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Success" />
+                                break;
+                            case AnalysisStepStatus.Failed:
+                                <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Error" />
+                                break;
+                            default:
+                                <MudIcon Icon="@Icons.Material.Outlined.RadioButtonUnchecked" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Default" />
+                                break;
+                        }
+                        <MudText Typo="Typo.body1" Style="flex:1;">@L.Translate($"Analysis_Step_{step.Step}")</MudText>
+                        <MudText Typo="Typo.body2" Color="@(step.Status == AnalysisStepStatus.Failed ? MudBlazor.Color.Error : MudBlazor.Color.Default)">
+                            @L.Translate($"Analysis_StepStatus_{step.Status}")@(step.Duration is { } duration ? $" · {duration.ToShortDuration()}" : "")
+                        </MudText>
+                    </MudStack>
+                }
+            </MudStack>
+        }
+    </MudStack>
+</MudPaper>
 
 @code {
-    [Parameter, EditorRequired] public IReadOnlyList<AnalysisStepUpdate> Steps { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<AnalysisStepState> Steps { get; set; } = [];
+
+    [Parameter] public bool IsRunning { get; set; }
 }
