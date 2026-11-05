@@ -11,6 +11,7 @@ namespace InvestissementsDashboard.Client.ViewModels;
 /// </summary>
 public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider timeProvider, IPortfolioReviewRunner? runner = null)
 {
+    private readonly Dictionary<AnalysisStep, long> _stepStarts = [];
     private CancellationTokenSource? _cts;
 
     /// <summary>Whether the analysis can run: only the MAUI host registers an <see cref="IPortfolioReviewRunner"/>.</summary>
@@ -23,7 +24,7 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
     public string? Error { get; private set; }
 
     /// <summary>The state of every step, in display order. Replaced rather than mutated: the runner may update it from a background thread while the page reads it.</summary>
-    public IReadOnlyList<AnalysisStepUpdate> Steps { get; private set; } = PendingSteps();
+    public IReadOnlyList<AnalysisStepState> Steps { get; private set; } = PendingSteps();
 
     /// <summary>During a run, and after a failure that reached a step, so that the user sees which one failed.</summary>
     public bool ShowSteps => IsRunning || (Error is not null && Steps.Any(step => step.Status != AnalysisStepStatus.Pending));
@@ -48,6 +49,7 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
         ReportDate = null;
         Error = null;
         Steps = PendingSteps();
+        _stepStarts.Clear();
         try
         {
             var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
@@ -75,13 +77,26 @@ public class AnalysisViewModel(ILogger<AnalysisViewModel> logger, TimeProvider t
 
     public void Cancel() => _cts?.Cancel();
 
-    private static IReadOnlyList<AnalysisStepUpdate> PendingSteps() =>
-        [.. Enum.GetValues<AnalysisStep>().Select(step => new AnalysisStepUpdate(step, AnalysisStepStatus.Pending))];
+    private static IReadOnlyList<AnalysisStepState> PendingSteps() =>
+        [.. Enum.GetValues<AnalysisStep>().Select(step => new AnalysisStepState(step, AnalysisStepStatus.Pending))];
 
     private void Apply(AnalysisStepUpdate update)
     {
-        Steps = [.. Steps.Select(step => step.Step == update.Step ? update : step)];
+        var state = new AnalysisStepState(update.Step, update.Status, MeasureDuration(update));
+        Steps = [.. Steps.Select(step => step.Step == update.Step ? state : step)];
         StepsChanged?.Invoke();
+    }
+
+    private TimeSpan? MeasureDuration(AnalysisStepUpdate update)
+    {
+        if (update.Status == AnalysisStepStatus.Running)
+        {
+            // TryAdd: the synthesis is announced once per input received, and its duration starts at the first one.
+            _stepStarts.TryAdd(update.Step, timeProvider.GetTimestamp());
+            return null;
+        }
+
+        return _stepStarts.TryGetValue(update.Step, out var start) ? timeProvider.GetElapsedTime(start) : null;
     }
 
     // Not Progress<T>: it posts each update for later, so one could land after the run's end and undo its last state.

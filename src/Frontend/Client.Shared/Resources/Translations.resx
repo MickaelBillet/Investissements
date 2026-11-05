@@ -164,6 +164,11 @@
   <data name="Analysis_Step_Distribution" xml:space="preserve"><value>Répartitions géographiques et sectorielles</value></data>
   <data name="Analysis_Step_Context" xml:space="preserve"><value>Contexte économique et géopolitique</value></data>
   <data name="Analysis_Step_Synthesis" xml:space="preserve"><value>Synthèse</value></data>
+  <data name="Analysis_Steps_Running" xml:space="preserve"><value>Analyse en cours</value></data>
+  <data name="Analysis_Steps_Stopped" xml:space="preserve"><value>Analyse interrompue</value></data>
+  <data name="Analysis_Phase_Collection" xml:space="preserve"><value>Collecte des données</value></data>
+  <data name="Analysis_Phase_Writing" xml:space="preserve"><value>Rédaction</value></data>
+  <data name="Analysis_StepStatus_Running" xml:space="preserve"><value>En cours</value></data>
   <data name="Analysis_StepStatus_Pending" xml:space="preserve"><value>En attente</value></data>
   <data name="Analysis_StepStatus_Done" xml:space="preserve"><value>Terminée</value></data>
   <data name="Analysis_StepStatus_Failed" xml:space="preserve"><value>En échec</value></data>
