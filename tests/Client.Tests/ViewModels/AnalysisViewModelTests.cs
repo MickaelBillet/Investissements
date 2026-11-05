@@ -1,3 +1,4 @@
+using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.ViewModels;
 using InvestissementsDashboard.Shared.Models;
@@ -37,7 +38,7 @@ public class AnalysisViewModelTests
     [Fact]
     public async Task LaunchAsync_RunnerCompletes_ExposesTheReportAndItsDate()
     {
-        _runner.Setup(r => r.RunAsync(Today, It.IsAny<CancellationToken>())).ReturnsAsync(Report);
+        _runner.Setup(r => r.RunAsync(Today, It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
         var vm = Create();
 
         await vm.LaunchAsync();
@@ -46,13 +47,13 @@ public class AnalysisViewModelTests
         Assert.Equal(Today, vm.ReportDate);
         Assert.Null(vm.Error);
         Assert.False(vm.IsRunning);
-        _runner.Verify(r => r.RunAsync(Today, It.IsAny<CancellationToken>()), Times.Once);
+        _runner.Verify(r => r.RunAsync(Today, It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task LaunchAsync_RunnerThrows_SetsErrorAndNoReport()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new InvalidOperationException("MCP indisponible"));
         var vm = Create();
 
@@ -66,8 +67,8 @@ public class AnalysisViewModelTests
     [Fact]
     public async Task LaunchAsync_Cancelled_LeavesNoErrorAndNoReport()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
-               .Returns<DateOnly, CancellationToken>(async (_, ct) =>
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
+               .Returns<DateOnly, IProgress<AnalysisStepUpdate>?, CancellationToken>(async (_, _, ct) =>
                {
                    await Task.Delay(Timeout.Infinite, ct);
                    return Report;
@@ -88,7 +89,7 @@ public class AnalysisViewModelTests
     [Fact]
     public async Task LaunchAsync_AfterACancelledRun_ClearsIsCancelled()
     {
-        _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+        _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new OperationCanceledException())
                .ReturnsAsync(Report);
         var vm = Create();
@@ -104,7 +105,7 @@ public class AnalysisViewModelTests
     [Fact]
     public async Task Cancel_AfterACompletedRun_DoesNotMarkItCancelled()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
         var vm = Create();
         await vm.LaunchAsync();
 
@@ -117,7 +118,7 @@ public class AnalysisViewModelTests
     [Fact]
     public async Task LaunchAsync_SecondLaunch_ClearsPreviousError()
     {
-        _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+        _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new InvalidOperationException("échec"))
                .ReturnsAsync(Report);
         var vm = Create();
@@ -132,7 +133,7 @@ public class AnalysisViewModelTests
     [Fact]
     public async Task LaunchAsync_SecondLaunchFails_RemovesThePreviousReport()
     {
-        _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+        _runner.SetupSequence(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
                .ReturnsAsync(Report)
                .ThrowsAsync(new InvalidOperationException("échec"));
         var vm = Create();
@@ -143,6 +144,122 @@ public class AnalysisViewModelTests
         Assert.Null(vm.Report);
         Assert.Null(vm.ReportDate);
     }
+
+    [Fact]
+    public void Steps_BeforeAnyRun_AreAllPendingInDisplayOrder()
+    {
+        var vm = Create();
+
+        Assert.Equal([AnalysisStep.Allocation, AnalysisStep.Distribution, AnalysisStep.Context, AnalysisStep.Synthesis], vm.Steps.Select(s => s.Step));
+        Assert.All(vm.Steps, s => Assert.Equal(AnalysisStepStatus.Pending, s.Status));
+        Assert.False(vm.ShowSteps);
+    }
+
+    [Fact]
+    public async Task LaunchAsync_RunnerReportsAStep_UpdatesOnlyThatStepAndNotifies()
+    {
+        var pending = new TaskCompletionSource<SynthesisReport>();
+        IProgress<AnalysisStepUpdate>? progress = null;
+        SetupRunner(pending, p => progress = p);
+        var vm = Create();
+        var notifications = 0;
+        vm.StepsChanged += () => notifications++;
+
+        var launch = vm.LaunchAsync();
+        progress!.Report(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Running));
+
+        Assert.Equal(1, notifications);
+        Assert.True(vm.ShowSteps);
+        Assert.Equal(AnalysisStepStatus.Running, vm.Steps.Single(s => s.Step == AnalysisStep.Context).Status);
+        Assert.Equal(AnalysisStepStatus.Pending, vm.Steps.Single(s => s.Step == AnalysisStep.Synthesis).Status);
+
+        pending.SetResult(Report);
+        await launch;
+    }
+
+    [Fact]
+    public async Task LaunchAsync_RunnerCompletes_HidesTheSteps()
+    {
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
+        var vm = Create();
+
+        await vm.LaunchAsync();
+
+        Assert.False(vm.ShowSteps);
+    }
+
+    [Fact]
+    public async Task LaunchAsync_StepFails_ShowsItAndStopsTheStepsStillRunning()
+    {
+        var pending = new TaskCompletionSource<SynthesisReport>();
+        IProgress<AnalysisStepUpdate>? progress = null;
+        SetupRunner(pending, p => progress = p);
+        var vm = Create();
+
+        var launch = vm.LaunchAsync();
+        progress!.Report(new AnalysisStepUpdate(AnalysisStep.Allocation, AnalysisStepStatus.Done));
+        progress.Report(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Running));
+        progress.Report(new AnalysisStepUpdate(AnalysisStep.Distribution, AnalysisStepStatus.Failed));
+        pending.SetException(new InvalidOperationException("échec"));
+        await launch;
+
+        Assert.True(vm.ShowSteps);
+        Assert.Equal(AnalysisStepStatus.Done, vm.Steps.Single(s => s.Step == AnalysisStep.Allocation).Status);
+        Assert.Equal(AnalysisStepStatus.Failed, vm.Steps.Single(s => s.Step == AnalysisStep.Distribution).Status);
+        Assert.Equal(AnalysisStepStatus.Pending, vm.Steps.Single(s => s.Step == AnalysisStep.Context).Status);
+    }
+
+    [Fact]
+    public async Task LaunchAsync_FailsBeforeAnyStep_HidesTheSteps()
+    {
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
+               .ThrowsAsync(new InvalidOperationException("mot de passe refusé"));
+        var vm = Create();
+
+        await vm.LaunchAsync();
+
+        Assert.NotNull(vm.Error);
+        Assert.False(vm.ShowSteps);
+    }
+
+    [Fact]
+    public async Task LaunchAsync_Cancelled_HidesTheSteps()
+    {
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
+               .ThrowsAsync(new OperationCanceledException());
+        var vm = Create();
+
+        await vm.LaunchAsync();
+
+        Assert.False(vm.ShowSteps);
+    }
+
+    [Fact]
+    public async Task LaunchAsync_SecondLaunch_ResetsTheSteps()
+    {
+        var first = new TaskCompletionSource<SynthesisReport>();
+        IProgress<AnalysisStepUpdate>? progress = null;
+        SetupRunner(first, p => progress = p);
+        var vm = Create();
+        var launch = vm.LaunchAsync();
+        progress!.Report(new AnalysisStepUpdate(AnalysisStep.Allocation, AnalysisStepStatus.Done));
+        first.SetResult(Report);
+        await launch;
+
+        var second = new TaskCompletionSource<SynthesisReport>();
+        SetupRunner(second, _ => { });
+        launch = vm.LaunchAsync();
+
+        Assert.All(vm.Steps, s => Assert.Equal(AnalysisStepStatus.Pending, s.Status));
+
+        second.SetResult(Report);
+        await launch;
+    }
+
+    private void SetupRunner(TaskCompletionSource<SynthesisReport> result, Action<IProgress<AnalysisStepUpdate>?> onProgress) =>
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
+               .Callback<DateOnly, IProgress<AnalysisStepUpdate>?, CancellationToken>((_, p, _) => onProgress(p))
+               .Returns(result.Task);
 
     private sealed class FixedTimeProvider(DateOnly date) : TimeProvider
     {

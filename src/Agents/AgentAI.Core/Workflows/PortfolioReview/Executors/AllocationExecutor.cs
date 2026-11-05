@@ -9,7 +9,7 @@ namespace AgentAI.Core.Workflows.PortfolioReview.Executors;
 /// Reads the positions and the watchlist from the Api. Deliberately without a model: an agent asked to copy this data
 /// dropped many positions, invented duplicates and reported the wrong total, which distorted the synthesis.
 /// </summary>
-internal sealed class AllocationExecutor(IAllocationSource source) : Executor<AnalysisRequest, AllocationResult>("allocation")
+internal sealed class AllocationExecutor(IAllocationSource source) : Executor<AnalysisRequest, AllocationResult>(PortfolioReviewSteps.Allocation)
 {
     public override async ValueTask<AllocationResult> HandleAsync(AnalysisRequest message, IWorkflowContext context, CancellationToken cancellationToken = default)
     {

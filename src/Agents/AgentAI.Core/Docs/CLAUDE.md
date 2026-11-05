@@ -40,6 +40,7 @@ src/Agents/AgentAI.Core/
 │   ├── IPortfolioReviewWorkflowBuilder.cs  # BuildAsync(IAgentFactory, IAssetDistributionSource, ct) → Workflow
 │   ├── PortfolioReviewWorkflowBuilder.cs   # implémentation sans état (singleton côté hôte)
 │   ├── IAssetDistributionSource.cs         # contrat seul : répartitions géographique et sectorielle, implémenté par l'hôte
+│   ├── PortfolioReviewSteps.cs             # identifiants publics des executors, pour que l'hôte suive les étapes par les événements du framework
 │   ├── Executors/              # StartExecutor (transit), AllocationExecutor (IAllocationSource, sans modèle → AllocationResult), ContextExecutor (agent Context → PortfolioContext), AssetDistributionExecutor (→ DistributionResult), SynthesisExecutor (agent Synthesis → SynthesisReport)
 │   ├── Messages/               # AnalysisRequest, AllocationResult (+ AllocationLine, watchlist en WatchlistItemDto), PortfolioContext (+ ContextFactor, ContextSource, ContextIndicator, enums FactorType/FactorHorizon/ChangeUnit), DistributionResult (+ AssetClassDistribution) ; le rapport (SynthesisReport, ScenarioAssessment, Recommendation et leurs enums) est dans src/Common/Shared/Models, car la page Analyse de Client.Shared l'affiche
 │   └── Events/                 # AllocationRetrievedEvent, ContextRetrievedEvent, AssetDistributionRetrievedEvent, SynthesisWrittenEvent
@@ -64,7 +65,7 @@ Conventions :
 - **Un namespace par dossier**, à partir de `AgentAI.Core` (`AgentAI.Core.Agents.News`, `AgentAI.Core.Integrations.Mcp`…) : tout déplacement de fichier s'accompagne de son namespace.
 - **Un type par fichier**, du même nom que le type.
 - **Instructions nommées d'après leur agent** (`Stock.md`, `News.md`, `Context.md`…).
-- **`internal` par défaut.** Restent publics : ce que l'hôte utilise (`IAgentFactory`, `AgentFactoryBuilder`, `AgentAIOptions`, `AgentKind`, le contrat et les événements du workflow, les méthodes d'enregistrement, `IRssFeedReader`/`RssFeedReader`, `YahooTickerResolver`, `IWebSearchService`, `IFileChatHistoryProvider`), ce qu'exige la signature d'un type public (`InvestZaptoMcpConnector`, `INewsService`, `IWeatherService`, les messages portés par les événements) et le point d'extension des actualités (`INewsFeedSource`, `NewsRequest`, `NewsArticle`). Les tests accèdent au reste par `InternalsVisibleTo`.
+- **`internal` par défaut.** Restent publics : ce que l'hôte utilise (`IAgentFactory`, `AgentFactoryBuilder`, `AgentAIOptions`, `AgentKind`, le contrat, les événements et les identifiants d'étapes du workflow, les méthodes d'enregistrement, `IRssFeedReader`/`RssFeedReader`, `YahooTickerResolver`, `IWebSearchService`, `IFileChatHistoryProvider`), ce qu'exige la signature d'un type public (`InvestZaptoMcpConnector`, `INewsService`, `IWeatherService`, les messages portés par les événements) et le point d'extension des actualités (`INewsFeedSource`, `NewsRequest`, `NewsArticle`). Les tests accèdent au reste par `InternalsVisibleTo`.
 
 ## 4. Configuration (`AgentAIOptions`)
 
