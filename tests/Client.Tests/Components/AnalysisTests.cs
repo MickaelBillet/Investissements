@@ -1,4 +1,5 @@
 using Bunit;
+using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Client.Tests.Helpers;
 using InvestissementsDashboard.Client.ViewModels;
@@ -39,20 +40,20 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
 
         var cut = Render<Analysis>();
 
-        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Never);
+        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()), Times.Never);
         Assert.Contains(TestData.Translate("Analysis_Launch"), cut.Find("button").TextContent);
     }
 
     [Fact]
     public void Analysis_ClickLaunch_RunsOnceAndShowsTheReport()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
         RegisterViewModel(withRunner: true);
         var cut = Render<Analysis>();
 
         cut.Find("button").Click();
 
-        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Once);
+        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()), Times.Once);
         cut.WaitForAssertion(() => Assert.Contains("Concentration sur la technologie", cut.Markup));
     }
 
@@ -60,13 +61,13 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
     public void Analysis_WhileRunning_ShowsProgressAndDisablesTheButton()
     {
         var pending = new TaskCompletionSource<SynthesisReport>();
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).Returns(pending.Task);
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>())).Returns(pending.Task);
         RegisterViewModel(withRunner: true);
         var cut = Render<Analysis>();
 
         cut.Find("button").Click();
 
-        Assert.Contains(TestData.Translate("Analysis_Running"), cut.Markup);
+        Assert.Contains(TestData.Translate("Analysis_Step_Context"), cut.Markup);
         Assert.True(cut.Find("button").HasAttribute("disabled"));
         pending.SetResult(Report);
     }
@@ -85,8 +86,8 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
     public void Analysis_ClickCancel_InterruptsTheRunAndAllowsARestart()
     {
         CancellationToken received = default;
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
-               .Returns<DateOnly, CancellationToken>(async (_, ct) =>
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
+               .Returns<DateOnly, IProgress<AnalysisStepUpdate>?, CancellationToken>(async (_, _, ct) =>
                {
                    received = ct;
                    await Task.Delay(Timeout.Infinite, ct);
@@ -102,7 +103,7 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
         {
             Assert.True(received.IsCancellationRequested);
             Assert.Contains(TestData.Translate("Analysis_Cancelled"), cut.Markup);
-            Assert.DoesNotContain(TestData.Translate("Analysis_Running"), cut.Markup);
+            Assert.DoesNotContain(TestData.Translate("Analysis_Step_Context"), cut.Markup);
             var launch = Assert.Single(cut.FindAll("button"));
             Assert.False(launch.HasAttribute("disabled"));
         });
@@ -111,7 +112,7 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
     [Fact]
     public void Analysis_RunnerFails_ShowsTheError()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
                .ThrowsAsync(new InvalidOperationException("contexte vide"));
         RegisterViewModel(withRunner: true);
         var cut = Render<Analysis>();
@@ -128,7 +129,7 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
     [Fact]
     public async Task Analysis_ReopenedAfterAReport_KeepsItWithoutRunningAgain()
     {
-        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
         RegisterViewModel(withRunner: true);
         var first = Render<Analysis>();
         first.Find("button").Click();
@@ -138,7 +139,63 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
         var reopened = Render<Analysis>();
 
         Assert.Contains("Concentration sur la technologie", reopened.Markup);
-        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Once);
+        _runner.Verify(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void Analysis_RunnerReportsFromABackgroundThread_RefreshesTheSteps()
+    {
+        var pending = new TaskCompletionSource<SynthesisReport>();
+        IProgress<AnalysisStepUpdate>? progress = null;
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
+               .Callback<DateOnly, IProgress<AnalysisStepUpdate>?, CancellationToken>((_, p, _) => progress = p)
+               .Returns(pending.Task);
+        RegisterViewModel(withRunner: true);
+        var cut = Render<Analysis>();
+        cut.Find("button").Click();
+        Assert.Empty(cut.FindAll(".mud-progress-circular"));
+
+        Task.Run(() => progress!.Report(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Running))).Wait();
+
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".mud-progress-circular")));
+        pending.SetResult(Report);
+    }
+
+    [Fact]
+    public void Analysis_StepFails_ShowsTheStepsAndTheError()
+    {
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>()))
+               .Returns<DateOnly, IProgress<AnalysisStepUpdate>?, CancellationToken>((_, p, _) =>
+               {
+                   p!.Report(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Failed));
+                   throw new InvalidOperationException("contexte vide");
+               });
+        RegisterViewModel(withRunner: true);
+        var cut = Render<Analysis>();
+
+        cut.Find("button").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains(TestData.Translate("Analysis_StepStatus_Failed"), cut.Markup);
+            Assert.Contains("contexte vide", cut.Markup);
+        });
+    }
+
+    [Fact]
+    public void Analysis_ReportDisplayed_HidesTheSteps()
+    {
+        _runner.Setup(r => r.RunAsync(It.IsAny<DateOnly>(), It.IsAny<IProgress<AnalysisStepUpdate>?>(), It.IsAny<CancellationToken>())).ReturnsAsync(Report);
+        RegisterViewModel(withRunner: true);
+        var cut = Render<Analysis>();
+
+        cut.Find("button").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Contains("Concentration sur la technologie", cut.Markup);
+            Assert.DoesNotContain(TestData.Translate("Analysis_Step_Context"), cut.Markup);
+        });
     }
 
     [Fact]
@@ -149,6 +206,6 @@ public class AnalysisTests : BunitContext, IAsyncLifetime
         var cut = Render<Analysis>();
 
         Assert.Empty(cut.FindAll("button"));
-        Assert.DoesNotContain(TestData.Translate("Analysis_Running"), cut.Markup);
+        Assert.DoesNotContain(TestData.Translate("Analysis_Step_Context"), cut.Markup);
     }
 }

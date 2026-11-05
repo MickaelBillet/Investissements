@@ -1,0 +1,30 @@
+@using InvestissementsDashboard.Client.Model
+@inject ILocalizationService L
+
+<MudStack Spacing="1">
+    @foreach (var step in Steps)
+    {
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            @switch (step.Status)
+            {
+                case AnalysisStepStatus.Running:
+                    <MudProgressCircular Indeterminate="true" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" />
+                    break;
+                case AnalysisStepStatus.Done:
+                    <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Title="@L.Translate("Analysis_StepStatus_Done")" />
+                    break;
+                case AnalysisStepStatus.Failed:
+                    <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error" Title="@L.Translate("Analysis_StepStatus_Failed")" />
+                    break;
+                default:
+                    <MudIcon Icon="@Icons.Material.Outlined.RadioButtonUnchecked" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" Title="@L.Translate("Analysis_StepStatus_Pending")" />
+                    break;
+            }
+            <MudText Typo="Typo.body2">@L.Translate($"Analysis_Step_{step.Step}")</MudText>
+        </MudStack>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AnalysisStepUpdate> Steps { get; set; } = [];
+}

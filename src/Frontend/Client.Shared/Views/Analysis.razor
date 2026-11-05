@@ -20,12 +20,12 @@
             }
         </MudStack>
 
-        @if (ViewModel.IsRunning)
+        @if (ViewModel.ShowSteps)
         {
-            <MudText Typo="Typo.body2">@L.Translate("Analysis_Running")</MudText>
-            <MudProgressLinear Indeterminate="true" />
+            <AnalysisStepList Steps="ViewModel.Steps" />
         }
-        else if (ViewModel.IsCancelled)
+
+        @if (ViewModel.IsCancelled)
         {
             <MudText Typo="Typo.body2">@L.Translate("Analysis_Cancelled")</MudText>
         }
@@ -42,5 +42,14 @@
 }
 
 @code {
-    public void Dispose() => ViewModel.Cancel();
+    protected override void OnInitialized() => ViewModel.StepsChanged += OnStepsChanged;
+
+    // The workflow may report from a background thread: the render has to go back through the dispatcher.
+    private void OnStepsChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ViewModel.StepsChanged -= OnStepsChanged;
+        ViewModel.Cancel();
+    }
 }

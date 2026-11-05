@@ -160,7 +160,13 @@
   <data name="Agent_Running"      xml:space="preserve"><value>L'agent travaille…</value></data>
   <data name="Agent_Error"        xml:space="preserve"><value>L'agent a échoué</value></data>
   <data name="Nav_Analysis"       xml:space="preserve"><value>Analyse</value></data>
-  <data name="Analysis_Running"   xml:space="preserve"><value>Analyse du portefeuille en cours…</value></data>
+  <data name="Analysis_Step_Allocation" xml:space="preserve"><value>Allocation du portefeuille</value></data>
+  <data name="Analysis_Step_Distribution" xml:space="preserve"><value>Répartitions géographiques et sectorielles</value></data>
+  <data name="Analysis_Step_Context" xml:space="preserve"><value>Contexte économique et géopolitique</value></data>
+  <data name="Analysis_Step_Synthesis" xml:space="preserve"><value>Synthèse</value></data>
+  <data name="Analysis_StepStatus_Pending" xml:space="preserve"><value>En attente</value></data>
+  <data name="Analysis_StepStatus_Done" xml:space="preserve"><value>Terminée</value></data>
+  <data name="Analysis_StepStatus_Failed" xml:space="preserve"><value>En échec</value></data>
   <data name="Analysis_Launch"    xml:space="preserve"><value>Lancer l'analyse</value></data>
   <data name="Analysis_Cancel"    xml:space="preserve"><value>Annuler</value></data>
   <data name="Analysis_Cancelled" xml:space="preserve"><value>Analyse annulée.</value></data>

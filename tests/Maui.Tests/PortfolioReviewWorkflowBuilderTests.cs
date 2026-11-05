@@ -112,6 +112,19 @@ public class PortfolioReviewWorkflowBuilderTests
         return events;
     }
 
+    // The runner follows the steps through these ids: a step renamed or never announced would stay "pending" on screen.
+    [Fact]
+    public async Task BuildAsync_Run_AnnouncesEveryStepUnderItsPublicId()
+    {
+        var events = await RunAsync();
+
+        var invoked = events.OfType<ExecutorInvokedEvent>().Select(e => e.ExecutorId).ToList();
+        Assert.Contains(PortfolioReviewSteps.Allocation, invoked);
+        Assert.Contains(PortfolioReviewSteps.Context, invoked);
+        Assert.Contains(PortfolioReviewSteps.Distribution, invoked);
+        Assert.Contains(PortfolioReviewSteps.Synthesis, invoked);
+    }
+
     [Fact]
     public async Task BuildAsync_Always_CreatesTheContextAgent()
     {

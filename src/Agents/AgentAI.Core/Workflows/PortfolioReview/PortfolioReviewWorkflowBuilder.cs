@@ -21,10 +21,10 @@ public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBui
         ArgumentNullException.ThrowIfNull(distributionSource);
 
         var start = new StartExecutor();
-        var allocation = new AllocationExecutor(allocationSource);
-        var context = await CreateContextExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
-        var distribution = CreateAssetDistributionExecutor(distributionSource);
-        var synthesis = await CreateSynthesisExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
+        var allocation = this.CreateAllocationExecutor(allocationSource);
+        var context = await this.CreateContextExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
+        var distribution = this.CreateAssetDistributionExecutor(distributionSource);
+        var synthesis = await this.CreateSynthesisExecutorAsync(agentFactory, cancellationToken).ConfigureAwait(false);
 
         return new WorkflowBuilder(start)
             .AddFanOutEdge(start, [allocation, context, distribution])
@@ -48,5 +48,10 @@ public sealed class PortfolioReviewWorkflowBuilder : IPortfolioReviewWorkflowBui
     private AssetDistributionExecutor CreateAssetDistributionExecutor(IAssetDistributionSource distributionSource)
     {
         return new AssetDistributionExecutor(distributionSource);
+    }
+
+    private AllocationExecutor CreateAllocationExecutor(IAllocationSource allocationSource)
+    {
+        return new AllocationExecutor(allocationSource);
     }
 }

@@ -1,7 +1,9 @@
 using System.Net;
 using AgentAI.Core.Agents;
 using AgentAI.Core.Workflows.PortfolioReview;
+using AgentAI.Core.Workflows.PortfolioReview.Events;
 using AgentAI.Core.Workflows.PortfolioReview.Messages;
+using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Maui.Services;
 using InvestissementsDashboard.Shared.Models;
@@ -40,9 +42,10 @@ public class PortfolioReviewRunnerTests
         NullLogger<PortfolioReviewRunner>.Instance,
         timeout);
 
-    private void SetupStep(Func<AnalysisRequest, CancellationToken, ValueTask<SynthesisReport>> handle)
+    private void SetupStep(Func<AnalysisRequest, CancellationToken, ValueTask<SynthesisReport>> handle) => SetupWorkflow(new TestStep(handle));
+
+    private void SetupWorkflow(Executor<AnalysisRequest, SynthesisReport> step)
     {
-        var step = new TestStep(handle);
         _builder
             .Setup(b => b.BuildAsync(It.IsAny<IAgentFactory>(), It.IsAny<IAllocationSource>(), It.IsAny<IAssetDistributionSource>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => new WorkflowBuilder(step).WithOutputFrom(step).Build());
@@ -150,15 +153,79 @@ public class PortfolioReviewRunnerTests
         SetupStep(NeverAnswers);
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CreateRunner().RunAsync(Date, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CreateRunner().RunAsync(Date, cancellationToken: cts.Token));
     }
 
-    private sealed class TestStep(Func<AnalysisRequest, CancellationToken, ValueTask<SynthesisReport>> handle)
-        : Executor<AnalysisRequest, SynthesisReport>(Id)
+    [Fact]
+    public async Task RunAsync_KnownStepCompletes_ReportsItRunningThenDone()
+    {
+        SetupWorkflow(new CompletingStep());
+        var progress = new RecordingProgress();
+
+        await CreateRunner().RunAsync(Date, progress);
+
+        Assert.Equal(
+            [new AnalysisStepUpdate(AnalysisStep.Synthesis, AnalysisStepStatus.Running), new AnalysisStepUpdate(AnalysisStep.Synthesis, AnalysisStepStatus.Done)],
+            progress.Updates);
+    }
+
+    [Fact]
+    public async Task RunAsync_KnownStepThrows_ReportsItFailed()
+    {
+        SetupWorkflow(new TestStep((_, _) => throw new InvalidOperationException("model unavailable"), PortfolioReviewSteps.Context));
+        var progress = new RecordingProgress();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateRunner().RunAsync(Date, progress));
+
+        Assert.Equal(new AnalysisStepUpdate(AnalysisStep.Context, AnalysisStepStatus.Failed), progress.Updates[^1]);
+    }
+
+    [Fact]
+    public async Task RunAsync_StepNotShownToTheUser_ReportsNothing()
+    {
+        SetupStep((_, _) => ValueTask.FromResult(EmptyReport()));
+        var progress = new RecordingProgress();
+
+        await CreateRunner().RunAsync(Date, progress);
+
+        Assert.Empty(progress.Updates);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithoutProgress_StillReturnsTheReport()
+    {
+        SetupWorkflow(new CompletingStep());
+
+        var report = await CreateRunner().RunAsync(Date);
+
+        Assert.NotNull(report);
+    }
+
+    private sealed class TestStep(Func<AnalysisRequest, CancellationToken, ValueTask<SynthesisReport>> handle, string id = TestStep.Id)
+        : Executor<AnalysisRequest, SynthesisReport>(id)
     {
         public const string Id = "test-step";
 
         public override ValueTask<SynthesisReport> HandleAsync(AnalysisRequest message, IWorkflowContext context, CancellationToken cancellationToken = default) =>
             handle(message, cancellationToken);
+    }
+
+    // Stands for the real synthesis step: same id, and it publishes the same event when it ends.
+    private sealed class CompletingStep() : Executor<AnalysisRequest, SynthesisReport>(PortfolioReviewSteps.Synthesis)
+    {
+        public override async ValueTask<SynthesisReport> HandleAsync(AnalysisRequest message, IWorkflowContext context, CancellationToken cancellationToken = default)
+        {
+            var report = EmptyReport();
+            await context.AddEventAsync(new SynthesisWrittenEvent(report), cancellationToken);
+            return report;
+        }
+    }
+
+    // Synchronous, unlike Progress<T>: the updates are all there when the run returns.
+    private sealed class RecordingProgress : IProgress<AnalysisStepUpdate>
+    {
+        public List<AnalysisStepUpdate> Updates { get; } = [];
+
+        public void Report(AnalysisStepUpdate value) => Updates.Add(value);
     }
 }

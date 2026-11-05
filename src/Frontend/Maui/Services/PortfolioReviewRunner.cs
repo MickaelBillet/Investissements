@@ -3,6 +3,7 @@ using AgentAI.Core.Agents;
 using AgentAI.Core.Workflows.PortfolioReview;
 using AgentAI.Core.Workflows.PortfolioReview.Events;
 using AgentAI.Core.Workflows.PortfolioReview.Messages;
+using InvestissementsDashboard.Client.Model;
 using InvestissementsDashboard.Client.Services;
 using InvestissementsDashboard.Shared.Models;
 using Microsoft.Agents.AI.Workflows;
@@ -30,7 +31,7 @@ public sealed class PortfolioReviewRunner(
     // Same bound as AgentRunner: the context and the synthesis steps each take from one to two minutes.
     internal static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(3);
 
-    public async Task<SynthesisReport> RunAsync(DateOnly date, CancellationToken cancellationToken = default)
+    public async Task<SynthesisReport> RunAsync(DateOnly date, IProgress<AnalysisStepUpdate>? progress = null, CancellationToken cancellationToken = default)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(timeout ?? DefaultTimeout);
@@ -51,17 +52,33 @@ public sealed class PortfolioReviewRunner(
             {
                 switch (evt)
                 {
+                    case ExecutorInvokedEvent invoked when ToStep(invoked.ExecutorId) is { } step:
+                        progress?.Report(new AnalysisStepUpdate(step, AnalysisStepStatus.Running));
+                        break;
+
+                    // The end of a step comes from these events, not from ExecutorCompletedEvent: that one fires per handler,
+                    // and the first handlers of the synthesis only store their input.
                     case AllocationRetrievedEvent or ContextRetrievedEvent or AssetDistributionRetrievedEvent or SynthesisWrittenEvent:
                         logger.LogInformation("Portfolio review: {Event} after {Seconds:0.0}s", evt, stopwatch.Elapsed.TotalSeconds);
+                        progress?.Report(new AnalysisStepUpdate(CompletedStep(evt), AnalysisStepStatus.Done));
                         break;
 
                     // The synthesis report is the workflow's only output: receiving it means the review is complete.
-                    case WorkflowOutputEvent output when output.As<SynthesisReport>() is { } report:
-                        logger.LogInformation("Portfolio review: completed after {Seconds:0.0}s", stopwatch.Elapsed.TotalSeconds);
-                        return report;
+                    case WorkflowOutputEvent output:
+                        var report = output.As<SynthesisReport>();
+                        if (report is not null)
+                        {
+                            logger.LogInformation("Portfolio review: completed after {Seconds:0.0}s", stopwatch.Elapsed.TotalSeconds);
+                            return report;
+                        }
+                        break;
 
                     // The framework reports executor failures as events rather than exceptions thrown to the caller.
                     case ExecutorFailedEvent failed:
+                        if (ToStep(failed.ExecutorId) is { } failedStep)
+                        {
+                            progress?.Report(new AnalysisStepUpdate(failedStep, AnalysisStepStatus.Failed));
+                        }
                         throw Failed(failed.Data as Exception, $"step '{failed.ExecutorId}' failed");
 
                     case WorkflowErrorEvent error:
@@ -87,6 +104,25 @@ public sealed class PortfolioReviewRunner(
 
         throw new InvalidOperationException("The workflow ended without producing an output.");
     }
+
+    // Null for the start executor, which only forwards the request and is not shown to the user.
+    private static AnalysisStep? ToStep(string executorId) => executorId switch
+    {
+        PortfolioReviewSteps.Allocation => AnalysisStep.Allocation,
+        PortfolioReviewSteps.Distribution => AnalysisStep.Distribution,
+        PortfolioReviewSteps.Context => AnalysisStep.Context,
+        PortfolioReviewSteps.Synthesis => AnalysisStep.Synthesis,
+        _ => null
+    };
+
+    private static AnalysisStep CompletedStep(WorkflowEvent evt) => evt switch
+    {
+        AllocationRetrievedEvent => AnalysisStep.Allocation,
+        AssetDistributionRetrievedEvent => AnalysisStep.Distribution,
+        ContextRetrievedEvent => AnalysisStep.Context,
+        SynthesisWrittenEvent => AnalysisStep.Synthesis,
+        _ => throw new ArgumentOutOfRangeException(nameof(evt), evt, "Not the completion event of a step.")
+    };
 
     private InvalidOperationException Failed(Exception? cause, string what)
     {
