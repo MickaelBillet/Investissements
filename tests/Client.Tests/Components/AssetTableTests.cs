@@ -143,13 +143,25 @@ public class AssetTableTests : BunitContext
     public void AssetTable_WhenPrivacyModeIsHidden_MasksAmounts()
     {
         Services.AddPrivacyModeMock(isHidden: true);
-        var assets = new[] { TestData.Asset(name: "MSCI World", currentTotal: 5_000m, unrealizedGain: 100m) };
+        var assets = new[] { TestData.Asset(name: "MSCI World", currentTotal: 5_000m, unrealizedGain: 100m, dividends: 42m) };
 
         var cut = Render<AssetTable>(p => p.Add(c => c.Assets, assets));
 
         Assert.Contains("*****", cut.Markup);
         Assert.DoesNotContain((5_000m).ToEurAmount(), cut.Markup);
         Assert.DoesNotContain((100m).ToEurAmount(), cut.Markup);
+        Assert.DoesNotContain((42m).ToEurAmount(), cut.Markup);
+    }
+
+    [Fact]
+    public void AssetTable_WhenDividendsProvided_DisplaysYieldInEuros()
+    {
+        var assets = new[] { TestData.Asset(currentTotal: 5_000m, yield: 7.25m, dividends: 42m) };
+
+        var cut = Render<AssetTable>(p => p.Add(c => c.Assets, assets));
+
+        Assert.Contains((42m).ToEurAmount(), cut.Markup);
+        Assert.DoesNotContain((7.25m).ToPercentage(), cut.Markup);
     }
 
     [Fact]

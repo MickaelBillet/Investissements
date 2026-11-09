@@ -91,7 +91,7 @@ Quand le drill-down Classes d'actifs atteint le niveau `AssetType = ETF_Stocks`,
 
 ### 3.5 Tableau des actifs (niveau feuille)
 
-Colonnes affichées : Nom, Valeur actuelle (€), Plus-value latente (€), ROI (%), Rendement (%).  
+Colonnes affichées : Nom, Valeur actuelle (€), Plus-value latente (€), ROI (%), Rendement (€).  
 Tri : par valeur actuelle décroissante.  
 Footer : somme de la colonne Valeur actuelle.  
 Les champs `null` (données incomplètes) sont affichés `—`.

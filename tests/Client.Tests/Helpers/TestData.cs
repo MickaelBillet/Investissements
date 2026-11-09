@@ -51,9 +51,10 @@ internal static class TestData
         decimal? unrealizedGain = null,
         decimal? roi         = null,
         decimal? yield       = null,
-        int     id           = 1) =>
+        int     id           = 1,
+        decimal? dividends   = null) =>
         new(id, name, assetClass, supportType, support, assetType, sector, information, geography,
-            risk, null, null, null, currentTotal, unrealizedGain, yield, roi, 0m);
+            risk, null, null, dividends, currentTotal, unrealizedGain, yield, roi, 0m);
 
     public static SnapshotDto Snapshot(
         DateOnly? date           = null,

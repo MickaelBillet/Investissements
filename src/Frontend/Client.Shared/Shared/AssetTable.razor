@@ -46,7 +46,7 @@
             @context.Roi.ToPercentage()
         </MudTd>
         <MudTd DataLabel="@L.Translate("Col_Yield")" Style="text-align:right;">
-            @context.Yield.ToPercentage()
+            @context.Dividends.ToEurAmount(Privacy.IsHidden)
         </MudTd>
         @if (AgentsAvailable)
         {
