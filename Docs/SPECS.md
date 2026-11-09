@@ -53,7 +53,7 @@ SRS_08 Un contrôle graphique doit permettre de revenir au graphique à secteurs
 
 #### Détail des actifs
 
-SRS_14 Lorsque le dernier niveau de drill-down est atteint (actifs du type, actifs du support, actifs du niveau de risque), un tableau s'affiche à côté du graphique à secteurs (SRS_19) présentant pour chaque actif : le nom, la valeur actuelle en euros, la plus-value latente en euros, le ROI en % et le rendement en %. Dans le drill-down par zone géographique (SRS_21), une colonne « coefficient de zone » (SRS_30) s'ajoute après la valeur actuelle
+SRS_14 Lorsque le dernier niveau de drill-down est atteint (actifs du type, actifs du support, actifs du niveau de risque), un tableau s'affiche à côté du graphique à secteurs (SRS_19) présentant pour chaque actif : le nom, la valeur actuelle en euros, la plus-value latente en euros, le ROI en % et le rendement en euros. Dans le drill-down par zone géographique (SRS_21), une colonne « coefficient de zone » (SRS_30) s'ajoute après la valeur actuelle
 
 #### ETF Stocks — Groupement par thématique
 
