@@ -48,6 +48,8 @@ public class AgentInstructionsTests
     [InlineData("une part des seules lignes éligibles de la classe d'actifs")]
     [InlineData("une entrée pour chaque scénario du profil")]
     [InlineData("Une ligne de valeur nulle avec un `roi` négatif est une perte constatée")]
+    [InlineData("Ne mentionne jamais un numéro d'étape")]
+    [InlineData("n'écris jamais un identifiant seul")]
     public void Instructions_Synthesis_StateTheReportRules(string rule)
     {
         using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.Synthesis.md");
@@ -92,6 +94,20 @@ public class AgentInstructionsTests
         using var reader = new StreamReader(stream);
 
         Assert.Contains("Rattache chaque ligne de l'allocation au driver", reader.ReadToEnd());
+    }
+
+    // Without these rules the model recommends selling positions the investor holds to term, on rate or liquidity grounds.
+    [Theory]
+    [InlineData("l'investisseur les porte jusqu'à leur échéance")]
+    [InlineData("Seule exception : une occasion de vente avec une forte plus-value")]
+    [InlineData("Aucune recommandation de sortie")]
+    public void Instructions_InvestorProfile_StateTheHoldingRules(string rule)
+    {
+        using var stream = typeof(AgentAIOptions).Assembly.GetManifestResourceStream("Instructions.InvestorProfile.md");
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+
+        Assert.Contains(rule, reader.ReadToEnd());
     }
 
     // Synthesis.md only accepts a scenario or a context factor as a driver: the third-party guide must not become one.

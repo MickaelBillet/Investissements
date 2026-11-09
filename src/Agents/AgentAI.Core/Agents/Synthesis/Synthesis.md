@@ -90,7 +90,15 @@ Réponds en français, dans le format structuré demandé :
   - `Target` : nom de la classe d'actif, du thème ou de la ligne, tel qu'il apparaît dans les entrées ;
   - `Direction` : Reinforce, Reduce, Initiate ou Watch ;
   - `Driver` : le scénario ou le facteur de contexte qui la justifie ;
-  - `Rationale` : 2 à 3 phrases factuelles ;
+  - `Rationale` : 2 à 3 phrases factuelles, qui exposent le mécanisme et nomment les lignes concernées ;
   - `Confidence` : Low, Medium ou High, selon la solidité du lien entre le moteur et la recommandation.
+
+Le rapport doit se comprendre sans avoir le profil sous les yeux :
+
+- Ne mentionne jamais un numéro d'étape (1.1, 2.1-2.2, 1.5…) : décris ce qui se passe (« si les taux longs refluent une fois l'inflation revenue à 2 % »).
+- Hors du champ `Scenario`, n'écris jamais un identifiant seul : donne le nom du scénario (« la stagflation européenne »).
+- N'emploie pas le vocabulaire interne du profil : « étape », « driver », « signal-pivot », « angle mort », « fil directeur ». Écris le risque ou l'idée en clair.
+- Explicite chaque enchaînement : quel fait, quel mécanisme, quelles lignes, dans quel sens. Traduis ou explique les termes de marché anglais.
+- `Driver` énonce le fait ou le scénario en une phrase autonome, pas une étiquette.
 
 Sois direct et factuel. Chaque phrase doit apporter une information que l'investisseur n'avait pas en lisant simplement son tableau de suivi.

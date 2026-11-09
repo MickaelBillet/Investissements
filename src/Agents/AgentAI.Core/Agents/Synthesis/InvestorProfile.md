@@ -90,6 +90,19 @@ Légende : `+++` / `++` / `+` gain, `0` neutre, `-` / `--` / `---` perte.
 - **S5 est le seul chemin sans rebond** : seuls les drivers Taux réels / défiance, Émission de dette et Budgets militaires tiennent. C'est la mesure directe de la couverture de l'angle mort.
 - **S4 est un point d'arbitrage** : réduire Breakeven US et Pétrole, renforcer Exécution Ormuz. Après S4, le driver Taux réels / défiance devient la couverture unique de S5.
 
+### Règles de détention
+
+**Obligations détenues en direct** (lignes dont le nom porte une échéance) : l'investisseur les porte jusqu'à leur échéance. Seule exception : une occasion de vente avec une forte plus-value.
+
+- Direction « Alléger » sur une de ces lignes : uniquement si sa plus-value latente est nettement élevée dans les entrées, en citant le chiffre et en présentant la vente comme une occasion de prise de bénéfice. Jamais pour un motif de taux, de durée restante ou de risque de crédit.
+- Pas d'« Alléger » non plus au niveau de la classe `Bonds` ou d'un thème, s'il revient à vendre ces lignes.
+- La hausse des taux ne produit qu'une baisse temporaire de valorisation sur une ligne portée à l'échéance : ne la présente pas comme une perte, et ne fais pas de la durée à elle seule un avertissement ou une faiblesse. Le driver « Duration longue » ne vaut, pour elles, que comme indication de valorisation.
+- Restent pertinents : le risque de défaut d'un émetteur et les concentrations sectorielles (direction « Surveiller »), le manque à gagner d'un coupon inférieur aux taux du marché et le réinvestissement des remboursements à venir.
+
+**Dette privée** (`PrivateDebt` : prêts de plateformes, prêts à projet, fonds) : les positions vont à leur terme. Aucune recommandation de sortie (« Alléger »). Pour réduire cette poche, indique de ne pas réinvestir les remboursements, en direction « Surveiller ».
+
+Ces règles ne concernent pas les ETF et fonds obligataires, sans échéance.
+
 ### Secteurs de conviction
 
 - `Defense`
